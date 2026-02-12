@@ -1,0 +1,119 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Project {
+  id          String   @id @default(uuid())
+  name        String
+  description String   @default("")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  ruleSets   RuleSet[]
+  dataModels DataModel[]
+}
+
+model DataModel {
+  id        String   @id @default(uuid())
+  projectId String
+  name      String
+  schema    String   // JSON string of the schema definition
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  project  Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  ruleSets RuleSet[]
+}
+
+model RuleSet {
+  id           String   @id @default(uuid())
+  projectId    String
+  name         String
+  description  String   @default("")
+  inputModelId String?
+  status       String   @default("draft") // draft | published | archived
+  version      Int      @default(1)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  project        Project          @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  inputModel     DataModel?       @relation(fields: [inputModelId], references: [id])
+  rules          Rule[]
+  decisionTables DecisionTable[]
+  versions       RuleSetVersion[]
+  executionLogs  ExecutionLog[]
+}
+
+model Rule {
+  id          String   @id @default(uuid())
+  ruleSetId   String
+  name        String
+  description String   @default("")
+  priority    Int      @default(0)
+  conditions  String   // JSON string of condition tree
+  actions     String   // JSON string of action list
+  enabled     Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  ruleSet RuleSet @relation(fields: [ruleSetId], references: [id], onDelete: Cascade)
+}
+
+model DecisionTable {
+  id          String   @id @default(uuid())
+  ruleSetId   String
+  name        String
+  description String   @default("")
+  columns     String   // JSON: column definitions
+  rows        String   // JSON: row data
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  ruleSet RuleSet @relation(fields: [ruleSetId], references: [id], onDelete: Cascade)
+}
+
+model RuleSetVersion {
+  id          String   @id @default(uuid())
+  ruleSetId   String
+  version     Int
+  snapshot    String   // JSON: complete snapshot of rules + tables
+  changelog   String   @default("")
+  publishedAt DateTime @default(now())
+  publishedBy String   @default("system")
+
+  ruleSet RuleSet @relation(fields: [ruleSetId], references: [id], onDelete: Cascade)
+}
+
+model ExecutionLog {
+  id              String   @id @default(uuid())
+  ruleSetId       String
+  version         Int
+  input           String   // JSON
+  output          String   // JSON
+  rulesFired      String   // JSON: array of rule IDs that fired
+  executionTimeMs Int
+  status          String   // success | error
+  error           String?
+  createdAt       DateTime @default(now())
+
+  ruleSet RuleSet @relation(fields: [ruleSetId], references: [id], onDelete: Cascade)
+}
+
+model QueueJob {
+  id          String   @id @default(uuid())
+  queue       String   @default("rule-execution")
+  payload     String   // JSON
+  status      String   @default("pending") // pending | processing | completed | failed
+  result      String?  // JSON
+  error       String?
+  attempts    Int      @default(0)
+  maxAttempts Int      @default(3)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  completedAt DateTime?
+}

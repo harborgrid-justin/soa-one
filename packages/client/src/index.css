@@ -1,0 +1,92 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply bg-slate-50 text-slate-700;
+  }
+}
+
+@layer components {
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+  .btn-primary {
+    @apply btn bg-brand-600 text-white hover:bg-brand-700 focus:ring-brand-500 shadow-sm;
+  }
+  .btn-secondary {
+    @apply btn bg-white text-slate-700 border border-slate-300 hover:bg-slate-50 focus:ring-brand-500;
+  }
+  .btn-danger {
+    @apply btn bg-red-600 text-white hover:bg-red-700 focus:ring-red-500;
+  }
+  .btn-ghost {
+    @apply btn text-slate-600 hover:bg-slate-100 focus:ring-brand-500;
+  }
+  .btn-sm {
+    @apply px-3 py-1.5 text-xs;
+  }
+  .card {
+    @apply bg-white rounded-xl border border-slate-200 shadow-sm;
+  }
+  .input {
+    @apply block w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 placeholder-slate-400 focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500 transition-colors;
+  }
+  .label {
+    @apply block text-sm font-medium text-slate-700 mb-1;
+  }
+  .badge {
+    @apply inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium;
+  }
+  .badge-green {
+    @apply badge bg-emerald-50 text-emerald-700 ring-1 ring-emerald-600/20;
+  }
+  .badge-yellow {
+    @apply badge bg-amber-50 text-amber-700 ring-1 ring-amber-600/20;
+  }
+  .badge-red {
+    @apply badge bg-red-50 text-red-700 ring-1 ring-red-600/20;
+  }
+  .badge-blue {
+    @apply badge bg-blue-50 text-blue-700 ring-1 ring-blue-600/20;
+  }
+  .badge-gray {
+    @apply badge bg-slate-100 text-slate-600 ring-1 ring-slate-500/10;
+  }
+}
+
+/* React Flow overrides for enterprise look */
+.react-flow__node {
+  border-radius: 0.75rem !important;
+  border: 1px solid #e2e8f0 !important;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.08) !important;
+}
+
+.react-flow__edge-path {
+  stroke: #94a3b8 !important;
+  stroke-width: 2 !important;
+}
+
+.react-flow__handle {
+  width: 10px !important;
+  height: 10px !important;
+  border: 2px solid #6366f1 !important;
+  background: white !important;
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
