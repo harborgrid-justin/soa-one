@@ -17,6 +17,20 @@ import { WorkflowDesigner } from './pages/WorkflowDesigner';
 import { AuditLog } from './pages/AuditLog';
 import { AdaptersList } from './pages/Adapters';
 import { UserManagement } from './pages/UserManagement';
+// V3 pages
+import { VersionDiff } from './pages/VersionDiff';
+import { Analytics } from './pages/Analytics';
+import { Simulations } from './pages/Simulations';
+import { NotificationCenter } from './pages/NotificationCenter';
+import { RuleConflicts } from './pages/RuleConflicts';
+import { ImportExport } from './pages/ImportExport';
+// V4 pages
+import { Approvals } from './pages/Approvals';
+import { ApiGateway } from './pages/ApiGateway';
+import { ScheduledJobs } from './pages/ScheduledJobs';
+import { TemplateMarketplace } from './pages/TemplateMarketplace';
+import { ComplianceDashboard } from './pages/ComplianceDashboard';
+import { CacheMonitor } from './pages/CacheMonitor';
 
 export default function App() {
   return (
@@ -41,6 +55,20 @@ export default function App() {
           <Route path="api-docs" element={<ApiDocs />} />
           <Route path="users" element={<UserManagement />} />
           <Route path="settings" element={<Settings />} />
+          {/* V3 routes */}
+          <Route path="analytics" element={<Analytics />} />
+          <Route path="simulations" element={<Simulations />} />
+          <Route path="notifications" element={<NotificationCenter />} />
+          <Route path="rule-sets/:ruleSetId/diff/:v1/:v2" element={<VersionDiff />} />
+          <Route path="rule-sets/:ruleSetId/conflicts" element={<RuleConflicts />} />
+          <Route path="import-export" element={<ImportExport />} />
+          {/* V4 routes */}
+          <Route path="approvals" element={<Approvals />} />
+          <Route path="api-gateway" element={<ApiGateway />} />
+          <Route path="scheduled-jobs" element={<ScheduledJobs />} />
+          <Route path="templates" element={<TemplateMarketplace />} />
+          <Route path="compliance" element={<ComplianceDashboard />} />
+          <Route path="performance" element={<CacheMonitor />} />
         </Route>
       </Routes>
     </BrowserRouter>

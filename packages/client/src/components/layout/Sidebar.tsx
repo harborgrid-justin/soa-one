@@ -14,6 +14,17 @@ import {
   Plug,
   Shield,
   Users,
+  BarChart3,
+  FlaskRound,
+  Bell,
+  AlertTriangle,
+  ArrowDownUp,
+  CheckSquare,
+  Key,
+  Clock,
+  Store,
+  ShieldCheck,
+  Gauge,
 } from 'lucide-react';
 import { useStore } from '../../store';
 
@@ -33,6 +44,16 @@ const navSections = [
     items: [
       { to: '/workflows', icon: Workflow, label: 'Workflows' },
       { to: '/adapters', icon: Plug, label: 'Adapters' },
+      { to: '/scheduled-jobs', icon: Clock, label: 'Scheduled Jobs' },
+      { to: '/approvals', icon: CheckSquare, label: 'Approvals' },
+    ],
+  },
+  {
+    label: 'Intelligence',
+    items: [
+      { to: '/analytics', icon: BarChart3, label: 'Analytics' },
+      { to: '/simulations', icon: FlaskRound, label: 'Simulations' },
+      { to: '/templates', icon: Store, label: 'Templates' },
     ],
   },
   {
@@ -41,13 +62,18 @@ const navSections = [
       { to: '/test', icon: FlaskConical, label: 'Test Sandbox' },
       { to: '/monitoring', icon: Activity, label: 'Monitoring' },
       { to: '/audit', icon: Shield, label: 'Audit Log' },
+      { to: '/notifications', icon: Bell, label: 'Notifications' },
       { to: '/api-docs', icon: Zap, label: 'API & Queue' },
+      { to: '/import-export', icon: ArrowDownUp, label: 'Import / Export' },
     ],
   },
   {
     label: 'Admin',
     items: [
       { to: '/users', icon: Users, label: 'Team & SSO' },
+      { to: '/api-gateway', icon: Key, label: 'API Gateway' },
+      { to: '/compliance', icon: ShieldCheck, label: 'Compliance' },
+      { to: '/performance', icon: Gauge, label: 'Performance' },
     ],
   },
 ];
@@ -125,7 +151,7 @@ export function Sidebar() {
         </NavLink>
         {sidebarOpen && (
           <div className="mt-3 px-3 text-[10px] text-slate-600">
-            v2.0.0
+            v4.0.0
           </div>
         )}
       </div>

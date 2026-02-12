@@ -68,6 +68,8 @@ export const testRuleSet = (ruleSetId: string, input: any) =>
 export const getDashboardStats = () => api.get('/dashboard/stats').then((r) => r.data);
 export const getExecutionLogs = (ruleSetId: string) =>
   api.get(`/dashboard/executions/${ruleSetId}`).then((r) => r.data);
+export const getAllExecutionLogs = (params?: any) =>
+  api.get('/dashboard/executions', { params }).then((r) => r.data);
 
 // Versions
 export const publishRuleSet = (ruleSetId: string, data?: { changelog?: string }) =>
@@ -135,6 +137,125 @@ export const getAuditLogs = (params?: any) =>
 // Tenants
 export const getCurrentTenant = () => api.get('/tenants/current').then((r) => r.data);
 export const getTenantUsage = () => api.get('/tenants/current/usage').then((r) => r.data);
+
+// ============================================================
+// V3: Notifications
+// ============================================================
+export const getNotifications = (params?: { unread?: boolean }) =>
+  api.get('/notifications', { params }).then((r) => r.data);
+export const getNotificationCount = () =>
+  api.get('/notifications/count').then((r) => r.data);
+export const markNotificationRead = (id: string) =>
+  api.put(`/notifications/${id}/read`).then((r) => r.data);
+export const markAllNotificationsRead = () =>
+  api.put('/notifications/read-all').then((r) => r.data);
+export const deleteNotification = (id: string) =>
+  api.delete(`/notifications/${id}`).then((r) => r.data);
+
+// V3: Version Diff
+export const getVersionDiff = (ruleSetId: string, v1: number, v2: number) =>
+  api.get(`/version-diff/rule-sets/${ruleSetId}/diff/${v1}/${v2}`).then((r) => r.data);
+
+// V3: Simulations
+export const getSimulations = (ruleSetId?: string) =>
+  api.get('/simulations', { params: { ruleSetId } }).then((r) => r.data);
+export const getSimulation = (id: string) =>
+  api.get(`/simulations/${id}`).then((r) => r.data);
+export const createSimulation = (data: any) =>
+  api.post('/simulations', data).then((r) => r.data);
+export const deleteSimulation = (id: string) =>
+  api.delete(`/simulations/${id}`).then((r) => r.data);
+
+// V3: Rule Conflicts
+export const getRuleConflicts = (ruleSetId: string) =>
+  api.get(`/conflicts/rule-sets/${ruleSetId}/conflicts`).then((r) => r.data);
+
+// V3: Import/Export
+export const exportProject = (id: string) =>
+  api.get(`/import-export/export/project/${id}`).then((r) => r.data);
+export const exportRuleSet = (id: string) =>
+  api.get(`/import-export/export/rule-set/${id}`).then((r) => r.data);
+export const importProject = (data: any) =>
+  api.post('/import-export/import/project', data).then((r) => r.data);
+export const importRuleSet = (projectId: string, data: any) =>
+  api.post(`/import-export/import/rule-set/${projectId}`, data).then((r) => r.data);
+
+// ============================================================
+// V4: Approvals
+// ============================================================
+export const getApprovalPipelines = () =>
+  api.get('/approvals/pipelines').then((r) => r.data);
+export const createApprovalPipeline = (data: any) =>
+  api.post('/approvals/pipelines', data).then((r) => r.data);
+export const updateApprovalPipeline = (id: string, data: any) =>
+  api.put(`/approvals/pipelines/${id}`, data).then((r) => r.data);
+export const deleteApprovalPipeline = (id: string) =>
+  api.delete(`/approvals/pipelines/${id}`).then((r) => r.data);
+export const getApprovalRequests = (params?: any) =>
+  api.get('/approvals/requests', { params }).then((r) => r.data);
+export const createApprovalRequest = (data: any) =>
+  api.post('/approvals/requests', data).then((r) => r.data);
+export const approveRequest = (id: string, comment?: string) =>
+  api.put(`/approvals/requests/${id}/approve`, { comment }).then((r) => r.data);
+export const rejectRequest = (id: string, comment?: string) =>
+  api.put(`/approvals/requests/${id}/reject`, { comment }).then((r) => r.data);
+export const addApprovalComment = (id: string, text: string) =>
+  api.post(`/approvals/requests/${id}/comment`, { text }).then((r) => r.data);
+
+// V4: API Keys
+export const getApiKeys = () => api.get('/api-keys').then((r) => r.data);
+export const createApiKey = (data: any) =>
+  api.post('/api-keys', data).then((r) => r.data);
+export const updateApiKey = (id: string, data: any) =>
+  api.put(`/api-keys/${id}`, data).then((r) => r.data);
+export const deleteApiKey = (id: string) =>
+  api.delete(`/api-keys/${id}`).then((r) => r.data);
+
+// V4: Scheduled Jobs
+export const getScheduledJobs = (params?: any) =>
+  api.get('/scheduled-jobs', { params }).then((r) => r.data);
+export const getScheduledJob = (id: string) =>
+  api.get(`/scheduled-jobs/${id}`).then((r) => r.data);
+export const createScheduledJob = (data: any) =>
+  api.post('/scheduled-jobs', data).then((r) => r.data);
+export const updateScheduledJob = (id: string, data: any) =>
+  api.put(`/scheduled-jobs/${id}`, data).then((r) => r.data);
+export const deleteScheduledJob = (id: string) =>
+  api.delete(`/scheduled-jobs/${id}`).then((r) => r.data);
+export const runScheduledJobNow = (id: string) =>
+  api.post(`/scheduled-jobs/${id}/run-now`).then((r) => r.data);
+
+// V4: Templates
+export const getTemplates = (params?: any) =>
+  api.get('/templates', { params }).then((r) => r.data);
+export const getTemplate = (id: string) =>
+  api.get(`/templates/${id}`).then((r) => r.data);
+export const createTemplate = (data: any) =>
+  api.post('/templates', data).then((r) => r.data);
+export const updateTemplate = (id: string, data: any) =>
+  api.put(`/templates/${id}`, data).then((r) => r.data);
+export const deleteTemplate = (id: string) =>
+  api.delete(`/templates/${id}`).then((r) => r.data);
+export const installTemplate = (id: string) =>
+  api.post(`/templates/${id}/install`).then((r) => r.data);
+export const rateTemplate = (id: string, rating: number) =>
+  api.post(`/templates/${id}/rate`, { rating }).then((r) => r.data);
+
+// V4: Compliance
+export const getComplianceFrameworks = () =>
+  api.get('/compliance').then((r) => r.data);
+export const getComplianceFramework = (id: string) =>
+  api.get(`/compliance/${id}`).then((r) => r.data);
+export const createComplianceFramework = (data: any) =>
+  api.post('/compliance', data).then((r) => r.data);
+export const updateComplianceFramework = (id: string, data: any) =>
+  api.put(`/compliance/${id}`, data).then((r) => r.data);
+export const deleteComplianceFramework = (id: string) =>
+  api.delete(`/compliance/${id}`).then((r) => r.data);
+export const certifyFramework = (id: string) =>
+  api.post(`/compliance/${id}/certify`).then((r) => r.data);
+export const getComplianceAuditTrail = (id: string) =>
+  api.get(`/compliance/${id}/audit-trail`).then((r) => r.data);
 
 // Set auth token on the api instance
 export function setAuthToken(token: string | null) {

@@ -15,6 +15,16 @@ const pageTitles: Record<string, string> = {
   '/api-docs': 'API & Queue',
   '/users': 'User Management',
   '/settings': 'Settings',
+  '/analytics': 'Analytics',
+  '/simulations': 'What-If Simulations',
+  '/notifications': 'Notifications',
+  '/import-export': 'Import / Export',
+  '/approvals': 'Approvals',
+  '/api-gateway': 'API Gateway',
+  '/scheduled-jobs': 'Scheduled Jobs',
+  '/templates': 'Template Marketplace',
+  '/compliance': 'Compliance & Regulatory',
+  '/performance': 'Performance Monitor',
 };
 
 export function Header() {

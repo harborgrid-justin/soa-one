@@ -21,6 +21,18 @@ import { workflowRoutes } from './routes/workflows';
 import { adapterRoutes } from './routes/adapters';
 import { auditRoutes } from './routes/audit';
 import { tenantRoutes } from './routes/tenants';
+// V3 routes
+import notificationRoutes from './routes/notifications';
+import simulationRoutes from './routes/simulations';
+import versionDiffRoutes from './routes/versionDiff';
+import conflictRoutes from './routes/conflicts';
+// V4 routes
+import approvalRoutes from './routes/approvals';
+import apiKeyRoutes from './routes/apiKeys';
+import scheduledJobRoutes from './routes/scheduledJobs';
+import templateRoutes from './routes/templates';
+import complianceRoutes from './routes/compliance';
+import importExportRoutes from './routes/importExport';
 import { prisma } from './prisma';
 
 export async function createApp() {
@@ -37,7 +49,7 @@ export async function createApp() {
 
   // Health check
   app.get('/api/v1/health', (_req, res) => {
-    res.json({ status: 'ok', service: 'soa-one', version: '2.0.0', timestamp: new Date().toISOString() });
+    res.json({ status: 'ok', service: 'soa-one', version: '4.0.0', timestamp: new Date().toISOString() });
   });
 
   // Auth routes (login/register)
@@ -59,6 +71,20 @@ export async function createApp() {
   app.use('/api/v1/adapters', adapterRoutes);
   app.use('/api/v1/audit', auditRoutes);
   app.use('/api/v1/tenants', tenantRoutes);
+
+  // V3 routes
+  app.use('/api/v1/notifications', notificationRoutes);
+  app.use('/api/v1/simulations', simulationRoutes);
+  app.use('/api/v1/version-diff', versionDiffRoutes);
+  app.use('/api/v1/conflicts', conflictRoutes);
+
+  // V4 routes
+  app.use('/api/v1/approvals', approvalRoutes);
+  app.use('/api/v1/api-keys', apiKeyRoutes);
+  app.use('/api/v1/scheduled-jobs', scheduledJobRoutes);
+  app.use('/api/v1/templates', templateRoutes);
+  app.use('/api/v1/compliance', complianceRoutes);
+  app.use('/api/v1/import-export', importExportRoutes);
 
   // GraphQL
   const apollo = new ApolloServer({ typeDefs, resolvers });

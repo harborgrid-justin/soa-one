@@ -28,6 +28,9 @@ model Tenant {
   invitations Invitation[]
   projects    Project[]
   auditLogs   AuditLog[]
+  apiKeys     ApiKey[]
+  approvalPipelines ApprovalPipeline[]
+  complianceFrameworks ComplianceFramework[]
 }
 
 // ============================================================
@@ -47,9 +50,12 @@ model User {
   createdAt  DateTime  @default(now())
   updatedAt  DateTime  @updatedAt
 
-  tenant    Tenant     @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  sessions  Session[]
-  auditLogs AuditLog[]
+  tenant            Tenant              @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  sessions          Session[]
+  auditLogs         AuditLog[]
+  notifications     Notification[]
+  approvalRequests  ApprovalRequest[]   @relation("requestedBy")
+  approvalReviews   ApprovalRequest[]   @relation("reviewedBy")
 }
 
 model Session {
@@ -112,17 +118,20 @@ model RuleSet {
   name         String
   description  String   @default("")
   inputModelId String?
-  status       String   @default("draft") // draft | published | archived
+  status       String   @default("draft") // draft | review | approved | published | archived
   version      Int      @default(1)
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
-  project        Project          @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  inputModel     DataModel?       @relation(fields: [inputModelId], references: [id])
-  rules          Rule[]
-  decisionTables DecisionTable[]
-  versions       RuleSetVersion[]
-  executionLogs  ExecutionLog[]
+  project          Project            @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  inputModel       DataModel?         @relation(fields: [inputModelId], references: [id])
+  rules            Rule[]
+  decisionTables   DecisionTable[]
+  versions         RuleSetVersion[]
+  executionLogs    ExecutionLog[]
+  simulationRuns   SimulationRun[]
+  approvalRequests ApprovalRequest[]
+  scheduledJobs    ScheduledJob[]
 }
 
 model Rule {
@@ -213,6 +222,7 @@ model Workflow {
 
   project   Project            @relation(fields: [projectId], references: [id], onDelete: Cascade)
   instances WorkflowInstance[]
+  scheduledJobs ScheduledJob[]
 }
 
 model WorkflowInstance {
@@ -272,4 +282,174 @@ model AuditLog {
 
   tenant Tenant? @relation(fields: [tenantId], references: [id])
   user   User?   @relation(fields: [userId], references: [id])
+}
+
+// ============================================================
+// V3: Notifications
+// ============================================================
+
+model Notification {
+  id         String   @id @default(uuid())
+  userId     String
+  tenantId   String?
+  type       String   // info | success | warning | error | approval | publish | execution
+  title      String
+  message    String
+  entityType String?  // ruleSet | workflow | project | etc.
+  entityId   String?
+  link       String?  // deep link path within the app
+  read       Boolean  @default(false)
+  createdAt  DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+// ============================================================
+// V3: What-If Simulation
+// ============================================================
+
+model SimulationRun {
+  id          String    @id @default(uuid())
+  ruleSetId   String
+  name        String
+  description String    @default("")
+  datasetType String    @default("inline") // inline | csv
+  dataset     String    // JSON: array of test cases [{input, expectedOutput?}]
+  results     String?   // JSON: array of results with pass/fail per case
+  stats       String?   // JSON: {total, passed, failed, avgExecutionMs, coverage}
+  status      String    @default("pending") // pending | running | completed | failed
+  createdAt   DateTime  @default(now())
+  completedAt DateTime?
+
+  ruleSet RuleSet @relation(fields: [ruleSetId], references: [id], onDelete: Cascade)
+}
+
+// ============================================================
+// V4: Approval Workflows
+// ============================================================
+
+model ApprovalPipeline {
+  id        String   @id @default(uuid())
+  tenantId  String
+  name      String
+  stages    String   // JSON: [{name, requiredRole, autoApprove?}]
+  entityType String  @default("ruleSet") // ruleSet | workflow
+  isDefault Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  tenant   Tenant            @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  requests ApprovalRequest[]
+}
+
+model ApprovalRequest {
+  id           String    @id @default(uuid())
+  pipelineId   String
+  ruleSetId    String?
+  entityType   String    // ruleSet | workflow
+  entityId     String
+  entityName   String    @default("")
+  currentStage Int       @default(0)
+  status       String    @default("pending") // pending | approved | rejected | cancelled
+  requestedById String
+  reviewedById  String?
+  comments     String    @default("[]") // JSON: [{userId, userName, text, timestamp}]
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  pipeline    ApprovalPipeline @relation(fields: [pipelineId], references: [id], onDelete: Cascade)
+  ruleSet     RuleSet?         @relation(fields: [ruleSetId], references: [id])
+  requestedBy User             @relation("requestedBy", fields: [requestedById], references: [id])
+  reviewedBy  User?            @relation("reviewedBy", fields: [reviewedById], references: [id])
+}
+
+// ============================================================
+// V4: API Gateway
+// ============================================================
+
+model ApiKey {
+  id          String    @id @default(uuid())
+  tenantId    String
+  name        String
+  key         String    @unique
+  permissions String    @default("[]") // JSON: ["execute", "read", "write"]
+  rateLimit   Int       @default(1000) // requests per hour
+  usageCount  Int       @default(0)
+  lastUsedAt  DateTime?
+  isActive    Boolean   @default(true)
+  expiresAt   DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+}
+
+// ============================================================
+// V4: Scheduled Executions
+// ============================================================
+
+model ScheduledJob {
+  id             String    @id @default(uuid())
+  tenantId       String?
+  name           String
+  entityType     String    // ruleSet | workflow
+  entityId       String
+  ruleSetId      String?
+  workflowId     String?
+  cronExpression String
+  input          String    @default("{}") // JSON: default input
+  timezone       String    @default("UTC")
+  enabled        Boolean   @default(true)
+  lastRunAt      DateTime?
+  nextRunAt      DateTime?
+  lastStatus     String?   // success | error
+  lastError      String?
+  runCount       Int       @default(0)
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  ruleSet  RuleSet?  @relation(fields: [ruleSetId], references: [id])
+  workflow Workflow? @relation(fields: [workflowId], references: [id])
+}
+
+// ============================================================
+// V4: Template Marketplace
+// ============================================================
+
+model Template {
+  id          String   @id @default(uuid())
+  name        String
+  description String   @default("")
+  category    String   // insurance | healthcare | finance | compliance | general
+  tags        String   @default("[]") // JSON: array of tag strings
+  content     String   // JSON: full exportable project/ruleSet content
+  type        String   @default("ruleSet") // ruleSet | workflow | project
+  author      String   @default("SOA One Team")
+  downloads   Int      @default(0)
+  rating      Float    @default(0)
+  ratingCount Int      @default(0)
+  isOfficial  Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+// ============================================================
+// V4: Compliance & Regulatory
+// ============================================================
+
+model ComplianceFramework {
+  id           String    @id @default(uuid())
+  tenantId     String
+  name         String    // e.g., "SOX Compliance", "HIPAA Privacy Rule"
+  framework    String    // sox | hipaa | gdpr | pci | custom
+  description  String    @default("")
+  requirements String    @default("[]") // JSON: [{id, name, description, category, status, linkedRuleSetIds}]
+  status       String    @default("active") // active | archived
+  certifiedAt  DateTime?
+  certifiedBy  String?
+  retentionDays Int      @default(2555) // ~7 years default for SOX
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
 }

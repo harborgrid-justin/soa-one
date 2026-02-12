@@ -306,6 +306,94 @@ async function main() {
     ],
   });
 
+  // V3+V4: Create demo templates
+  await prisma.template.createMany({
+    data: [
+      {
+        name: 'Auto Insurance Underwriting',
+        description: 'Complete auto insurance underwriting rules with premium calculation, risk assessment, and vehicle factors',
+        category: 'insurance',
+        tags: JSON.stringify(['insurance', 'underwriting', 'auto', 'premium']),
+        content: JSON.stringify({ type: 'ruleSet', name: 'Premium Calculation' }),
+        type: 'ruleSet',
+        author: 'SOA One Team',
+        downloads: 142,
+        rating: 4.5,
+        ratingCount: 28,
+        isOfficial: true,
+      },
+      {
+        name: 'HIPAA Privacy Compliance',
+        description: 'Healthcare privacy rules aligned with HIPAA regulations for patient data handling',
+        category: 'healthcare',
+        tags: JSON.stringify(['healthcare', 'hipaa', 'compliance', 'privacy']),
+        content: JSON.stringify({ type: 'ruleSet', name: 'HIPAA Rules' }),
+        type: 'ruleSet',
+        author: 'SOA One Team',
+        downloads: 89,
+        rating: 4.7,
+        ratingCount: 15,
+        isOfficial: true,
+      },
+      {
+        name: 'KYC/AML Screening',
+        description: 'Know Your Customer and Anti-Money Laundering screening rules for financial services',
+        category: 'finance',
+        tags: JSON.stringify(['finance', 'kyc', 'aml', 'screening']),
+        content: JSON.stringify({ type: 'ruleSet', name: 'KYC Screening' }),
+        type: 'ruleSet',
+        author: 'SOA One Team',
+        downloads: 67,
+        rating: 4.3,
+        ratingCount: 12,
+        isOfficial: true,
+      },
+      {
+        name: 'Order Processing Workflow',
+        description: 'End-to-end order processing workflow with validation, payment, and fulfillment steps',
+        category: 'general',
+        tags: JSON.stringify(['workflow', 'orders', 'ecommerce']),
+        content: JSON.stringify({ type: 'workflow', name: 'Order Processing' }),
+        type: 'workflow',
+        author: 'SOA One Team',
+        downloads: 53,
+        rating: 4.1,
+        ratingCount: 9,
+        isOfficial: true,
+      },
+    ],
+  });
+
+  // V4: Create default approval pipeline
+  await prisma.approvalPipeline.create({
+    data: {
+      tenantId: tenant.id,
+      name: 'Standard Review',
+      stages: JSON.stringify([
+        { name: 'Technical Review', requiredRole: 'editor' },
+        { name: 'Final Approval', requiredRole: 'admin' },
+      ]),
+      entityType: 'ruleSet',
+      isDefault: true,
+    },
+  });
+
+  // V4: Create compliance framework
+  await prisma.complianceFramework.create({
+    data: {
+      tenantId: tenant.id,
+      name: 'SOX Compliance',
+      framework: 'sox',
+      description: 'Sarbanes-Oxley compliance framework for financial reporting rules',
+      requirements: JSON.stringify([
+        { id: 'sox-1', name: 'Change Management', description: 'All rule changes must go through approval workflow', category: 'controls', status: 'compliant' },
+        { id: 'sox-2', name: 'Audit Trail', description: 'Full audit trail for all rule modifications', category: 'audit', status: 'compliant' },
+        { id: 'sox-3', name: 'Access Control', description: 'Role-based access to rule management', category: 'access', status: 'compliant' },
+      ]),
+      retentionDays: 2555,
+    },
+  });
+
   console.log('Seed complete!');
   console.log(`  - 1 tenant created (${tenant.name})`);
   console.log(`  - 1 admin user created (admin@soa-one.dev / admin123)`);
@@ -317,6 +405,9 @@ async function main() {
   console.log(`  - 1 workflow created`);
   console.log(`  - 1 adapter created`);
   console.log(`  - 3 audit log entries created`);
+  console.log(`  - 4 templates created`);
+  console.log(`  - 1 approval pipeline created`);
+  console.log(`  - 1 compliance framework created`);
 }
 
 main()
