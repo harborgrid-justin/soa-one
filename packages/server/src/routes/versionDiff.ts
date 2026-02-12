@@ -1,5 +1,12 @@
 import { Router } from 'express';
 import { prisma } from '../prisma';
+import {
+  safeJsonParse,
+  requireTenantId,
+  requireUserId,
+  validateRequired,
+  asyncHandler,
+} from '../utils/validation';
 
 const router = Router();
 
@@ -7,16 +14,34 @@ const router = Router();
 // GET /rule-sets/:ruleSetId/diff/:v1/:v2
 //   Compare two RuleSetVersion snapshots and return a structured diff.
 // ---------------------------------------------------------------------------
-router.get('/rule-sets/:ruleSetId/diff/:v1/:v2', async (req, res) => {
-  const { ruleSetId } = req.params;
-  const v1Num = Number(req.params.v1);
-  const v2Num = Number(req.params.v2);
+router.get(
+  '/rule-sets/:ruleSetId/diff/:v1/:v2',
+  asyncHandler(async (req: any, res) => {
+    const tenantId = requireTenantId(req);
+    const { ruleSetId } = req.params;
+    const v1Num = Number(req.params.v1);
+    const v2Num = Number(req.params.v2);
 
-  if (isNaN(v1Num) || isNaN(v2Num)) {
-    return res.status(400).json({ error: 'Version numbers must be integers' });
-  }
+    if (isNaN(v1Num) || isNaN(v2Num)) {
+      return res.status(400).json({ error: 'Version numbers must be integers' });
+    }
 
-  try {
+    // Verify the ruleSet belongs to the user's tenant via ruleSet -> project -> tenant
+    const ruleSet = await prisma.ruleSet.findUnique({
+      where: { id: ruleSetId },
+      include: {
+        project: true,
+      },
+    });
+
+    if (!ruleSet) {
+      return res.status(404).json({ error: 'Rule set not found' });
+    }
+
+    if (!ruleSet.project.tenantId || ruleSet.project.tenantId !== tenantId) {
+      return res.status(404).json({ error: 'Rule set not found' });
+    }
+
     // Load both version snapshots
     const [version1, version2] = await Promise.all([
       prisma.ruleSetVersion.findFirst({
@@ -34,8 +59,8 @@ router.get('/rule-sets/:ruleSetId/diff/:v1/:v2', async (req, res) => {
       return res.status(404).json({ error: `Version ${v2Num} not found` });
     }
 
-    const snap1 = JSON.parse(version1.snapshot);
-    const snap2 = JSON.parse(version2.snapshot);
+    const snap1 = safeJsonParse(version1.snapshot, {});
+    const snap2 = safeJsonParse(version2.snapshot, {});
 
     // Diff rules
     const rulesDiff = diffEntities(
@@ -57,10 +82,8 @@ router.get('/rule-sets/:ruleSetId/diff/:v1/:v2', async (req, res) => {
       rules: rulesDiff,
       tables: tablesDiff,
     });
-  } catch (err: any) {
-    res.status(500).json({ error: err.message });
-  }
-});
+  }),
+);
 
 // ---------------------------------------------------------------------------
 // Diff helpers
@@ -141,7 +164,7 @@ function diffEntities(
 
 /**
  * Deep equality check for comparing field values (handles primitives,
- * arrays, and plain objects — sufficient for JSON-serialisable data).
+ * arrays, and plain objects -- sufficient for JSON-serialisable data).
  */
 function valuesEqual(a: any, b: any): boolean {
   if (a === b) return true;

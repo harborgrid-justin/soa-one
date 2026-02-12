@@ -13,7 +13,13 @@ import {
   GitBranch,
 } from 'lucide-react';
 import { Modal } from '../components/common/Modal';
-import api from '../api/client';
+import {
+  getApprovalRequests,
+  getApprovalPipelines,
+  approveRequest,
+  rejectRequest,
+  createApprovalPipeline,
+} from '../api/client';
 import { useStore } from '../store';
 
 type Tab = 'requests' | 'pipelines';
@@ -73,12 +79,12 @@ export function Approvals() {
   const fetchData = () => {
     setLoading(true);
     Promise.all([
-      api.get('/approvals/requests').catch(() => ({ data: { requests: [] } })),
-      api.get('/approvals/pipelines').catch(() => ({ data: { pipelines: [] } })),
+      getApprovalRequests().catch(() => ({ requests: [] })),
+      getApprovalPipelines().catch(() => ({ pipelines: [] })),
     ])
-      .then(([reqRes, pipRes]) => {
-        setRequests(reqRes.data.requests || reqRes.data || []);
-        setPipelines(pipRes.data.pipelines || pipRes.data || []);
+      .then(([reqData, pipData]) => {
+        setRequests(reqData.requests || reqData || []);
+        setPipelines(pipData.pipelines || pipData || []);
       })
       .finally(() => setLoading(false));
   };
@@ -88,8 +94,7 @@ export function Approvals() {
   }, []);
 
   const handleApprove = (requestId: string) => {
-    api
-      .post(`/approvals/requests/${requestId}/approve`, { comment: commentText || undefined })
+    approveRequest(requestId, commentText || undefined)
       .then(() => {
         addNotification({ type: 'success', message: 'Request approved' });
         setCommentText('');
@@ -101,8 +106,7 @@ export function Approvals() {
   };
 
   const handleReject = (requestId: string) => {
-    api
-      .post(`/approvals/requests/${requestId}/reject`, { comment: commentText || undefined })
+    rejectRequest(requestId, commentText || undefined)
       .then(() => {
         addNotification({ type: 'success', message: 'Request rejected' });
         setCommentText('');
@@ -143,8 +147,7 @@ export function Approvals() {
       return;
     }
 
-    api
-      .post('/approvals/pipelines', {
+    createApprovalPipeline({
         name: pipelineName,
         description: pipelineDesc,
         stages: pipelineStages.map((s) => ({ name: s.name, requiredRole: s.requiredRole })),

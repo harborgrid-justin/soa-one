@@ -6,6 +6,7 @@ import {
   Zap,
   FileCheck,
   RefreshCw,
+  Info,
 } from 'lucide-react';
 import {
   AreaChart,
@@ -46,13 +47,18 @@ export function Analytics() {
   const [loading, setLoading] = useState(true);
   const [dateRange, setDateRange] = useState<DateRange>('30d');
   const [data, setData] = useState<AnalyticsData | null>(null);
+  const [usingSampleData, setUsingSampleData] = useState(false);
 
   const fetchAnalytics = () => {
     setLoading(true);
     api
       .get('/analytics/dashboard', { params: { range: dateRange } })
-      .then((r) => setData(r.data))
+      .then((r) => {
+        setData(r.data);
+        setUsingSampleData(false);
+      })
       .catch(() => {
+        setUsingSampleData(true);
         // Fallback to sample data for UI display
         const days = dateRange === '7d' ? 7 : dateRange === '30d' ? 30 : 90;
         const trend = Array.from({ length: days }, (_, i) => {
@@ -139,6 +145,14 @@ export function Analytics() {
           </button>
         </div>
       </div>
+
+      {/* Sample data banner */}
+      {usingSampleData && (
+        <div className="bg-blue-50 border border-blue-200 rounded-lg px-4 py-2.5 text-sm text-blue-700 flex items-center gap-2">
+          <Info className="w-4 h-4 text-blue-500 flex-shrink-0" />
+          Showing sample data &mdash; connect analytics backend for live metrics
+        </div>
+      )}
 
       {/* Stats cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">

@@ -10,7 +10,11 @@ import {
   Package,
 } from 'lucide-react';
 import { Modal } from '../components/common/Modal';
-import api from '../api/client';
+import {
+  getTemplates,
+  installTemplate as installTemplateApi,
+  createTemplate,
+} from '../api/client';
 import { useStore } from '../store';
 
 type Category = 'all' | 'insurance' | 'healthcare' | 'finance' | 'compliance';
@@ -65,9 +69,8 @@ export function TemplateMarketplace() {
 
   const fetchTemplates = () => {
     setLoading(true);
-    api
-      .get('/templates', { params: { category: category !== 'all' ? category : undefined } })
-      .then((r) => setTemplates(r.data.templates || r.data || []))
+    getTemplates({ category: category !== 'all' ? category : undefined })
+      .then((data) => setTemplates(data.templates || data || []))
       .catch(() => {
         // Sample data for UI
         setTemplates([
@@ -187,8 +190,7 @@ export function TemplateMarketplace() {
 
   const handleInstall = (template: Template) => {
     setInstalling(true);
-    api
-      .post(`/templates/${template.id}/install`)
+    installTemplateApi(template.id)
       .then(() => {
         addNotification({ type: 'success', message: `"${template.name}" installed successfully` });
         setInstallTemplate(null);
@@ -211,8 +213,7 @@ export function TemplateMarketplace() {
       return;
     }
 
-    api
-      .post('/templates', {
+    createTemplate({
         name: createName,
         description: createDesc,
         category: createCategory,

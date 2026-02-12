@@ -19,7 +19,6 @@ import {
   ResponsiveContainer,
   CartesianGrid,
 } from 'recharts';
-import api from '../api/client';
 import { useStore } from '../store';
 
 interface CacheEntry {
@@ -79,43 +78,28 @@ export function CacheMonitor() {
 
   const fetchCacheData = () => {
     setLoading(true);
-    Promise.all([
-      api.get('/cache/stats').catch(() => null),
-      api.get('/cache/entries').catch(() => null),
-      api.get('/cache/performance').catch(() => null),
-    ])
-      .then(([statsRes, entriesRes, perfRes]) => {
-        if (statsRes?.data) setStats(statsRes.data);
-        if (entriesRes?.data) setEntries(entriesRes.data.entries || entriesRes.data || []);
-        else {
-          // Sample cache entries
-          setEntries([
-            { key: 'rs:premium-calc:v3', ttlSeconds: 3600, sizeBytes: 2048, hits: 1240, createdAt: new Date(Date.now() - 1000 * 60 * 30).toISOString() },
-            { key: 'rs:eligibility:v2', ttlSeconds: 1800, sizeBytes: 1536, hits: 890, createdAt: new Date(Date.now() - 1000 * 60 * 45).toISOString() },
-            { key: 'rs:risk-assessment:v1', ttlSeconds: 7200, sizeBytes: 4096, hits: 2100, createdAt: new Date(Date.now() - 1000 * 60 * 60).toISOString() },
-            { key: 'dm:customer-profile', ttlSeconds: 900, sizeBytes: 512, hits: 450, createdAt: new Date(Date.now() - 1000 * 60 * 15).toISOString() },
-            { key: 'rs:fraud-detect:v4', ttlSeconds: 3600, sizeBytes: 3072, hits: 1560, createdAt: new Date(Date.now() - 1000 * 60 * 20).toISOString() },
-            { key: 'dt:pricing-table:v2', ttlSeconds: 1800, sizeBytes: 8192, hits: 670, createdAt: new Date(Date.now() - 1000 * 60 * 50).toISOString() },
-            { key: 'rs:kyc-verify:v1', ttlSeconds: 3600, sizeBytes: 1024, hits: 340, createdAt: new Date(Date.now() - 1000 * 60 * 40).toISOString() },
-            { key: 'dm:vehicle-data', ttlSeconds: 7200, sizeBytes: 2560, hits: 780, createdAt: new Date(Date.now() - 1000 * 60 * 55).toISOString() },
-          ]);
-        }
-        if (perfRes?.data) setPerfData(perfRes.data.points || perfRes.data || []);
-        else {
-          // Sample performance data
-          const now = Date.now();
-          setPerfData(
-            Array.from({ length: 24 }, (_, i) => ({
-              time: new Date(now - (23 - i) * 3600000).toLocaleTimeString('en-US', {
-                hour: '2-digit',
-                minute: '2-digit',
-              }),
-              responseMs: Math.floor(Math.random() * 20) + 5,
-            }))
-          );
-        }
-      })
-      .finally(() => setLoading(false));
+    // Demo data — no backend cache endpoints exist
+    setEntries([
+      { key: 'rs:premium-calc:v3', ttlSeconds: 3600, sizeBytes: 2048, hits: 1240, createdAt: new Date(Date.now() - 1000 * 60 * 30).toISOString() },
+      { key: 'rs:eligibility:v2', ttlSeconds: 1800, sizeBytes: 1536, hits: 890, createdAt: new Date(Date.now() - 1000 * 60 * 45).toISOString() },
+      { key: 'rs:risk-assessment:v1', ttlSeconds: 7200, sizeBytes: 4096, hits: 2100, createdAt: new Date(Date.now() - 1000 * 60 * 60).toISOString() },
+      { key: 'dm:customer-profile', ttlSeconds: 900, sizeBytes: 512, hits: 450, createdAt: new Date(Date.now() - 1000 * 60 * 15).toISOString() },
+      { key: 'rs:fraud-detect:v4', ttlSeconds: 3600, sizeBytes: 3072, hits: 1560, createdAt: new Date(Date.now() - 1000 * 60 * 20).toISOString() },
+      { key: 'dt:pricing-table:v2', ttlSeconds: 1800, sizeBytes: 8192, hits: 670, createdAt: new Date(Date.now() - 1000 * 60 * 50).toISOString() },
+      { key: 'rs:kyc-verify:v1', ttlSeconds: 3600, sizeBytes: 1024, hits: 340, createdAt: new Date(Date.now() - 1000 * 60 * 40).toISOString() },
+      { key: 'dm:vehicle-data', ttlSeconds: 7200, sizeBytes: 2560, hits: 780, createdAt: new Date(Date.now() - 1000 * 60 * 55).toISOString() },
+    ]);
+    const now = Date.now();
+    setPerfData(
+      Array.from({ length: 24 }, (_, i) => ({
+        time: new Date(now - (23 - i) * 3600000).toLocaleTimeString('en-US', {
+          hour: '2-digit',
+          minute: '2-digit',
+        }),
+        responseMs: Math.floor(Math.random() * 20) + 5,
+      }))
+    );
+    setLoading(false);
   };
 
   useEffect(() => {
@@ -124,31 +108,20 @@ export function CacheMonitor() {
 
   const handleFlush = () => {
     setFlushing(true);
-    api
-      .post('/cache/flush')
-      .then(() => {
-        addNotification({ type: 'success', message: 'Cache flushed successfully' });
-        setEntries([]);
-        setStats((prev) => ({ ...prev, totalEntries: 0, hitRate: 0 }));
-      })
-      .catch(() => {
-        addNotification({ type: 'error', message: 'Failed to flush cache' });
-      })
-      .finally(() => setFlushing(false));
+    // No backend cache endpoint — simulate the operation
+    setTimeout(() => {
+      addNotification({ type: 'info', message: 'Cache operation simulated (no backend endpoint)' });
+      setFlushing(false);
+    }, 500);
   };
 
   const handleWarm = () => {
     setWarming(true);
-    api
-      .post('/cache/warm')
-      .then(() => {
-        addNotification({ type: 'success', message: 'Cache warming initiated' });
-        fetchCacheData();
-      })
-      .catch(() => {
-        addNotification({ type: 'error', message: 'Failed to warm cache' });
-      })
-      .finally(() => setWarming(false));
+    // No backend cache endpoint — simulate the operation
+    setTimeout(() => {
+      addNotification({ type: 'info', message: 'Cache operation simulated (no backend endpoint)' });
+      setWarming(false);
+    }, 500);
   };
 
   if (loading) {
@@ -193,6 +166,12 @@ export function CacheMonitor() {
             <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
           </button>
         </div>
+      </div>
+
+      {/* Demo data notice */}
+      <div className="bg-slate-50 border border-slate-200 rounded-lg px-4 py-2.5 text-sm text-slate-500 flex items-center gap-2">
+        <Gauge className="w-4 h-4 text-slate-400 flex-shrink-0" />
+        Showing demo data — connect a cache backend for live metrics
       </div>
 
       {/* Stats cards */}

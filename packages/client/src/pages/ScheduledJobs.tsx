@@ -13,7 +13,15 @@ import {
   Hash,
 } from 'lucide-react';
 import { Modal } from '../components/common/Modal';
-import api, { getRuleSets, getWorkflows } from '../api/client';
+import {
+  getRuleSets,
+  getWorkflows,
+  getScheduledJobs,
+  createScheduledJob,
+  updateScheduledJob,
+  deleteScheduledJob,
+  runScheduledJobNow,
+} from '../api/client';
 import { useStore } from '../store';
 
 interface ScheduledJob {
@@ -89,9 +97,8 @@ export function ScheduledJobs() {
 
   const fetchJobs = () => {
     setLoading(true);
-    api
-      .get('/scheduled-jobs')
-      .then((r) => setJobs(r.data.jobs || r.data || []))
+    getScheduledJobs()
+      .then((data) => setJobs(data.jobs || data || []))
       .catch(() => {
         setJobs([]);
       })
@@ -102,10 +109,14 @@ export function ScheduledJobs() {
     fetchJobs();
     getRuleSets()
       .then((data) => setRuleSets(data.ruleSets || data || []))
-      .catch(() => {});
+      .catch((err) => {
+        console.error('Failed to load rule sets', err);
+      });
     getWorkflows()
       .then((data) => setWorkflows(data.workflows || data || []))
-      .catch(() => {});
+      .catch((err) => {
+        console.error('Failed to load workflows', err);
+      });
   }, []);
 
   const handleCreate = () => {
@@ -120,8 +131,7 @@ export function ScheduledJobs() {
       return;
     }
 
-    api
-      .post('/scheduled-jobs', {
+    createScheduledJob({
         name: formName,
         entityType: formEntityType,
         entityId: formEntityId,
@@ -150,8 +160,7 @@ export function ScheduledJobs() {
   };
 
   const toggleJob = (jobId: string, currentEnabled: boolean) => {
-    api
-      .put(`/scheduled-jobs/${jobId}`, { enabled: !currentEnabled })
+    updateScheduledJob(jobId, { enabled: !currentEnabled })
       .then(() => {
         setJobs((prev) =>
           prev.map((j) => (j.id === jobId ? { ...j, enabled: !currentEnabled } : j))
@@ -167,8 +176,7 @@ export function ScheduledJobs() {
   };
 
   const runNow = (jobId: string) => {
-    api
-      .post(`/scheduled-jobs/${jobId}/run`)
+    runScheduledJobNow(jobId)
       .then(() => {
         addNotification({ type: 'success', message: 'Job triggered successfully' });
         fetchJobs();
@@ -178,9 +186,8 @@ export function ScheduledJobs() {
       });
   };
 
-  const deleteJob = (jobId: string) => {
-    api
-      .delete(`/scheduled-jobs/${jobId}`)
+  const handleDeleteJob = (jobId: string) => {
+    deleteScheduledJob(jobId)
       .then(() => {
         setJobs((prev) => prev.filter((j) => j.id !== jobId));
         addNotification({ type: 'success', message: 'Job deleted' });
@@ -318,7 +325,7 @@ export function ScheduledJobs() {
                     )}
                   </button>
                   <button
-                    onClick={() => deleteJob(job.id)}
+                    onClick={() => handleDeleteJob(job.id)}
                     className="p-1.5 rounded-lg hover:bg-red-100 text-slate-400 hover:text-red-500 transition-colors"
                   >
                     <Trash2 className="w-4 h-4" />

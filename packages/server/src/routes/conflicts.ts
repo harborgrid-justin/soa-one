@@ -1,5 +1,12 @@
 import { Router } from 'express';
 import { prisma } from '../prisma';
+import {
+  safeJsonParse,
+  requireTenantId,
+  requireUserId,
+  validateRequired,
+  asyncHandler,
+} from '../utils/validation';
 
 const router = Router();
 
@@ -33,10 +40,28 @@ interface ParsedRule {
 //   Analyse all enabled rules for overlapping, shadowing, or contradictory
 //   conditions and return an array of conflict descriptors.
 // ---------------------------------------------------------------------------
-router.get('/rule-sets/:ruleSetId/conflicts', async (req, res) => {
-  const { ruleSetId } = req.params;
+router.get(
+  '/rule-sets/:ruleSetId/conflicts',
+  asyncHandler(async (req: any, res) => {
+    const tenantId = requireTenantId(req);
+    const { ruleSetId } = req.params;
 
-  try {
+    // Verify the ruleSet belongs to the user's tenant via ruleSet -> project -> tenant
+    const ruleSet = await prisma.ruleSet.findUnique({
+      where: { id: ruleSetId },
+      include: {
+        project: true,
+      },
+    });
+
+    if (!ruleSet) {
+      return res.status(404).json({ error: 'Rule set not found' });
+    }
+
+    if (!ruleSet.project.tenantId || ruleSet.project.tenantId !== tenantId) {
+      return res.status(404).json({ error: 'Rule set not found' });
+    }
+
     const rules = await prisma.rule.findMany({
       where: { ruleSetId, enabled: true },
       orderBy: { priority: 'desc' },
@@ -51,7 +76,7 @@ router.get('/rule-sets/:ruleSetId/conflicts', async (req, res) => {
       id: r.id,
       name: r.name,
       priority: r.priority,
-      conditions: flattenConditions(JSON.parse(r.conditions)),
+      conditions: flattenConditions(safeJsonParse(r.conditions, {})),
     }));
 
     const conflicts: ConflictResult[] = [];
@@ -68,10 +93,8 @@ router.get('/rule-sets/:ruleSetId/conflicts', async (req, res) => {
     }
 
     res.json(conflicts);
-  } catch (err: any) {
-    res.status(500).json({ error: err.message });
-  }
-});
+  }),
+);
 
 // ---------------------------------------------------------------------------
 // Flatten a condition tree into an array of leaf Conditions
@@ -84,7 +107,7 @@ function flattenConditions(node: any): ParsedCondition[] {
     return [{ field: node.field, operator: node.operator, value: node.value }];
   }
 
-  // Condition group — recurse into children
+  // Condition group -- recurse into children
   if (node.conditions && Array.isArray(node.conditions)) {
     const result: ParsedCondition[] = [];
     for (const child of node.conditions) {
@@ -153,7 +176,7 @@ function detectConflicts(ruleA: ParsedRule, ruleB: ParsedRule): ConflictResult[]
           type: 'shadow',
           description:
             `Rule "${lower.name}" (priority ${lower.priority}) is shadowed by ` +
-            `"${higher.name}" (priority ${higher.priority}) — the higher-priority ` +
+            `"${higher.name}" (priority ${higher.priority}) -- the higher-priority ` +
             `rule's conditions are a superset, so the lower-priority rule may never fire.`,
           severity: 'high',
         });
@@ -239,7 +262,7 @@ function groupByField(conditions: ParsedCondition[]): Map<string, ParsedConditio
 function isSubsetCondition(a: ParsedCondition, b: ParsedCondition): boolean {
   if (a.field !== b.field) return false;
 
-  // Same operator and same value — identical conditions
+  // Same operator and same value -- identical conditions
   if (a.operator === b.operator && valuesEqual(a.value, b.value)) {
     return true;
   }
@@ -366,7 +389,7 @@ function areMutuallyExclusive(a: ParsedCondition, b: ParsedCondition): boolean {
 // Check if two conditions have overlapping ranges (could match same input)
 // ---------------------------------------------------------------------------
 function rangesOverlap(a: ParsedCondition, b: ParsedCondition): boolean {
-  // Same operator + same value — clearly overlap
+  // Same operator + same value -- clearly overlap
   if (a.operator === b.operator && valuesEqual(a.value, b.value)) {
     return true;
   }
@@ -380,7 +403,7 @@ function rangesOverlap(a: ParsedCondition, b: ParsedCondition): boolean {
   if (a.operator === 'equals' && isValueInRange(a.value, b)) return true;
   if (b.operator === 'equals' && isValueInRange(b.value, a)) return true;
 
-  // Both are range operators on numeric values — check if ranges intersect
+  // Both are range operators on numeric values -- check if ranges intersect
   const aRange = toNumericRange(a);
   const bRange = toNumericRange(b);
 
@@ -404,7 +427,7 @@ function rangesOverlap(a: ParsedCondition, b: ParsedCondition): boolean {
     return b.value.includes(a.value);
   }
 
-  // contains / startsWith / endsWith — if both use the same type on the same
+  // contains / startsWith / endsWith -- if both use the same type on the same
   // field they could plausibly match the same string, so flag as overlap.
   const stringOps = ['contains', 'startsWith', 'endsWith', 'matches'];
   if (stringOps.includes(a.operator) && stringOps.includes(b.operator)) {

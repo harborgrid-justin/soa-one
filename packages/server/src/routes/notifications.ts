@@ -1,5 +1,12 @@
 import { Router } from 'express';
 import { prisma } from '../prisma';
+import {
+  safeJsonParse,
+  requireTenantId,
+  requireUserId,
+  validateRequired,
+  asyncHandler,
+} from '../utils/validation';
 
 const router = Router();
 
@@ -16,6 +23,14 @@ export async function createNotification(data: {
   entityId?: string;
   link?: string;
 }) {
+  // Validate required fields
+  const missing = validateRequired(data, ['userId', 'type', 'title', 'message']);
+  if (missing) {
+    const err: any = new Error(missing);
+    err.statusCode = 400;
+    throw err;
+  }
+
   const notification = await prisma.notification.create({
     data: {
       userId: data.userId,
@@ -35,9 +50,10 @@ export async function createNotification(data: {
 // GET / — list notifications for the current user
 //   ?unread=true to filter only unread notifications
 // ---------------------------------------------------------------------------
-router.get('/', async (req: any, res) => {
-  try {
-    const userId = req.user.id;
+router.get(
+  '/',
+  asyncHandler(async (req: any, res) => {
+    const userId = requireUserId(req);
     const where: any = { userId };
 
     if (req.query.unread === 'true') {
@@ -50,35 +66,33 @@ router.get('/', async (req: any, res) => {
     });
 
     res.json(notifications);
-  } catch (err: any) {
-    res.status(500).json({ error: err.message });
-  }
-});
+  }),
+);
 
 // ---------------------------------------------------------------------------
 // GET /count — return { unread: <number> } for current user
 // ---------------------------------------------------------------------------
-router.get('/count', async (req: any, res) => {
-  try {
-    const userId = req.user.id;
+router.get(
+  '/count',
+  asyncHandler(async (req: any, res) => {
+    const userId = requireUserId(req);
 
     const unread = await prisma.notification.count({
       where: { userId, read: false },
     });
 
     res.json({ unread });
-  } catch (err: any) {
-    res.status(500).json({ error: err.message });
-  }
-});
+  }),
+);
 
 // ---------------------------------------------------------------------------
 // PUT /read-all — mark all unread notifications as read for current user
 //   (defined before /:id/read so Express doesn't match "read-all" as :id)
 // ---------------------------------------------------------------------------
-router.put('/read-all', async (req: any, res) => {
-  try {
-    const userId = req.user.id;
+router.put(
+  '/read-all',
+  asyncHandler(async (req: any, res) => {
+    const userId = requireUserId(req);
 
     const result = await prisma.notification.updateMany({
       where: { userId, read: false },
@@ -86,16 +100,17 @@ router.put('/read-all', async (req: any, res) => {
     });
 
     res.json({ success: true, updated: result.count });
-  } catch (err: any) {
-    res.status(500).json({ error: err.message });
-  }
-});
+  }),
+);
 
 // ---------------------------------------------------------------------------
 // PUT /:id/read — mark a single notification as read
 // ---------------------------------------------------------------------------
-router.put('/:id/read', async (req: any, res) => {
-  try {
+router.put(
+  '/:id/read',
+  asyncHandler(async (req: any, res) => {
+    const userId = requireUserId(req);
+
     const notification = await prisma.notification.findUnique({
       where: { id: req.params.id },
     });
@@ -104,7 +119,7 @@ router.put('/:id/read', async (req: any, res) => {
       return res.status(404).json({ error: 'Notification not found' });
     }
 
-    if (notification.userId !== req.user.id) {
+    if (notification.userId !== userId) {
       return res.status(403).json({ error: 'Forbidden' });
     }
 
@@ -114,16 +129,17 @@ router.put('/:id/read', async (req: any, res) => {
     });
 
     res.json(updated);
-  } catch (err: any) {
-    res.status(500).json({ error: err.message });
-  }
-});
+  }),
+);
 
 // ---------------------------------------------------------------------------
 // DELETE /:id — delete a notification
 // ---------------------------------------------------------------------------
-router.delete('/:id', async (req: any, res) => {
-  try {
+router.delete(
+  '/:id',
+  asyncHandler(async (req: any, res) => {
+    const userId = requireUserId(req);
+
     const notification = await prisma.notification.findUnique({
       where: { id: req.params.id },
     });
@@ -132,16 +148,14 @@ router.delete('/:id', async (req: any, res) => {
       return res.status(404).json({ error: 'Notification not found' });
     }
 
-    if (notification.userId !== req.user.id) {
+    if (notification.userId !== userId) {
       return res.status(403).json({ error: 'Forbidden' });
     }
 
     await prisma.notification.delete({ where: { id: req.params.id } });
 
     res.json({ success: true });
-  } catch (err: any) {
-    res.status(500).json({ error: err.message });
-  }
-});
+  }),
+);
 
 export default router;

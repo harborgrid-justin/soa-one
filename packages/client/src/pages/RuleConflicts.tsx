@@ -9,7 +9,7 @@ import {
   AlertOctagon,
   Info,
 } from 'lucide-react';
-import api from '../api/client';
+import { getRuleConflicts } from '../api/client';
 import { useStore } from '../store';
 
 type Severity = 'high' | 'medium' | 'low';
@@ -67,9 +67,8 @@ export function RuleConflicts() {
   const fetchConflicts = () => {
     if (!ruleSetId) return;
     setLoading(true);
-    api
-      .get(`/rule-sets/${ruleSetId}/conflicts`)
-      .then((r) => setData(r.data))
+    getRuleConflicts(ruleSetId)
+      .then((data) => setData(data))
       .catch(() => {
         addNotification({ type: 'error', message: 'Failed to load conflict data' });
         setData(null);

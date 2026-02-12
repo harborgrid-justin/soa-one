@@ -70,6 +70,8 @@ export const getExecutionLogs = (ruleSetId: string) =>
   api.get(`/dashboard/executions/${ruleSetId}`).then((r) => r.data);
 export const getAllExecutionLogs = (params?: any) =>
   api.get('/dashboard/executions', { params }).then((r) => r.data);
+export const getAnalytics = (params?: { days?: number }) =>
+  api.get('/dashboard/analytics', { params }).then((r) => r.data);
 
 // Versions
 export const publishRuleSet = (ruleSetId: string, data?: { changelog?: string }) =>

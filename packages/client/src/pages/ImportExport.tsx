@@ -11,7 +11,7 @@ import {
   Trash2,
   Eye,
 } from 'lucide-react';
-import api, { getProjects, getRuleSets } from '../api/client';
+import { getProjects, getRuleSets, exportProject, exportRuleSet, importProject } from '../api/client';
 import { useStore } from '../store';
 
 type ExportType = 'project' | 'ruleSet';
@@ -94,20 +94,20 @@ export function ImportExport() {
       return;
     }
     setExporting(true);
-    const endpoint =
+    const exportFn =
       exportType === 'project'
-        ? `/export/projects/${exportEntityId}`
-        : `/export/rule-sets/${exportEntityId}`;
+        ? exportProject(exportEntityId)
+        : exportRuleSet(exportEntityId);
 
-    api
-      .get(endpoint, { responseType: 'blob' })
-      .then((r) => {
+    exportFn
+      .then((data) => {
         const entityName =
           exportType === 'project'
             ? projects.find((p) => p.id === exportEntityId)?.name
             : ruleSets.find((rs) => rs.id === exportEntityId)?.name;
 
-        const blob = new Blob([JSON.stringify(r.data, null, 2)], { type: 'application/json' });
+        const jsonStr = typeof data === 'string' ? data : JSON.stringify(data, null, 2);
+        const blob = new Blob([jsonStr], { type: 'application/json' });
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
@@ -202,41 +202,47 @@ export function ImportExport() {
     if (!importFile) return;
     setImporting(true);
 
-    const formData = new FormData();
-    formData.append('file', importFile);
-
-    api
-      .post('/import', formData, { headers: { 'Content-Type': 'multipart/form-data' } })
-      .then(() => {
-        setHistory((prev) => [
-          {
-            id: String(Date.now()),
-            type: 'import',
-            name: importFile.name,
-            status: 'success',
-            timestamp: new Date().toISOString(),
-          },
-          ...prev,
-        ]);
-        addNotification({ type: 'success', message: 'Import completed successfully' });
-        setImportFile(null);
-        setImportPreview(null);
-      })
-      .catch(() => {
-        setHistory((prev) => [
-          {
-            id: String(Date.now()),
-            type: 'import',
-            name: importFile.name,
-            status: 'failed',
-            timestamp: new Date().toISOString(),
-            details: 'Import failed',
-          },
-          ...prev,
-        ]);
-        addNotification({ type: 'error', message: 'Import failed' });
-      })
-      .finally(() => setImporting(false));
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      try {
+        const jsonData = JSON.parse(ev.target?.result as string);
+        importProject(jsonData)
+          .then(() => {
+            setHistory((prev) => [
+              {
+                id: String(Date.now()),
+                type: 'import',
+                name: importFile.name,
+                status: 'success',
+                timestamp: new Date().toISOString(),
+              },
+              ...prev,
+            ]);
+            addNotification({ type: 'success', message: 'Import completed successfully' });
+            setImportFile(null);
+            setImportPreview(null);
+          })
+          .catch(() => {
+            setHistory((prev) => [
+              {
+                id: String(Date.now()),
+                type: 'import',
+                name: importFile.name,
+                status: 'failed',
+                timestamp: new Date().toISOString(),
+                details: 'Import failed',
+              },
+              ...prev,
+            ]);
+            addNotification({ type: 'error', message: 'Import failed' });
+          })
+          .finally(() => setImporting(false));
+      } catch {
+        addNotification({ type: 'error', message: 'Failed to parse import file' });
+        setImporting(false);
+      }
+    };
+    reader.readAsText(importFile);
   };
 
   if (loading) {

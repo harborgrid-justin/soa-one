@@ -14,7 +14,12 @@ import {
   EyeOff,
 } from 'lucide-react';
 import { Modal } from '../components/common/Modal';
-import api from '../api/client';
+import {
+  getApiKeys,
+  createApiKey,
+  updateApiKey,
+  deleteApiKey,
+} from '../api/client';
 import { useStore } from '../store';
 
 interface ApiKey {
@@ -41,10 +46,10 @@ export function ApiGateway() {
 
   const fetchKeys = () => {
     setLoading(true);
-    api
-      .get('/api-keys')
-      .then((r) => setKeys(r.data.keys || r.data || []))
-      .catch(() => {
+    getApiKeys()
+      .then((data) => setKeys(data.keys || data || []))
+      .catch((err) => {
+        console.error('Failed to fetch API keys', err);
         setKeys([]);
       })
       .finally(() => setLoading(false));
@@ -59,9 +64,8 @@ export function ApiGateway() {
       addNotification({ type: 'error', message: 'API key name is required' });
       return;
     }
-    api
-      .post('/api-keys', { name: newKeyName, rateLimit: newKeyRateLimit })
-      .then((r) => {
+    createApiKey({ name: newKeyName, rateLimit: newKeyRateLimit })
+      .then(() => {
         addNotification({ type: 'success', message: 'API key created' });
         setShowCreateModal(false);
         setNewKeyName('');
@@ -74,8 +78,7 @@ export function ApiGateway() {
   };
 
   const toggleKey = (keyId: string, currentActive: boolean) => {
-    api
-      .put(`/api-keys/${keyId}`, { active: !currentActive })
+    updateApiKey(keyId, { active: !currentActive })
       .then(() => {
         setKeys((prev) =>
           prev.map((k) => (k.id === keyId ? { ...k, active: !currentActive } : k))
@@ -91,8 +94,7 @@ export function ApiGateway() {
   };
 
   const deleteKey = (keyId: string) => {
-    api
-      .delete(`/api-keys/${keyId}`)
+    deleteApiKey(keyId)
       .then(() => {
         setKeys((prev) => prev.filter((k) => k.id !== keyId));
         addNotification({ type: 'success', message: 'API key deleted' });

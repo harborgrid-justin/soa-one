@@ -2,6 +2,13 @@ import { Router } from 'express';
 import { prisma } from '../prisma';
 import { executeRuleSet } from '@soa-one/engine';
 import type { Rule, DecisionTable } from '@soa-one/engine';
+import {
+  safeJsonParse,
+  requireTenantId,
+  requireUserId,
+  validateRequired,
+  asyncHandler,
+} from '../utils/validation';
 
 const router = Router();
 
@@ -45,281 +52,318 @@ function getNextRunFromCron(cronExpression: string): Date {
 }
 
 // List all scheduled jobs, optionally filter by ?entityType
-router.get('/', async (req: any, res) => {
-  try {
-    const { entityType } = req.query;
-    const where: any = {};
-    if (entityType) where.entityType = String(entityType);
+router.get('/', asyncHandler(async (req: any, res) => {
+  const tenantId = requireTenantId(req);
+  requireUserId(req);
 
-    const jobs = await prisma.scheduledJob.findMany({
-      where,
-      orderBy: { createdAt: 'desc' },
-    });
+  const { entityType } = req.query;
+  const where: any = { tenantId };
+  if (entityType) where.entityType = String(entityType);
 
-    const parsed = jobs.map((j) => ({
-      ...j,
-      input: JSON.parse(j.input),
-    }));
+  const jobs = await prisma.scheduledJob.findMany({
+    where,
+    orderBy: { createdAt: 'desc' },
+  });
 
-    res.json(parsed);
-  } catch (err: any) {
-    res.status(500).json({ error: err.message });
-  }
-});
+  const parsed = jobs.map((j) => ({
+    ...j,
+    input: safeJsonParse(j.input, {}),
+  }));
+
+  res.json(parsed);
+}));
 
 // Get a single scheduled job
-router.get('/:id', async (req: any, res) => {
-  try {
-    const job = await prisma.scheduledJob.findUnique({
-      where: { id: req.params.id },
-    });
+router.get('/:id', asyncHandler(async (req: any, res) => {
+  const tenantId = requireTenantId(req);
+  requireUserId(req);
 
-    if (!job) {
-      return res.status(404).json({ error: 'Scheduled job not found' });
-    }
+  const job = await prisma.scheduledJob.findUnique({
+    where: { id: req.params.id },
+  });
 
-    res.json({
-      ...job,
-      input: JSON.parse(job.input),
-    });
-  } catch (err: any) {
-    res.status(500).json({ error: err.message });
+  if (!job) {
+    return res.status(404).json({ error: 'Scheduled job not found' });
   }
-});
+
+  if (job.tenantId !== tenantId) {
+    return res.status(403).json({ error: 'Access denied' });
+  }
+
+  res.json({
+    ...job,
+    input: safeJsonParse(job.input, {}),
+  });
+}));
 
 // Create scheduled job
-router.post('/', async (req: any, res) => {
-  try {
-    const {
-      name,
-      entityType,
-      entityId,
-      cronExpression,
-      input,
-      timezone,
-      enabled,
-    } = req.body;
+router.post('/', asyncHandler(async (req: any, res) => {
+  const tenantId = requireTenantId(req);
+  requireUserId(req);
 
-    if (!name || !entityType || !entityId || !cronExpression) {
-      return res.status(400).json({
-        error: 'name, entityType, entityId, and cronExpression are required',
-      });
-    }
-
-    const data: any = {
-      name,
-      entityType,
-      entityId,
-      cronExpression,
-      input: JSON.stringify(input || {}),
-      timezone: timezone || 'UTC',
-      enabled: enabled !== undefined ? enabled : true,
-      nextRunAt: getNextRunFromCron(cronExpression),
-    };
-
-    // Set tenantId from user context if available
-    if (req.user?.tenantId) {
-      data.tenantId = req.user.tenantId;
-    }
-
-    // Set the appropriate relation based on entity type
-    if (entityType === 'ruleSet') {
-      data.ruleSetId = entityId;
-    } else if (entityType === 'workflow') {
-      data.workflowId = entityId;
-    }
-
-    const job = await prisma.scheduledJob.create({ data });
-
-    res.status(201).json({
-      ...job,
-      input: JSON.parse(job.input),
-    });
-  } catch (err: any) {
-    res.status(500).json({ error: err.message });
+  const error = validateRequired(req.body, ['name', 'entityType', 'entityId', 'cronExpression']);
+  if (error) {
+    return res.status(400).json({ error });
   }
-});
+
+  const {
+    name,
+    entityType,
+    entityId,
+    cronExpression,
+    input,
+    timezone,
+    enabled,
+  } = req.body;
+
+  // Verify the entityId belongs to a project in the user's tenant
+  if (entityType === 'ruleSet') {
+    const ruleSet = await prisma.ruleSet.findUnique({
+      where: { id: entityId },
+      include: { project: { select: { tenantId: true } } },
+    });
+    if (!ruleSet) {
+      return res.status(404).json({ error: 'Rule set not found' });
+    }
+    if (ruleSet.project.tenantId !== tenantId) {
+      return res.status(403).json({ error: 'Access denied: rule set does not belong to your tenant' });
+    }
+  } else if (entityType === 'workflow') {
+    const workflow = await prisma.workflow.findUnique({
+      where: { id: entityId },
+      include: { project: { select: { tenantId: true } } },
+    });
+    if (!workflow) {
+      return res.status(404).json({ error: 'Workflow not found' });
+    }
+    if (workflow.project.tenantId !== tenantId) {
+      return res.status(403).json({ error: 'Access denied: workflow does not belong to your tenant' });
+    }
+  } else {
+    return res.status(400).json({ error: `Unsupported entity type: ${entityType}` });
+  }
+
+  const data: any = {
+    tenantId,
+    name,
+    entityType,
+    entityId,
+    cronExpression,
+    input: JSON.stringify(input || {}),
+    timezone: timezone || 'UTC',
+    enabled: enabled !== undefined ? enabled : true,
+    nextRunAt: getNextRunFromCron(cronExpression),
+  };
+
+  // Set the appropriate relation based on entity type
+  if (entityType === 'ruleSet') {
+    data.ruleSetId = entityId;
+  } else if (entityType === 'workflow') {
+    data.workflowId = entityId;
+  }
+
+  const job = await prisma.scheduledJob.create({ data });
+
+  res.status(201).json({
+    ...job,
+    input: safeJsonParse(job.input, {}),
+  });
+}));
 
 // Update scheduled job
-router.put('/:id', async (req: any, res) => {
-  try {
-    const { name, cronExpression, input, timezone, enabled } = req.body;
-    const data: any = {};
+router.put('/:id', asyncHandler(async (req: any, res) => {
+  const tenantId = requireTenantId(req);
+  requireUserId(req);
 
-    if (name !== undefined) data.name = name;
-    if (cronExpression !== undefined) {
-      data.cronExpression = cronExpression;
-      data.nextRunAt = getNextRunFromCron(cronExpression);
+  // Verify the job belongs to tenant
+  const existing = await prisma.scheduledJob.findUnique({
+    where: { id: req.params.id },
+  });
+
+  if (!existing) {
+    return res.status(404).json({ error: 'Scheduled job not found' });
+  }
+
+  if (existing.tenantId !== tenantId) {
+    return res.status(403).json({ error: 'Access denied' });
+  }
+
+  const { name, cronExpression, input, timezone, enabled } = req.body;
+  const data: any = {};
+
+  if (name !== undefined) data.name = name;
+  if (cronExpression !== undefined) {
+    data.cronExpression = cronExpression;
+    data.nextRunAt = getNextRunFromCron(cronExpression);
+  }
+  if (input !== undefined) data.input = JSON.stringify(input);
+  if (timezone !== undefined) data.timezone = timezone;
+  if (enabled !== undefined) data.enabled = enabled;
+
+  const job = await prisma.scheduledJob.update({
+    where: { id: req.params.id },
+    data,
+  });
+
+  res.json({
+    ...job,
+    input: safeJsonParse(job.input, {}),
+  });
+}));
+
+// Delete scheduled job
+router.delete('/:id', asyncHandler(async (req: any, res) => {
+  const tenantId = requireTenantId(req);
+  requireUserId(req);
+
+  // Verify the job belongs to tenant
+  const existing = await prisma.scheduledJob.findUnique({
+    where: { id: req.params.id },
+  });
+
+  if (!existing) {
+    return res.status(404).json({ error: 'Scheduled job not found' });
+  }
+
+  if (existing.tenantId !== tenantId) {
+    return res.status(403).json({ error: 'Access denied' });
+  }
+
+  await prisma.scheduledJob.delete({ where: { id: req.params.id } });
+  res.json({ success: true });
+}));
+
+// Manually trigger a scheduled job (run now)
+router.post('/:id/run-now', asyncHandler(async (req: any, res) => {
+  const tenantId = requireTenantId(req);
+  requireUserId(req);
+
+  const job = await prisma.scheduledJob.findUnique({
+    where: { id: req.params.id },
+  });
+
+  if (!job) {
+    return res.status(404).json({ error: 'Scheduled job not found' });
+  }
+
+  // Verify tenant ownership
+  if (job.tenantId !== tenantId) {
+    return res.status(403).json({ error: 'Access denied' });
+  }
+
+  const input = safeJsonParse(job.input, {});
+  const startTime = Date.now();
+
+  if (job.entityType === 'ruleSet') {
+    // Fetch the rule set with rules and decision tables
+    const ruleSet = await prisma.ruleSet.findUnique({
+      where: { id: job.entityId },
+      include: {
+        rules: { where: { enabled: true }, orderBy: { priority: 'desc' } },
+        decisionTables: true,
+      },
+    });
+
+    if (!ruleSet) {
+      return res.status(404).json({ error: 'Rule set not found' });
     }
-    if (input !== undefined) data.input = JSON.stringify(input);
-    if (timezone !== undefined) data.timezone = timezone;
-    if (enabled !== undefined) data.enabled = enabled;
 
-    const job = await prisma.scheduledJob.update({
-      where: { id: req.params.id },
-      data,
+    // Build engine-compatible rule set (matching execute.ts pattern)
+    const engineRuleSet = {
+      id: ruleSet.id,
+      name: ruleSet.name,
+      rules: ruleSet.rules.map(
+        (r): Rule => ({
+          id: r.id,
+          name: r.name,
+          priority: r.priority,
+          enabled: r.enabled,
+          conditions: safeJsonParse(r.conditions, {}),
+          actions: safeJsonParse(r.actions, []),
+        })
+      ),
+      decisionTables: ruleSet.decisionTables.map(
+        (t): DecisionTable => ({
+          id: t.id,
+          name: t.name,
+          columns: safeJsonParse(t.columns, []),
+          rows: safeJsonParse(t.rows, []),
+          hitPolicy: 'FIRST' as const,
+        })
+      ),
+    };
+
+    const result = executeRuleSet(engineRuleSet, input);
+    const executionTimeMs = Date.now() - startTime;
+
+    // Update job execution metadata
+    await prisma.scheduledJob.update({
+      where: { id: job.id },
+      data: {
+        lastRunAt: new Date(),
+        runCount: { increment: 1 },
+        lastStatus: result.success ? 'success' : 'error',
+        lastError: result.error || null,
+        nextRunAt: getNextRunFromCron(job.cronExpression),
+      },
+    });
+
+    // Log execution
+    await prisma.executionLog.create({
+      data: {
+        ruleSetId: ruleSet.id,
+        version: ruleSet.version,
+        input: JSON.stringify(input),
+        output: JSON.stringify(result.output),
+        rulesFired: JSON.stringify(result.rulesFired),
+        executionTimeMs,
+        status: result.success ? 'success' : 'error',
+        error: result.error,
+      },
     });
 
     res.json({
-      ...job,
-      input: JSON.parse(job.input),
+      success: result.success,
+      executionTimeMs,
+      result,
     });
-  } catch (err: any) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
-// Delete scheduled job
-router.delete('/:id', async (req: any, res) => {
-  try {
-    await prisma.scheduledJob.delete({ where: { id: req.params.id } });
-    res.json({ success: true });
-  } catch (err: any) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
-// Manually trigger a scheduled job (run now)
-router.post('/:id/run-now', async (req: any, res) => {
-  try {
-    const job = await prisma.scheduledJob.findUnique({
-      where: { id: req.params.id },
+  } else if (job.entityType === 'workflow') {
+    // For workflows, create a workflow instance and trigger execution
+    const workflow = await prisma.workflow.findUnique({
+      where: { id: job.entityId },
     });
 
-    if (!job) {
-      return res.status(404).json({ error: 'Scheduled job not found' });
+    if (!workflow) {
+      return res.status(404).json({ error: 'Workflow not found' });
     }
 
-    const input = JSON.parse(job.input);
-    const startTime = Date.now();
+    const instance = await prisma.workflowInstance.create({
+      data: {
+        workflowId: workflow.id,
+        input: JSON.stringify(input),
+        status: 'running',
+      },
+    });
 
-    if (job.entityType === 'ruleSet') {
-      // Fetch the rule set with rules and decision tables
-      const ruleSet = await prisma.ruleSet.findUnique({
-        where: { id: job.entityId },
-        include: {
-          rules: { where: { enabled: true }, orderBy: { priority: 'desc' } },
-          decisionTables: true,
-        },
-      });
+    // Update job execution metadata
+    await prisma.scheduledJob.update({
+      where: { id: job.id },
+      data: {
+        lastRunAt: new Date(),
+        runCount: { increment: 1 },
+        lastStatus: 'success',
+        nextRunAt: getNextRunFromCron(job.cronExpression),
+      },
+    });
 
-      if (!ruleSet) {
-        return res.status(404).json({ error: 'Rule set not found' });
-      }
-
-      // Build engine-compatible rule set
-      const engineRuleSet = {
-        id: ruleSet.id,
-        name: ruleSet.name,
-        rules: ruleSet.rules.map(
-          (r): Rule => ({
-            id: r.id,
-            name: r.name,
-            priority: r.priority,
-            enabled: r.enabled,
-            conditions: JSON.parse(r.conditions),
-            actions: JSON.parse(r.actions),
-          })
-        ),
-        decisionTables: ruleSet.decisionTables.map(
-          (t): DecisionTable => ({
-            id: t.id,
-            name: t.name,
-            columns: JSON.parse(t.columns),
-            rows: JSON.parse(t.rows),
-            hitPolicy: 'FIRST' as const,
-          })
-        ),
-      };
-
-      const result = executeRuleSet(engineRuleSet, input);
-      const executionTimeMs = Date.now() - startTime;
-
-      // Update job execution metadata
-      await prisma.scheduledJob.update({
-        where: { id: job.id },
-        data: {
-          lastRunAt: new Date(),
-          runCount: { increment: 1 },
-          lastStatus: result.success ? 'success' : 'error',
-          lastError: result.error || null,
-          nextRunAt: getNextRunFromCron(job.cronExpression),
-        },
-      });
-
-      // Log execution
-      await prisma.executionLog.create({
-        data: {
-          ruleSetId: ruleSet.id,
-          version: ruleSet.version,
-          input: JSON.stringify(input),
-          output: JSON.stringify(result.output),
-          rulesFired: JSON.stringify(result.rulesFired),
-          executionTimeMs,
-          status: result.success ? 'success' : 'error',
-          error: result.error,
-        },
-      });
-
-      res.json({
-        success: result.success,
-        executionTimeMs,
-        result,
-      });
-    } else if (job.entityType === 'workflow') {
-      // For workflows, create a workflow instance and trigger execution
-      const workflow = await prisma.workflow.findUnique({
-        where: { id: job.entityId },
-      });
-
-      if (!workflow) {
-        return res.status(404).json({ error: 'Workflow not found' });
-      }
-
-      const instance = await prisma.workflowInstance.create({
-        data: {
-          workflowId: workflow.id,
-          input: JSON.stringify(input),
-          status: 'running',
-        },
-      });
-
-      // Update job execution metadata
-      await prisma.scheduledJob.update({
-        where: { id: job.id },
-        data: {
-          lastRunAt: new Date(),
-          runCount: { increment: 1 },
-          lastStatus: 'success',
-          nextRunAt: getNextRunFromCron(job.cronExpression),
-        },
-      });
-
-      res.json({
-        success: true,
-        executionTimeMs: Date.now() - startTime,
-        instanceId: instance.id,
-      });
-    } else {
-      res.status(400).json({ error: `Unsupported entity type: ${job.entityType}` });
-    }
-  } catch (err: any) {
-    // Update job with error status
-    try {
-      await prisma.scheduledJob.update({
-        where: { id: req.params.id },
-        data: {
-          lastRunAt: new Date(),
-          runCount: { increment: 1 },
-          lastStatus: 'error',
-          lastError: err.message,
-        },
-      });
-    } catch {
-      // Ignore update errors
-    }
-    res.status(500).json({ error: err.message });
+    res.json({
+      success: true,
+      executionTimeMs: Date.now() - startTime,
+      instanceId: instance.id,
+    });
+  } else {
+    res.status(400).json({ error: `Unsupported entity type: ${job.entityType}` });
   }
-});
+}));
 
 export default router;

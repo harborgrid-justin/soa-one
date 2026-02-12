@@ -10,7 +10,7 @@ import {
   RefreshCw,
   FileText,
 } from 'lucide-react';
-import api from '../api/client';
+import { getVersionDiff } from '../api/client';
 import { useStore } from '../store';
 
 interface FieldChange {
@@ -55,9 +55,8 @@ export function VersionDiff() {
   const fetchDiff = () => {
     if (!ruleSetId || !v1 || !v2) return;
     setLoading(true);
-    api
-      .get(`/version-diff/rule-sets/${ruleSetId}/diff/${v1}/${v2}`)
-      .then((r) => setDiff(r.data))
+    getVersionDiff(ruleSetId, Number(v1), Number(v2))
+      .then((data) => setDiff(data))
       .catch(() => {
         addNotification({ type: 'error', message: 'Failed to load version diff' });
       })

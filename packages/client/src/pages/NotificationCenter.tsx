@@ -10,7 +10,12 @@ import {
   CheckCheck,
   Clock,
 } from 'lucide-react';
-import api from '../api/client';
+import {
+  getNotifications,
+  markNotificationRead,
+  markAllNotificationsRead,
+  deleteNotification as deleteNotificationApi,
+} from '../api/client';
 import { useStore } from '../store';
 
 interface AppNotification {
@@ -59,9 +64,8 @@ export function NotificationCenter() {
 
   const fetchNotifications = () => {
     setLoading(true);
-    api
-      .get('/notifications')
-      .then((r) => setNotifications(r.data.notifications || r.data || []))
+    getNotifications()
+      .then((data) => setNotifications(data.notifications || data || []))
       .catch(() => {
         // Use sample data for UI when API not available
         setNotifications([
@@ -125,18 +129,30 @@ export function NotificationCenter() {
     setNotifications((prev) =>
       prev.map((n) => (n.id === id ? { ...n, read: true } : n))
     );
-    api.put(`/notifications/${id}/read`).catch(() => {});
+    markNotificationRead(id).catch((err) => {
+      console.error('Failed to mark notification as read', err);
+      addNotification({ type: 'error', message: 'Failed to mark notification as read' });
+    });
   };
 
   const markAllRead = () => {
     setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
-    api.put('/notifications/read-all').catch(() => {});
-    addNotification({ type: 'success', message: 'All notifications marked as read' });
+    markAllNotificationsRead()
+      .then(() => {
+        addNotification({ type: 'success', message: 'All notifications marked as read' });
+      })
+      .catch((err) => {
+        console.error('Failed to mark all notifications as read', err);
+        addNotification({ type: 'error', message: 'Failed to mark all as read' });
+      });
   };
 
-  const deleteNotification = (id: string) => {
+  const handleDeleteNotification = (id: string) => {
     setNotifications((prev) => prev.filter((n) => n.id !== id));
-    api.delete(`/notifications/${id}`).catch(() => {});
+    deleteNotificationApi(id).catch((err) => {
+      console.error('Failed to delete notification', err);
+      addNotification({ type: 'error', message: 'Failed to delete notification' });
+    });
   };
 
   const formatTimestamp = (dateStr: string) => {
@@ -247,7 +263,7 @@ export function NotificationCenter() {
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
-                      deleteNotification(notif.id);
+                      handleDeleteNotification(notif.id);
                     }}
                     className="p-1.5 rounded-lg hover:bg-red-100 text-slate-400 hover:text-red-500 transition-colors flex-shrink-0"
                   >

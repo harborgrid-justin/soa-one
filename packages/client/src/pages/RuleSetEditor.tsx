@@ -3,10 +3,11 @@ import { useParams, Link } from 'react-router-dom';
 import {
   ArrowLeft, Plus, Play, Upload, Save, Trash2,
   ChevronDown, ChevronRight, ToggleLeft, ToggleRight, GripVertical,
+  GitCompare, AlertTriangle, FlaskRound, History,
 } from 'lucide-react';
 import {
   getRuleSet, createRule, updateRule, deleteRule,
-  publishRuleSet, testRuleSet,
+  publishRuleSet, testRuleSet, getVersions,
 } from '../api/client';
 import { RuleEditor } from '../components/rules/RuleEditor';
 import { Modal } from '../components/common/Modal';
@@ -25,6 +26,7 @@ export function RuleSetEditor() {
   const [testRunning, setTestRunning] = useState(false);
   const [newRuleName, setNewRuleName] = useState('');
   const [expandedRules, setExpandedRules] = useState<Set<string>>(new Set());
+  const [versions, setVersions] = useState<any[]>([]);
   const { addNotification } = useStore();
 
   const load = () => {
@@ -46,6 +48,11 @@ export function RuleSetEditor() {
   };
 
   useEffect(() => { load(); }, [id]);
+
+  useEffect(() => {
+    if (!id) return;
+    getVersions(id).then(setVersions).catch(() => {});
+  }, [id]);
 
   const handleCreateRule = async () => {
     if (!newRuleName.trim() || !id) return;
@@ -164,6 +171,26 @@ export function RuleSetEditor() {
           <span className="text-slate-900 font-medium">{ruleSet.name}</span>
         </div>
         <div className="flex items-center gap-2">
+          <Link
+            to={`/rule-sets/${id}/conflicts`}
+            className="btn-secondary btn-sm"
+          >
+            <AlertTriangle className="w-3.5 h-3.5" /> Conflicts
+          </Link>
+          {versions.length >= 2 && (
+            <Link
+              to={`/rule-sets/${id}/diff/${versions[1]?.version}/${versions[0]?.version}`}
+              className="btn-secondary btn-sm"
+            >
+              <GitCompare className="w-3.5 h-3.5" /> Diff
+            </Link>
+          )}
+          <Link
+            to={`/simulations?ruleSetId=${id}`}
+            className="btn-secondary btn-sm"
+          >
+            <FlaskRound className="w-3.5 h-3.5" /> Simulate
+          </Link>
           <button onClick={() => setShowTest(true)} className="btn-secondary btn-sm">
             <Play className="w-3.5 h-3.5" /> Test
           </button>

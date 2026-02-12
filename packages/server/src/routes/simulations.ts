@@ -2,18 +2,64 @@ import { Router } from 'express';
 import { prisma } from '../prisma';
 import { executeRuleSet } from '@soa-one/engine';
 import type { Rule, DecisionTable } from '@soa-one/engine';
+import {
+  safeJsonParse,
+  requireTenantId,
+  requireUserId,
+  validateRequired,
+  asyncHandler,
+} from '../utils/validation';
 
 const router = Router();
 
 // ---------------------------------------------------------------------------
+// Helper: verify a ruleSetId belongs to the user's tenant via
+// ruleSet -> project -> tenant chain.  Returns the ruleSet or null.
+// ---------------------------------------------------------------------------
+async function verifyRuleSetTenant(ruleSetId: string, tenantId: string) {
+  const ruleSet = await prisma.ruleSet.findUnique({
+    where: { id: ruleSetId },
+    include: {
+      project: {
+        include: { tenant: true },
+      },
+    },
+  });
+
+  if (!ruleSet) return null;
+
+  // Project must belong to the user's tenant
+  if (!ruleSet.project.tenantId || ruleSet.project.tenantId !== tenantId) {
+    return null;
+  }
+
+  return ruleSet;
+}
+
+// ---------------------------------------------------------------------------
 // GET / — list simulation runs, optionally filtered by ?ruleSetId
 // ---------------------------------------------------------------------------
-router.get('/', async (req, res) => {
-  try {
+router.get(
+  '/',
+  asyncHandler(async (req: any, res) => {
+    const tenantId = requireTenantId(req);
     const where: any = {};
 
     if (req.query.ruleSetId) {
-      where.ruleSetId = String(req.query.ruleSetId);
+      const ruleSetId = String(req.query.ruleSetId);
+      // Verify tenant owns this ruleSet before filtering
+      const ruleSet = await verifyRuleSetTenant(ruleSetId, tenantId);
+      if (!ruleSet) {
+        return res.status(404).json({ error: 'Rule set not found' });
+      }
+      where.ruleSetId = ruleSetId;
+    } else {
+      // Only return simulation runs for ruleSets that belong to the tenant
+      where.ruleSet = {
+        project: {
+          tenantId,
+        },
+      };
     }
 
     const runs = await prisma.simulationRun.findMany({
@@ -23,53 +69,91 @@ router.get('/', async (req, res) => {
 
     const parsed = runs.map((r) => ({
       ...r,
-      dataset: JSON.parse(r.dataset),
-      results: r.results ? JSON.parse(r.results) : null,
-      stats: r.stats ? JSON.parse(r.stats) : null,
+      dataset: safeJsonParse(r.dataset, []),
+      results: r.results ? safeJsonParse(r.results, null) : null,
+      stats: r.stats ? safeJsonParse(r.stats, null) : null,
     }));
 
     res.json(parsed);
-  } catch (err: any) {
-    res.status(500).json({ error: err.message });
-  }
-});
+  }),
+);
 
 // ---------------------------------------------------------------------------
 // GET /:id — get a single simulation run with results
 // ---------------------------------------------------------------------------
-router.get('/:id', async (req, res) => {
-  try {
+router.get(
+  '/:id',
+  asyncHandler(async (req: any, res) => {
+    const tenantId = requireTenantId(req);
+
     const run = await prisma.simulationRun.findUnique({
       where: { id: req.params.id },
+      include: {
+        ruleSet: {
+          include: {
+            project: true,
+          },
+        },
+      },
     });
 
     if (!run) return res.status(404).json({ error: 'Simulation run not found' });
 
+    // Verify tenant isolation through ruleSet -> project -> tenant
+    if (!run.ruleSet.project.tenantId || run.ruleSet.project.tenantId !== tenantId) {
+      return res.status(404).json({ error: 'Simulation run not found' });
+    }
+
     res.json({
       ...run,
-      dataset: JSON.parse(run.dataset),
-      results: run.results ? JSON.parse(run.results) : null,
-      stats: run.stats ? JSON.parse(run.stats) : null,
+      ruleSet: undefined, // strip the included relation from the response
+      ruleSetId: run.ruleSetId,
+      dataset: safeJsonParse(run.dataset, []),
+      results: run.results ? safeJsonParse(run.results, null) : null,
+      stats: run.stats ? safeJsonParse(run.stats, null) : null,
     });
-  } catch (err: any) {
-    res.status(500).json({ error: err.message });
-  }
-});
+  }),
+);
 
 // ---------------------------------------------------------------------------
 // POST / — create and run a simulation
 //   Body: { ruleSetId, name, description?, dataset: [{input, expectedOutput?}] }
 // ---------------------------------------------------------------------------
-router.post('/', async (req, res) => {
-  const { ruleSetId, name, description, dataset } = req.body;
+router.post(
+  '/',
+  asyncHandler(async (req: any, res) => {
+    const tenantId = requireTenantId(req);
+    const { ruleSetId, name, description, dataset } = req.body;
 
-  if (!ruleSetId || !name || !dataset || !Array.isArray(dataset)) {
-    return res.status(400).json({
-      error: 'ruleSetId, name, and dataset (array) are required',
-    });
-  }
+    // Validate required fields
+    const missing = validateRequired(req.body, ['ruleSetId', 'name', 'dataset']);
+    if (missing) {
+      return res.status(400).json({ error: missing });
+    }
 
-  try {
+    if (!Array.isArray(dataset)) {
+      return res.status(400).json({ error: 'dataset must be an array' });
+    }
+
+    if (dataset.length < 1) {
+      return res.status(400).json({ error: 'dataset must contain at least 1 item' });
+    }
+
+    // Validate each dataset item has an `input` field
+    for (let i = 0; i < dataset.length; i++) {
+      if (!dataset[i].input || typeof dataset[i].input !== 'object') {
+        return res.status(400).json({
+          error: `dataset[${i}] must have an "input" field that is an object`,
+        });
+      }
+    }
+
+    // Verify tenant owns this ruleSet
+    const ownerCheck = await verifyRuleSetTenant(ruleSetId, tenantId);
+    if (!ownerCheck) {
+      return res.status(404).json({ error: 'Rule set not found' });
+    }
+
     // Load the rule set with its rules and decision tables
     const ruleSet = await prisma.ruleSet.findUnique({
       where: { id: ruleSetId },
@@ -92,7 +176,7 @@ router.post('/', async (req, res) => {
       },
     });
 
-    // Build engine-compatible rule set
+    // Build engine-compatible rule set (matches execute.ts pattern)
     const engineRuleSet = {
       id: ruleSet.id,
       name: ruleSet.name,
@@ -101,14 +185,14 @@ router.post('/', async (req, res) => {
         name: r.name,
         priority: r.priority,
         enabled: r.enabled,
-        conditions: JSON.parse(r.conditions),
-        actions: JSON.parse(r.actions),
+        conditions: safeJsonParse(r.conditions, {}),
+        actions: safeJsonParse(r.actions, []),
       })),
       decisionTables: ruleSet.decisionTables.map((t): DecisionTable => ({
         id: t.id,
         name: t.name,
-        columns: JSON.parse(t.columns),
-        rows: JSON.parse(t.rows),
+        columns: safeJsonParse(t.columns, []),
+        rows: safeJsonParse(t.rows, []),
         hitPolicy: 'FIRST' as const,
       })),
     };
@@ -121,50 +205,67 @@ router.post('/', async (req, res) => {
     const firedRuleIds = new Set<string>();
 
     for (const testCase of dataset) {
-      const execution = executeRuleSet(engineRuleSet, testCase.input);
-      totalExecutionMs += execution.executionTimeMs;
+      try {
+        const execution = executeRuleSet(engineRuleSet, testCase.input);
+        totalExecutionMs += execution.executionTimeMs;
 
-      // Track which rules fired for coverage
-      for (const ruleId of execution.rulesFired) {
-        firedRuleIds.add(ruleId);
-      }
-
-      // Determine pass/fail by comparing output to expectedOutput (if provided)
-      let match: boolean | null = null;
-      if (testCase.expectedOutput !== undefined && testCase.expectedOutput !== null) {
-        match = deepEqual(execution.output, testCase.expectedOutput);
-        if (match) {
-          passed++;
-        } else {
-          failed++;
+        // Track which rules fired for coverage
+        for (const ruleId of execution.rulesFired) {
+          firedRuleIds.add(ruleId);
         }
-      }
 
-      results.push({
-        input: testCase.input,
-        expectedOutput: testCase.expectedOutput ?? null,
-        actualOutput: execution.output,
-        match,
-        rulesFired: execution.rulesFired,
-        executionTimeMs: execution.executionTimeMs,
-        success: execution.success,
-        error: execution.error,
-      });
+        // Determine pass/fail by comparing output to expectedOutput (if provided)
+        let match: boolean | null = null;
+        if (testCase.expectedOutput !== undefined && testCase.expectedOutput !== null) {
+          match = deepEqual(execution.output, testCase.expectedOutput);
+          if (match) {
+            passed++;
+          } else {
+            failed++;
+          }
+        }
+
+        results.push({
+          input: testCase.input,
+          expectedOutput: testCase.expectedOutput ?? null,
+          actualOutput: execution.output,
+          match,
+          rulesFired: execution.rulesFired,
+          executionTimeMs: execution.executionTimeMs,
+          success: execution.success,
+          error: execution.error,
+        });
+      } catch (execErr: any) {
+        // Individual test case failure should not abort the entire simulation
+        results.push({
+          input: testCase.input,
+          expectedOutput: testCase.expectedOutput ?? null,
+          actualOutput: null,
+          match: false,
+          rulesFired: [],
+          executionTimeMs: 0,
+          success: false,
+          error: execErr.message || 'Execution error',
+        });
+        failed++;
+      }
     }
 
     // Compute stats
     const totalRules = engineRuleSet.rules.filter((r) => r.enabled).length;
-    const coverage = totalRules > 0
-      ? Math.round((firedRuleIds.size / totalRules) * 100)
-      : 0;
+    const coverage =
+      totalRules > 0
+        ? Math.round((firedRuleIds.size / totalRules) * 100)
+        : 0;
 
     const stats = {
       total: dataset.length,
       passed,
       failed,
-      avgExecutionMs: dataset.length > 0
-        ? Math.round(totalExecutionMs / dataset.length)
-        : 0,
+      avgExecutionMs:
+        dataset.length > 0
+          ? Math.round(totalExecutionMs / dataset.length)
+          : 0,
       coverage,
     };
 
@@ -181,33 +282,44 @@ router.post('/', async (req, res) => {
 
     res.status(201).json({
       ...updated,
-      dataset: JSON.parse(updated.dataset),
+      dataset: safeJsonParse(updated.dataset, []),
       results,
       stats,
     });
-  } catch (err: any) {
-    res.status(500).json({ error: err.message });
-  }
-});
+  }),
+);
 
 // ---------------------------------------------------------------------------
 // DELETE /:id — delete a simulation run
 // ---------------------------------------------------------------------------
-router.delete('/:id', async (req, res) => {
-  try {
+router.delete(
+  '/:id',
+  asyncHandler(async (req: any, res) => {
+    const tenantId = requireTenantId(req);
+
     const run = await prisma.simulationRun.findUnique({
       where: { id: req.params.id },
+      include: {
+        ruleSet: {
+          include: {
+            project: true,
+          },
+        },
+      },
     });
 
     if (!run) return res.status(404).json({ error: 'Simulation run not found' });
 
+    // Verify tenant isolation through ruleSet -> project -> tenant
+    if (!run.ruleSet.project.tenantId || run.ruleSet.project.tenantId !== tenantId) {
+      return res.status(404).json({ error: 'Simulation run not found' });
+    }
+
     await prisma.simulationRun.delete({ where: { id: req.params.id } });
 
     res.json({ success: true });
-  } catch (err: any) {
-    res.status(500).json({ error: err.message });
-  }
-});
+  }),
+);
 
 // ---------------------------------------------------------------------------
 // Utility: deep equality check for comparing expected vs actual output

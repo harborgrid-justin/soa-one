@@ -13,7 +13,12 @@ import {
   Link as LinkIcon,
 } from 'lucide-react';
 import { Modal } from '../components/common/Modal';
-import api, { getAuditLogs } from '../api/client';
+import {
+  getAuditLogs,
+  getComplianceFrameworks,
+  createComplianceFramework,
+  certifyFramework,
+} from '../api/client';
 import { useStore } from '../store';
 
 type FrameworkType = 'SOX' | 'HIPAA' | 'GDPR' | 'PCI' | 'Custom';
@@ -91,10 +96,10 @@ export function ComplianceDashboard() {
 
   const fetchFrameworks = () => {
     setLoading(true);
-    api
-      .get('/compliance/frameworks')
-      .then((r) => setFrameworks(r.data.frameworks || r.data || []))
-      .catch(() => {
+    getComplianceFrameworks()
+      .then((data) => setFrameworks(data.frameworks || data || []))
+      .catch((err) => {
+        console.error('Failed to fetch compliance frameworks', err);
         setFrameworks([]);
       })
       .finally(() => setLoading(false));
@@ -110,8 +115,7 @@ export function ComplianceDashboard() {
       return;
     }
 
-    api
-      .post('/compliance/frameworks', {
+    createComplianceFramework({
         name: formName,
         type: formType,
         description: formDesc,
@@ -132,8 +136,7 @@ export function ComplianceDashboard() {
   };
 
   const handleCertify = (frameworkId: string) => {
-    api
-      .post(`/compliance/frameworks/${frameworkId}/certify`)
+    certifyFramework(frameworkId)
       .then(() => {
         addNotification({ type: 'success', message: 'Framework certified' });
         fetchFrameworks();

@@ -12,8 +12,13 @@ import {
   FileText,
 } from 'lucide-react';
 import { Modal } from '../components/common/Modal';
+import {
+  getRuleSets,
+  getSimulations,
+  createSimulation,
+  deleteSimulation,
+} from '../api/client';
 import api from '../api/client';
-import { getRuleSets } from '../api/client';
 import { useStore } from '../store';
 
 interface TestCase {
@@ -69,10 +74,11 @@ export function Simulations() {
 
   const fetchSimulations = () => {
     setLoading(true);
-    api
-      .get('/simulations')
-      .then((r) => setSimulations(r.data.simulations || r.data || []))
-      .catch(() => {
+    getSimulations()
+      .then((data) => setSimulations(data.simulations || data || []))
+      .catch((err) => {
+        console.error('Failed to fetch simulations', err);
+        addNotification({ type: 'error', message: 'Failed to load simulations' });
         setSimulations([]);
       })
       .finally(() => setLoading(false));
@@ -80,7 +86,11 @@ export function Simulations() {
 
   useEffect(() => {
     fetchSimulations();
-    getRuleSets().then((data) => setRuleSets(data.ruleSets || data || [])).catch(() => {});
+    getRuleSets()
+      .then((data) => setRuleSets(data.ruleSets || data || []))
+      .catch((err) => {
+        console.error('Failed to fetch rule sets', err);
+      });
   }, []);
 
   const addTestCase = () => {
@@ -116,9 +126,8 @@ export function Simulations() {
       })),
     };
 
-    api
-      .post('/simulations', payload)
-      .then((r) => {
+    createSimulation(payload)
+      .then(() => {
         addNotification({ type: 'success', message: 'Simulation created' });
         setShowCreateModal(false);
         setFormName('');
@@ -148,8 +157,7 @@ export function Simulations() {
   };
 
   const handleDelete = (id: string) => {
-    api
-      .delete(`/simulations/${id}`)
+    deleteSimulation(id)
       .then(() => {
         addNotification({ type: 'success', message: 'Simulation deleted' });
         if (selectedSim?.id === id) setSelectedSim(null);

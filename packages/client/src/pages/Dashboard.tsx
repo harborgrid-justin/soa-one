@@ -9,6 +9,11 @@ import {
   Zap,
   TrendingUp,
   Clock,
+  CheckSquare,
+  Bell,
+  FlaskRound,
+  Store,
+  BarChart3,
 } from 'lucide-react';
 import { getDashboardStats } from '../api/client';
 import type { DashboardStats } from '../types';
@@ -45,6 +50,11 @@ export function Dashboard() {
     { label: 'Avg Response', value: `${stats?.avgExecutionTimeMs ?? 0}ms`, icon: Clock, color: 'text-amber-600' },
   ];
 
+  const pendingApprovals = (stats as any)?.pendingApprovals ?? 0;
+  const unreadNotifications = (stats as any)?.unreadNotifications ?? 0;
+  const simulations = (stats as any)?.simulations ?? 0;
+  const templates = (stats as any)?.templates ?? 0;
+
   return (
     <div className="space-y-6">
       {/* Welcome */}
@@ -52,12 +62,16 @@ export function Dashboard() {
         <div className="flex items-center justify-between">
           <div>
             <h2 className="text-xl font-semibold text-slate-900">Welcome to SOA One</h2>
-            <p className="text-sm text-slate-500 mt-1">Enterprise Business Rules Platform</p>
+            <p className="text-sm text-slate-500 mt-1">Enterprise Business Rules Platform — v4.0</p>
           </div>
-          <Link to="/projects" className="btn-primary">
-            <FolderOpen className="w-4 h-4" />
-            Open Projects
-          </Link>
+          <div className="flex items-center gap-2">
+            <Link to="/analytics" className="btn-secondary">
+              <BarChart3 className="w-4 h-4" /> Analytics
+            </Link>
+            <Link to="/projects" className="btn-primary">
+              <FolderOpen className="w-4 h-4" /> Open Projects
+            </Link>
+          </div>
         </div>
       </div>
 
@@ -87,6 +101,50 @@ export function Dashboard() {
             <div className="text-2xl font-bold text-slate-900">{card.value}</div>
           </div>
         ))}
+      </div>
+
+      {/* V3+V4 Quick access */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        {pendingApprovals > 0 && (
+          <Link to="/approvals" className="card p-4 hover:shadow-md transition-shadow border-l-4 border-l-amber-400">
+            <div className="flex items-center gap-3">
+              <CheckSquare className="w-5 h-5 text-amber-500" />
+              <div>
+                <div className="text-lg font-bold text-slate-900">{pendingApprovals}</div>
+                <div className="text-xs text-slate-500">Pending Approvals</div>
+              </div>
+            </div>
+          </Link>
+        )}
+        {unreadNotifications > 0 && (
+          <Link to="/notifications" className="card p-4 hover:shadow-md transition-shadow border-l-4 border-l-red-400">
+            <div className="flex items-center gap-3">
+              <Bell className="w-5 h-5 text-red-500" />
+              <div>
+                <div className="text-lg font-bold text-slate-900">{unreadNotifications}</div>
+                <div className="text-xs text-slate-500">Unread Notifications</div>
+              </div>
+            </div>
+          </Link>
+        )}
+        <Link to="/simulations" className="card p-4 hover:shadow-md transition-shadow border-l-4 border-l-brand-400">
+          <div className="flex items-center gap-3">
+            <FlaskRound className="w-5 h-5 text-brand-500" />
+            <div>
+              <div className="text-lg font-bold text-slate-900">{simulations}</div>
+              <div className="text-xs text-slate-500">Simulations Run</div>
+            </div>
+          </div>
+        </Link>
+        <Link to="/templates" className="card p-4 hover:shadow-md transition-shadow border-l-4 border-l-emerald-400">
+          <div className="flex items-center gap-3">
+            <Store className="w-5 h-5 text-emerald-500" />
+            <div>
+              <div className="text-lg font-bold text-slate-900">{templates}</div>
+              <div className="text-xs text-slate-500">Templates Available</div>
+            </div>
+          </div>
+        </Link>
       </div>
 
       {/* Recent executions */}
