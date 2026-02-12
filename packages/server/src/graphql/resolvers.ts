@@ -2,6 +2,9 @@ import { prisma } from '../prisma';
 import { executeRuleSet as runEngine } from '@soa-one/engine';
 import type { Rule, DecisionTable } from '@soa-one/engine';
 import { enqueueJob } from '../queue/producer';
+import { executeWorkflow } from '../services/workflowEngine';
+import * as bcrypt from 'bcryptjs';
+import { signToken } from '../auth/middleware';
 
 function buildEngineRuleSet(ruleSet: any) {
   return {
@@ -56,11 +59,19 @@ export const resolvers = {
         include: {
           ruleSets: { orderBy: { updatedAt: 'desc' } },
           dataModels: { orderBy: { updatedAt: 'desc' } },
+          workflows: { orderBy: { updatedAt: 'desc' } },
+          adapters: { orderBy: { updatedAt: 'desc' } },
           _count: { select: { ruleSets: true, dataModels: true } },
         },
       });
       if (!p) return null;
-      return { ...p, ruleSetCount: p._count.ruleSets, dataModelCount: p._count.dataModels };
+      return {
+        ...p,
+        workflows: p.workflows.map((w) => parseJsonFields(w, ['nodes', 'edges', 'variables'])),
+        adapters: p.adapters.map((a) => parseJsonFields(a, ['config'])),
+        ruleSetCount: p._count.ruleSets,
+        dataModelCount: p._count.dataModels,
+      };
     },
 
     // Rule Sets
@@ -145,11 +156,13 @@ export const resolvers = {
 
     // Dashboard
     dashboardStats: async () => {
-      const [projects, ruleSets, rules, decisionTables, totalExecutions] = await Promise.all([
+      const [projects, ruleSets, rules, decisionTables, workflows, adapters, totalExecutions] = await Promise.all([
         prisma.project.count(),
         prisma.ruleSet.count(),
         prisma.rule.count(),
         prisma.decisionTable.count(),
+        prisma.workflow.count(),
+        prisma.adapter.count(),
         prisma.executionLog.count(),
       ]);
       const recent = await prisma.executionLog.findMany({ take: 100, orderBy: { createdAt: 'desc' } });
@@ -163,6 +176,8 @@ export const resolvers = {
         ruleSets,
         rules,
         decisionTables,
+        workflows,
+        adapters,
         totalExecutions,
         successRate: recent.length > 0 ? Math.round((successCount / recent.length) * 100) : 100,
         avgExecutionTimeMs: avgTime,
@@ -218,6 +233,80 @@ export const resolvers = {
         payload: JSON.parse(j.payload),
         result: j.result ? JSON.parse(j.result) : null,
       };
+    },
+
+    // V2: Workflows
+    workflows: async (_: any, { projectId }: { projectId?: string }) => {
+      const where = projectId ? { projectId } : {};
+      const workflows = await prisma.workflow.findMany({
+        where,
+        include: { _count: { select: { instances: true } } },
+        orderBy: { updatedAt: 'desc' },
+      });
+      return workflows.map((w) => ({
+        ...parseJsonFields(w, ['nodes', 'edges', 'variables']),
+        instanceCount: w._count.instances,
+      }));
+    },
+
+    workflow: async (_: any, { id }: { id: string }) => {
+      const w = await prisma.workflow.findUnique({
+        where: { id },
+        include: { _count: { select: { instances: true } } },
+      });
+      if (!w) return null;
+      return {
+        ...parseJsonFields(w, ['nodes', 'edges', 'variables']),
+        instanceCount: w._count.instances,
+      };
+    },
+
+    workflowInstances: async (_: any, { workflowId }: { workflowId: string }) => {
+      const instances = await prisma.workflowInstance.findMany({
+        where: { workflowId },
+        orderBy: { startedAt: 'desc' },
+        take: 50,
+      });
+      return instances.map((i) => parseJsonFields(i, ['input', 'state', 'output', 'logs']));
+    },
+
+    // V2: Adapters
+    adapters: async (_: any, { projectId }: { projectId?: string }) => {
+      const where = projectId ? { projectId } : {};
+      const adapters = await prisma.adapter.findMany({ where, orderBy: { updatedAt: 'desc' } });
+      return adapters.map((a) => parseJsonFields(a, ['config']));
+    },
+
+    adapter: async (_: any, { id }: { id: string }) => {
+      const a = await prisma.adapter.findUnique({ where: { id } });
+      return a ? parseJsonFields(a, ['config']) : null;
+    },
+
+    // V2: Audit
+    auditLogs: async (_: any, { action, entity, limit }: any) => {
+      const where: any = {};
+      if (action) where.action = action;
+      if (entity) where.entity = entity;
+
+      const [logs, total] = await Promise.all([
+        prisma.auditLog.findMany({
+          where,
+          take: limit || 50,
+          orderBy: { createdAt: 'desc' },
+        }),
+        prisma.auditLog.count({ where }),
+      ]);
+
+      return {
+        logs: logs.map((l) => parseJsonFields(l, ['before', 'after'])),
+        total,
+      };
+    },
+
+    // V2: Auth
+    me: async (_: any, __: any, context: any) => {
+      if (!context.user) return null;
+      return context.user;
     },
   },
 
@@ -440,6 +529,91 @@ export const resolvers = {
         createdAt: new Date(),
       };
     },
+
+    // V2: Workflows
+    createWorkflow: async (_: any, { projectId, name, description }: any) => {
+      const defaultNodes = [
+        { id: 'start-1', type: 'start', position: { x: 250, y: 25 }, data: { label: 'Start' } },
+      ];
+      const w = await prisma.workflow.create({
+        data: {
+          projectId,
+          name,
+          description: description || '',
+          nodes: JSON.stringify(defaultNodes),
+        },
+      });
+      return { ...parseJsonFields(w, ['nodes', 'edges', 'variables']), instanceCount: 0 };
+    },
+
+    updateWorkflow: async (_: any, { id, nodes, edges, ...rest }: any) => {
+      const data: any = { ...rest };
+      if (nodes !== undefined) data.nodes = JSON.stringify(nodes);
+      if (edges !== undefined) data.edges = JSON.stringify(edges);
+      const w = await prisma.workflow.update({
+        where: { id },
+        data,
+        include: { _count: { select: { instances: true } } },
+      });
+      return { ...parseJsonFields(w, ['nodes', 'edges', 'variables']), instanceCount: w._count.instances };
+    },
+
+    deleteWorkflow: async (_: any, { id }: any) => {
+      await prisma.workflow.delete({ where: { id } });
+      return true;
+    },
+
+    executeWorkflow: async (_: any, { id, input }: any) => {
+      const workflow = await prisma.workflow.findUnique({ where: { id } });
+      if (!workflow) throw new Error('Workflow not found');
+      const instance = await prisma.workflowInstance.create({
+        data: { workflowId: id, input: JSON.stringify(input) },
+      });
+      const result = await executeWorkflow(workflow, instance.id, input);
+      return parseJsonFields(result, ['input', 'state', 'output', 'logs']);
+    },
+
+    // V2: Adapters
+    createAdapter: async (_: any, { projectId, name, type }: any) => {
+      const a = await prisma.adapter.create({
+        data: { projectId, name, type },
+      });
+      return parseJsonFields(a, ['config']);
+    },
+
+    updateAdapter: async (_: any, { id, config, ...rest }: any) => {
+      const data: any = { ...rest };
+      if (config !== undefined) data.config = JSON.stringify(config);
+      const a = await prisma.adapter.update({ where: { id }, data });
+      return parseJsonFields(a, ['config']);
+    },
+
+    deleteAdapter: async (_: any, { id }: any) => {
+      await prisma.adapter.delete({ where: { id } });
+      return true;
+    },
+
+    // V2: Auth
+    login: async (_: any, { email, password }: any) => {
+      const user = await prisma.user.findUnique({ where: { email } });
+      if (!user || !user.isActive) throw new Error('Invalid credentials');
+      const valid = await bcrypt.compare(password, user.password);
+      if (!valid) throw new Error('Invalid credentials');
+      const token = signToken({ id: user.id, email: user.email, name: user.name, role: user.role, tenantId: user.tenantId });
+      return { token, user: { id: user.id, email: user.email, name: user.name, role: user.role, tenantId: user.tenantId } };
+    },
+
+    register: async (_: any, { email, password, name, tenantName }: any) => {
+      const tenant = await prisma.tenant.create({
+        data: { name: tenantName, slug: tenantName.toLowerCase().replace(/[^a-z0-9]/g, '-') },
+      });
+      const hashed = await bcrypt.hash(password, 10);
+      const user = await prisma.user.create({
+        data: { email, password: hashed, name, role: 'admin', tenantId: tenant.id },
+      });
+      const token = signToken({ id: user.id, email: user.email, name: user.name, role: user.role, tenantId: tenant.id });
+      return { token, user: { id: user.id, email: user.email, name: user.name, role: user.role, tenantId: tenant.id } };
+    },
   },
 
   // Field resolvers for nested types
@@ -452,6 +626,16 @@ export const resolvers = {
       if (parent.dataModels) return parent.dataModels;
       const models = await prisma.dataModel.findMany({ where: { projectId: parent.id } });
       return models.map((m) => parseJsonFields(m, ['schema']));
+    },
+    workflows: async (parent: any) => {
+      if (parent.workflows) return parent.workflows;
+      const workflows = await prisma.workflow.findMany({ where: { projectId: parent.id } });
+      return workflows.map((w) => parseJsonFields(w, ['nodes', 'edges', 'variables']));
+    },
+    adapters: async (parent: any) => {
+      if (parent.adapters) return parent.adapters;
+      const adapters = await prisma.adapter.findMany({ where: { projectId: parent.id } });
+      return adapters.map((a) => parseJsonFields(a, ['config']));
     },
   },
 
@@ -474,6 +658,13 @@ export const resolvers = {
         take: 10,
       });
       return versions.map((v) => parseJsonFields(v, ['snapshot']));
+    },
+  },
+
+  Workflow: {
+    instanceCount: async (parent: any) => {
+      if (parent.instanceCount !== undefined) return parent.instanceCount;
+      return prisma.workflowInstance.count({ where: { workflowId: parent.id } });
     },
   },
 };

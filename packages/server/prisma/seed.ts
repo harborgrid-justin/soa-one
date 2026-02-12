@@ -1,13 +1,36 @@
 import { PrismaClient } from '@prisma/client';
+import * as bcrypt from 'bcryptjs';
 
 const prisma = new PrismaClient();
 
 async function main() {
   console.log('Seeding database...');
 
+  // Create default tenant
+  const tenant = await prisma.tenant.create({
+    data: {
+      name: 'Default Organization',
+      slug: 'default',
+      plan: 'enterprise',
+    },
+  });
+
+  // Create admin user
+  const hashedPassword = await bcrypt.hash('admin123', 10);
+  await prisma.user.create({
+    data: {
+      email: 'admin@soa-one.dev',
+      name: 'Admin User',
+      password: hashedPassword,
+      role: 'admin',
+      tenantId: tenant.id,
+    },
+  });
+
   // Create a demo project
   const project = await prisma.project.create({
     data: {
+      tenantId: tenant.id,
       name: 'Insurance Underwriting',
       description: 'Auto insurance policy underwriting rules for risk assessment and premium calculation',
     },
@@ -188,9 +211,42 @@ async function main() {
     },
   });
 
+  // Create a demo workflow
+  await prisma.workflow.create({
+    data: {
+      projectId: project.id,
+      name: 'Underwriting Review',
+      description: 'End-to-end underwriting review process with automated risk assessment',
+      status: 'active',
+      nodes: JSON.stringify([
+        { id: 'start-1', type: 'start', position: { x: 250, y: 25 }, data: { label: 'Start' } },
+        { id: 'ruleTask-1', type: 'ruleTask', position: { x: 200, y: 150 }, data: { label: 'Calculate Premium', ruleSetName: 'Premium Calculation Rules' } },
+        { id: 'decision-1', type: 'decision', position: { x: 200, y: 300 }, data: { label: 'Risk Assessment', condition: 'output.premium.riskCategory' } },
+        { id: 'end-1', type: 'end', position: { x: 250, y: 450 }, data: { label: 'End' } },
+      ]),
+      edges: JSON.stringify([
+        { id: 'e1', source: 'start-1', target: 'ruleTask-1', animated: true },
+        { id: 'e2', source: 'ruleTask-1', target: 'decision-1', animated: true },
+        { id: 'e3', source: 'decision-1', target: 'end-1', sourceHandle: 'yes', animated: true },
+      ]),
+    },
+  });
+
+  // Create a demo adapter
+  await prisma.adapter.create({
+    data: {
+      projectId: project.id,
+      name: 'Credit Score API',
+      type: 'rest',
+      config: JSON.stringify({ baseUrl: 'https://api.example.com/credit', method: 'GET' }),
+      status: 'inactive',
+    },
+  });
+
   // Create a second project for demo breadth
   const govProject = await prisma.project.create({
     data: {
+      tenantId: tenant.id,
       name: 'Benefits Eligibility',
       description: 'Government program eligibility determination rules',
     },
@@ -223,12 +279,44 @@ async function main() {
     },
   });
 
+  // Create seed audit log entries
+  await prisma.auditLog.createMany({
+    data: [
+      {
+        tenantId: tenant.id,
+        userName: 'Admin User',
+        action: 'create',
+        entity: 'project',
+        entityName: 'Insurance Underwriting',
+      },
+      {
+        tenantId: tenant.id,
+        userName: 'Admin User',
+        action: 'publish',
+        entity: 'ruleSet',
+        entityName: 'Premium Calculation Rules',
+      },
+      {
+        tenantId: tenant.id,
+        userName: 'Admin User',
+        action: 'create',
+        entity: 'workflow',
+        entityName: 'Underwriting Review',
+      },
+    ],
+  });
+
   console.log('Seed complete!');
+  console.log(`  - 1 tenant created (${tenant.name})`);
+  console.log(`  - 1 admin user created (admin@soa-one.dev / admin123)`);
   console.log(`  - 2 projects created`);
   console.log(`  - 2 data models created`);
   console.log(`  - 2 rule sets created`);
   console.log(`  - 5 rules created`);
   console.log(`  - 1 decision table created`);
+  console.log(`  - 1 workflow created`);
+  console.log(`  - 1 adapter created`);
+  console.log(`  - 3 audit log entries created`);
 }
 
 main()

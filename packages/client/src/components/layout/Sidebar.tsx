@@ -10,18 +10,46 @@ import {
   Settings,
   ChevronLeft,
   Zap,
+  Workflow,
+  Plug,
+  Shield,
+  Users,
 } from 'lucide-react';
 import { useStore } from '../../store';
 
-const navItems = [
-  { to: '/', icon: LayoutDashboard, label: 'Dashboard' },
-  { to: '/projects', icon: FolderOpen, label: 'Projects' },
-  { to: '/rule-sets', icon: GitBranch, label: 'Rule Sets' },
-  { to: '/decision-tables', icon: Table2, label: 'Decision Tables' },
-  { to: '/data-models', icon: Database, label: 'Data Models' },
-  { to: '/test', icon: FlaskConical, label: 'Test Sandbox' },
-  { to: '/monitoring', icon: Activity, label: 'Monitoring' },
-  { to: '/api-docs', icon: Zap, label: 'API & Queue' },
+const navSections = [
+  {
+    label: 'Core',
+    items: [
+      { to: '/', icon: LayoutDashboard, label: 'Dashboard' },
+      { to: '/projects', icon: FolderOpen, label: 'Projects' },
+      { to: '/rule-sets', icon: GitBranch, label: 'Rule Sets' },
+      { to: '/decision-tables', icon: Table2, label: 'Decision Tables' },
+      { to: '/data-models', icon: Database, label: 'Data Models' },
+    ],
+  },
+  {
+    label: 'Orchestration',
+    items: [
+      { to: '/workflows', icon: Workflow, label: 'Workflows' },
+      { to: '/adapters', icon: Plug, label: 'Adapters' },
+    ],
+  },
+  {
+    label: 'Operations',
+    items: [
+      { to: '/test', icon: FlaskConical, label: 'Test Sandbox' },
+      { to: '/monitoring', icon: Activity, label: 'Monitoring' },
+      { to: '/audit', icon: Shield, label: 'Audit Log' },
+      { to: '/api-docs', icon: Zap, label: 'API & Queue' },
+    ],
+  },
+  {
+    label: 'Admin',
+    items: [
+      { to: '/users', icon: Users, label: 'Team & SSO' },
+    ],
+  },
 ];
 
 export function Sidebar() {
@@ -55,23 +83,34 @@ export function Sidebar() {
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 py-4 px-3 space-y-1 overflow-y-auto">
-        {navItems.map((item) => (
-          <NavLink
-            key={item.to}
-            to={item.to}
-            end={item.to === '/'}
-            className={({ isActive }) =>
-              `flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-all duration-150 ${
-                isActive
-                  ? 'bg-brand-600/20 text-brand-300 font-medium'
-                  : 'text-slate-400 hover:text-white hover:bg-slate-800'
-              }`
-            }
-          >
-            <item.icon className="w-5 h-5 flex-shrink-0" />
-            {sidebarOpen && <span>{item.label}</span>}
-          </NavLink>
+      <nav className="flex-1 py-2 px-3 overflow-y-auto">
+        {navSections.map((section) => (
+          <div key={section.label} className="mb-2">
+            {sidebarOpen && (
+              <div className="px-3 py-2 text-[10px] font-semibold text-slate-500 uppercase tracking-wider">
+                {section.label}
+              </div>
+            )}
+            <div className="space-y-0.5">
+              {section.items.map((item) => (
+                <NavLink
+                  key={item.to}
+                  to={item.to}
+                  end={item.to === '/'}
+                  className={({ isActive }) =>
+                    `flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-all duration-150 ${
+                      isActive
+                        ? 'bg-brand-600/20 text-brand-300 font-medium'
+                        : 'text-slate-400 hover:text-white hover:bg-slate-800'
+                    }`
+                  }
+                >
+                  <item.icon className="w-[18px] h-[18px] flex-shrink-0" />
+                  {sidebarOpen && <span>{item.label}</span>}
+                </NavLink>
+              ))}
+            </div>
+          </div>
         ))}
       </nav>
 
@@ -79,14 +118,14 @@ export function Sidebar() {
       <div className="p-3 border-t border-slate-700/50">
         <NavLink
           to="/settings"
-          className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-slate-400 hover:text-white hover:bg-slate-800 transition-all"
+          className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-slate-400 hover:text-white hover:bg-slate-800 transition-all"
         >
-          <Settings className="w-5 h-5 flex-shrink-0" />
+          <Settings className="w-[18px] h-[18px] flex-shrink-0" />
           {sidebarOpen && <span>Settings</span>}
         </NavLink>
         {sidebarOpen && (
           <div className="mt-3 px-3 text-[10px] text-slate-600">
-            v1.0.0
+            v2.0.0
           </div>
         )}
       </div>

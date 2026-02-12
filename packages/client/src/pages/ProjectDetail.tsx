@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import {
-  ArrowLeft, Plus, GitBranch, Database, Table2, FileCheck,
+  ArrowLeft, Plus, GitBranch, Database, Plug, Workflow,
 } from 'lucide-react';
-import { getProject, createRuleSet, createDataModel } from '../api/client';
+import { getProject, createRuleSet, createDataModel, createWorkflow, createAdapter } from '../api/client';
 import { Modal } from '../components/common/Modal';
 import { useStore } from '../store';
 import type { Project, RuleSet, DataModel } from '../types';
@@ -14,9 +14,12 @@ export function ProjectDetail() {
   const [loading, setLoading] = useState(true);
   const [showCreateRS, setShowCreateRS] = useState(false);
   const [showCreateDM, setShowCreateDM] = useState(false);
+  const [showCreateWF, setShowCreateWF] = useState(false);
   const [rsName, setRsName] = useState('');
   const [rsDesc, setRsDesc] = useState('');
   const [dmName, setDmName] = useState('');
+  const [wfName, setWfName] = useState('');
+  const [wfDesc, setWfDesc] = useState('');
   const { addNotification } = useStore();
   const navigate = useNavigate();
 
@@ -54,6 +57,20 @@ export function ProjectDetail() {
       load();
     } catch {
       addNotification({ type: 'error', message: 'Failed to create data model' });
+    }
+  };
+
+  const handleCreateWorkflow = async () => {
+    if (!wfName.trim() || !id) return;
+    try {
+      const wf = await createWorkflow({ projectId: id, name: wfName.trim(), description: wfDesc.trim() });
+      addNotification({ type: 'success', message: `Workflow "${wf.name}" created` });
+      setShowCreateWF(false);
+      setWfName('');
+      setWfDesc('');
+      navigate(`/workflows/${wf.id}`);
+    } catch {
+      addNotification({ type: 'error', message: 'Failed to create workflow' });
     }
   };
 
@@ -127,6 +144,43 @@ export function ProjectDetail() {
         )}
       </div>
 
+      {/* Workflows */}
+      <div className="card">
+        <div className="px-6 py-4 border-b border-slate-200 flex items-center justify-between">
+          <h3 className="font-semibold text-slate-900 flex items-center gap-2">
+            <Workflow className="w-5 h-5 text-orange-600" />
+            Workflows
+          </h3>
+          <button onClick={() => setShowCreateWF(true)} className="btn-primary btn-sm">
+            <Plus className="w-3.5 h-3.5" />
+            Add Workflow
+          </button>
+        </div>
+        {(project as any).workflows && (project as any).workflows.length > 0 ? (
+          <div className="divide-y divide-slate-100">
+            {(project as any).workflows.map((wf: any) => (
+              <div
+                key={wf.id}
+                className="px-6 py-4 hover:bg-slate-50/50 cursor-pointer flex items-center justify-between"
+                onClick={() => navigate(`/workflows/${wf.id}`)}
+              >
+                <div>
+                  <div className="font-medium text-slate-900">{wf.name}</div>
+                  <div className="text-sm text-slate-500">{wf.description || 'No description'}</div>
+                </div>
+                <span className={wf.status === 'active' ? 'badge-green' : wf.status === 'archived' ? 'badge-gray' : 'badge-yellow'}>
+                  {wf.status}
+                </span>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="px-6 py-12 text-center text-sm text-slate-500">
+            No workflows yet. Create a BPMN workflow to orchestrate rule sets and services.
+          </div>
+        )}
+      </div>
+
       {/* Data Models */}
       <div className="card">
         <div className="px-6 py-4 border-b border-slate-200 flex items-center justify-between">
@@ -192,6 +246,24 @@ export function ProjectDetail() {
           <div className="flex justify-end gap-3 pt-2">
             <button onClick={() => setShowCreateDM(false)} className="btn-secondary">Cancel</button>
             <button onClick={handleCreateDataModel} className="btn-primary" disabled={!dmName.trim()}>Create</button>
+          </div>
+        </div>
+      </Modal>
+
+      {/* Create Workflow Modal */}
+      <Modal open={showCreateWF} onClose={() => setShowCreateWF(false)} title="Create Workflow">
+        <div className="space-y-4">
+          <div>
+            <label className="label">Workflow Name</label>
+            <input className="input" placeholder="e.g., Claims Processing" value={wfName} onChange={(e) => setWfName(e.target.value)} autoFocus />
+          </div>
+          <div>
+            <label className="label">Description</label>
+            <textarea className="input min-h-[80px]" placeholder="Describe the workflow process" value={wfDesc} onChange={(e) => setWfDesc(e.target.value)} />
+          </div>
+          <div className="flex justify-end gap-3 pt-2">
+            <button onClick={() => setShowCreateWF(false)} className="btn-secondary">Cancel</button>
+            <button onClick={handleCreateWorkflow} className="btn-primary" disabled={!wfName.trim()}>Create</button>
           </div>
         </div>
       </Modal>

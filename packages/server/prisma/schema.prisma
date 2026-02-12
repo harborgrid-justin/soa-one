@@ -7,15 +7,91 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+// ============================================================
+// Multi-Tenancy
+// ============================================================
+
+model Tenant {
+  id          String   @id @default(uuid())
+  name        String
+  slug        String   @unique
+  plan        String   @default("starter") // starter | professional | enterprise
+  ssoEnabled  Boolean  @default(false)
+  ssoConfig   String?  // JSON: SAML/OIDC configuration
+  ldapEnabled Boolean  @default(false)
+  ldapConfig  String?  // JSON: LDAP connection settings
+  settings    String   @default("{}") // JSON: tenant-level settings
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  users       User[]
+  invitations Invitation[]
+  projects    Project[]
+  auditLogs   AuditLog[]
+}
+
+// ============================================================
+// Authentication & Authorization
+// ============================================================
+
+model User {
+  id         String    @id @default(uuid())
+  email      String    @unique
+  name       String
+  password   String    // bcrypt hashed
+  role       String    @default("editor") // admin | editor | viewer
+  tenantId   String
+  avatar     String?
+  lastLogin  DateTime?
+  isActive   Boolean   @default(true)
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  tenant    Tenant     @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  sessions  Session[]
+  auditLogs AuditLog[]
+}
+
+model Session {
+  id        String   @id @default(uuid())
+  userId    String
+  token     String   @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Invitation {
+  id        String   @id @default(uuid())
+  email     String
+  role      String   @default("editor")
+  tenantId  String
+  token     String   @unique
+  expiresAt DateTime
+  accepted  Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+}
+
+// ============================================================
+// Core Business Rules (updated with tenant scoping)
+// ============================================================
+
 model Project {
   id          String   @id @default(uuid())
+  tenantId    String?
   name        String
   description String   @default("")
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
+  tenant     Tenant?     @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   ruleSets   RuleSet[]
   dataModels DataModel[]
+  workflows  Workflow[]
+  adapters   Adapter[]
 }
 
 model DataModel {
@@ -105,15 +181,95 @@ model ExecutionLog {
 }
 
 model QueueJob {
-  id          String   @id @default(uuid())
-  queue       String   @default("rule-execution")
-  payload     String   // JSON
-  status      String   @default("pending") // pending | processing | completed | failed
-  result      String?  // JSON
+  id          String    @id @default(uuid())
+  queue       String    @default("rule-execution")
+  payload     String    // JSON
+  status      String    @default("pending") // pending | processing | completed | failed
+  result      String?   // JSON
   error       String?
-  attempts    Int      @default(0)
-  maxAttempts Int      @default(3)
+  attempts    Int       @default(0)
+  maxAttempts Int       @default(3)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  completedAt DateTime?
+}
+
+// ============================================================
+// BPMN Workflow Engine
+// ============================================================
+
+model Workflow {
+  id          String   @id @default(uuid())
+  projectId   String
+  name        String
+  description String   @default("")
+  nodes       String   @default("[]") // JSON: React Flow nodes
+  edges       String   @default("[]") // JSON: React Flow edges
+  variables   String   @default("{}") // JSON: workflow-level variable definitions
+  status      String   @default("draft") // draft | active | archived
+  version     Int      @default(1)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+
+  project   Project            @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  instances WorkflowInstance[]
+}
+
+model WorkflowInstance {
+  id          String    @id @default(uuid())
+  workflowId  String
+  input       String    @default("{}") // JSON: input data
+  state       String    @default("{}") // JSON: current execution state + variables
+  currentNode String?   // ID of the current node being executed
+  status      String    @default("running") // running | completed | failed | paused | cancelled
+  output      String?   // JSON: final output
+  error       String?
+  logs        String    @default("[]") // JSON: execution trace
+  startedAt   DateTime  @default(now())
   completedAt DateTime?
+
+  workflow Workflow @relation(fields: [workflowId], references: [id], onDelete: Cascade)
+}
+
+// ============================================================
+// Integration Adapters
+// ============================================================
+
+model Adapter {
+  id           String    @id @default(uuid())
+  projectId    String
+  name         String
+  type         String    // rest | database | webhook | file
+  config       String    @default("{}") // JSON: connection configuration
+  authConfig   String    @default("{}") // JSON: auth settings (API keys, credentials)
+  headers      String    @default("{}") // JSON: default headers (for REST)
+  status       String    @default("inactive") // active | inactive | error
+  lastTestedAt DateTime?
+  lastError    String?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+}
+
+// ============================================================
+// Audit Logging
+// ============================================================
+
+model AuditLog {
+  id         String   @id @default(uuid())
+  tenantId   String?
+  userId     String?
+  userName   String?
+  action     String   // create | update | delete | execute | publish | rollback | login | logout | invite
+  entity     String   // project | ruleSet | rule | decisionTable | dataModel | workflow | adapter | user | tenant
+  entityId   String?
+  entityName String?
+  before     String?  // JSON: state before change
+  after      String?  // JSON: state after change
+  metadata   String?  // JSON: additional context (IP, user-agent, etc.)
+  createdAt  DateTime @default(now())
+
+  tenant Tenant? @relation(fields: [tenantId], references: [id])
+  user   User?   @relation(fields: [userId], references: [id])
 }

@@ -83,4 +83,66 @@ export const enqueueExecution = (data: { ruleSetId: string; input: any; callback
 export const getQueueJobs = () => api.get('/queue/jobs').then((r) => r.data);
 export const getQueueJob = (id: string) => api.get(`/queue/jobs/${id}`).then((r) => r.data);
 
+// Auth
+export const login = (data: { email: string; password: string }) =>
+  api.post('/auth/login', data).then((r) => r.data);
+export const register = (data: { email: string; password: string; name: string; tenantName: string }) =>
+  api.post('/auth/register', data).then((r) => r.data);
+export const getMe = () => api.get('/auth/me').then((r) => r.data);
+export const getUsers = () => api.get('/auth/users').then((r) => r.data);
+export const updateUserRole = (userId: string, role: string) =>
+  api.put(`/auth/users/${userId}/role`, { role }).then((r) => r.data);
+export const deactivateUser = (userId: string) =>
+  api.put(`/auth/users/${userId}/deactivate`).then((r) => r.data);
+export const inviteUser = (data: { email: string; role?: string }) =>
+  api.post('/auth/invite', data).then((r) => r.data);
+export const getInvitations = () => api.get('/auth/invitations').then((r) => r.data);
+export const getSsoConfig = () => api.get('/auth/sso-config').then((r) => r.data);
+export const updateSsoConfig = (data: any) =>
+  api.put('/auth/sso-config', data).then((r) => r.data);
+
+// Workflows
+export const getWorkflows = (projectId?: string) =>
+  api.get('/workflows', { params: { projectId } }).then((r) => r.data);
+export const getWorkflow = (id: string) => api.get(`/workflows/${id}`).then((r) => r.data);
+export const createWorkflow = (data: { projectId: string; name: string; description?: string }) =>
+  api.post('/workflows', data).then((r) => r.data);
+export const updateWorkflow = (id: string, data: any) =>
+  api.put(`/workflows/${id}`, data).then((r) => r.data);
+export const deleteWorkflow = (id: string) =>
+  api.delete(`/workflows/${id}`).then((r) => r.data);
+export const executeWorkflow = (id: string, input: any) =>
+  api.post(`/workflows/${id}/execute`, input).then((r) => r.data);
+export const getWorkflowInstances = (id: string) =>
+  api.get(`/workflows/${id}/instances`).then((r) => r.data);
+
+// Adapters
+export const getAdapters = (projectId?: string) =>
+  api.get('/adapters', { params: { projectId } }).then((r) => r.data);
+export const getAdapter = (id: string) => api.get(`/adapters/${id}`).then((r) => r.data);
+export const createAdapter = (data: any) => api.post('/adapters', data).then((r) => r.data);
+export const updateAdapter = (id: string, data: any) =>
+  api.put(`/adapters/${id}`, data).then((r) => r.data);
+export const deleteAdapter = (id: string) =>
+  api.delete(`/adapters/${id}`).then((r) => r.data);
+export const testAdapter = (id: string) =>
+  api.post(`/adapters/${id}/test`).then((r) => r.data);
+
+// Audit
+export const getAuditLogs = (params?: any) =>
+  api.get('/audit', { params }).then((r) => r.data);
+
+// Tenants
+export const getCurrentTenant = () => api.get('/tenants/current').then((r) => r.data);
+export const getTenantUsage = () => api.get('/tenants/current/usage').then((r) => r.data);
+
+// Set auth token on the api instance
+export function setAuthToken(token: string | null) {
+  if (token) {
+    api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+  } else {
+    delete api.defaults.headers.common['Authorization'];
+  }
+}
+
 export default api;

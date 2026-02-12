@@ -7,9 +7,13 @@ const pageTitles: Record<string, string> = {
   '/rule-sets': 'Rule Sets',
   '/decision-tables': 'Decision Tables',
   '/data-models': 'Data Models',
+  '/workflows': 'Workflows',
+  '/adapters': 'Integration Adapters',
   '/test': 'Test Sandbox',
   '/monitoring': 'Monitoring',
+  '/audit': 'Audit Log',
   '/api-docs': 'API & Queue',
+  '/users': 'User Management',
   '/settings': 'Settings',
 };
 

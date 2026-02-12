@@ -6,10 +6,13 @@ export const typeDefs = `#graphql
     id: ID!
     name: String!
     description: String!
+    tenantId: String
     createdAt: DateTime!
     updatedAt: DateTime!
     ruleSets: [RuleSet!]!
     dataModels: [DataModel!]!
+    workflows: [Workflow!]!
+    adapters: [Adapter!]!
     ruleSetCount: Int!
     dataModelCount: Int!
   }
@@ -104,6 +107,8 @@ export const typeDefs = `#graphql
     ruleSets: Int!
     rules: Int!
     decisionTables: Int!
+    workflows: Int!
+    adapters: Int!
     totalExecutions: Int!
     successRate: Int!
     avgExecutionTimeMs: Int!
@@ -118,6 +123,81 @@ export const typeDefs = `#graphql
     error: String
     attempts: Int!
     createdAt: DateTime!
+  }
+
+  # V2: Workflow types
+  type Workflow {
+    id: ID!
+    projectId: String!
+    name: String!
+    description: String!
+    nodes: JSON!
+    edges: JSON!
+    variables: JSON!
+    status: String!
+    version: Int!
+    instanceCount: Int!
+    createdAt: DateTime!
+    updatedAt: DateTime!
+  }
+
+  type WorkflowInstance {
+    id: ID!
+    workflowId: String!
+    input: JSON!
+    state: JSON!
+    currentNode: String
+    status: String!
+    output: JSON
+    error: String
+    logs: JSON!
+    startedAt: DateTime!
+    completedAt: DateTime
+  }
+
+  # V2: Adapter types
+  type Adapter {
+    id: ID!
+    projectId: String!
+    name: String!
+    type: String!
+    config: JSON!
+    status: String!
+    lastTestedAt: DateTime
+    createdAt: DateTime!
+    updatedAt: DateTime!
+  }
+
+  # V2: Audit log types
+  type AuditLogEntry {
+    id: ID!
+    userName: String
+    action: String!
+    entity: String!
+    entityId: String
+    entityName: String
+    before: JSON
+    after: JSON
+    createdAt: DateTime!
+  }
+
+  type AuditLogResult {
+    logs: [AuditLogEntry!]!
+    total: Int!
+  }
+
+  # V2: Auth types
+  type AuthPayload {
+    token: String!
+    user: UserInfo!
+  }
+
+  type UserInfo {
+    id: ID!
+    email: String!
+    name: String!
+    role: String!
+    tenantId: String!
   }
 
   # Queries
@@ -153,6 +233,21 @@ export const typeDefs = `#graphql
     # Queue
     queueJobs(status: String, limit: Int): [QueueJob!]!
     queueJob(id: ID!): QueueJob
+
+    # V2: Workflows
+    workflows(projectId: ID): [Workflow!]!
+    workflow(id: ID!): Workflow
+    workflowInstances(workflowId: ID!): [WorkflowInstance!]!
+
+    # V2: Adapters
+    adapters(projectId: ID): [Adapter!]!
+    adapter(id: ID!): Adapter
+
+    # V2: Audit
+    auditLogs(action: String, entity: String, limit: Int): AuditLogResult!
+
+    # V2: Auth
+    me: UserInfo
   }
 
   # Mutations
@@ -192,5 +287,20 @@ export const typeDefs = `#graphql
 
     # Queue
     enqueueExecution(ruleSetId: ID!, input: JSON!, callbackUrl: String): QueueJob!
+
+    # V2: Workflows
+    createWorkflow(projectId: ID!, name: String!, description: String): Workflow!
+    updateWorkflow(id: ID!, name: String, description: String, nodes: JSON, edges: JSON, status: String): Workflow!
+    deleteWorkflow(id: ID!): Boolean!
+    executeWorkflow(id: ID!, input: JSON!): WorkflowInstance!
+
+    # V2: Adapters
+    createAdapter(projectId: ID!, name: String!, type: String!): Adapter!
+    updateAdapter(id: ID!, name: String, config: JSON, status: String): Adapter!
+    deleteAdapter(id: ID!): Boolean!
+
+    # V2: Auth
+    login(email: String!, password: String!): AuthPayload!
+    register(email: String!, password: String!, name: String!, tenantName: String!): AuthPayload!
   }
 `;

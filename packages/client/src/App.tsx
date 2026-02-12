@@ -12,6 +12,11 @@ import { TestSandbox } from './pages/TestSandbox';
 import { Monitoring } from './pages/Monitoring';
 import { ApiDocs } from './pages/ApiDocs';
 import { Settings } from './pages/Settings';
+import { WorkflowsList } from './pages/WorkflowsList';
+import { WorkflowDesigner } from './pages/WorkflowDesigner';
+import { AuditLog } from './pages/AuditLog';
+import { AdaptersList } from './pages/Adapters';
+import { UserManagement } from './pages/UserManagement';
 
 export default function App() {
   return (
@@ -27,9 +32,14 @@ export default function App() {
           <Route path="decision-tables/:id" element={<DecisionTableEditor />} />
           <Route path="data-models" element={<DataModelsList />} />
           <Route path="data-models/:id" element={<DataModelEditor />} />
+          <Route path="workflows" element={<WorkflowsList />} />
+          <Route path="workflows/:id" element={<WorkflowDesigner />} />
+          <Route path="adapters" element={<AdaptersList />} />
           <Route path="test" element={<TestSandbox />} />
           <Route path="monitoring" element={<Monitoring />} />
+          <Route path="audit" element={<AuditLog />} />
           <Route path="api-docs" element={<ApiDocs />} />
+          <Route path="users" element={<UserManagement />} />
           <Route path="settings" element={<Settings />} />
         </Route>
       </Routes>
