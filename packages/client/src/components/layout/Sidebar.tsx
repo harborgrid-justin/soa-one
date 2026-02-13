@@ -25,6 +25,18 @@ import {
   Store,
   ShieldCheck,
   Gauge,
+  Globe,
+  Code2,
+  Search,
+  Lock,
+  FileText,
+  Layers,
+  Sparkles,
+  Split,
+  Target,
+  Bug,
+  RotateCcw,
+  Package,
 } from 'lucide-react';
 import { useStore } from '../../store';
 
@@ -53,6 +65,9 @@ const navSections = [
     items: [
       { to: '/analytics', icon: BarChart3, label: 'Analytics' },
       { to: '/simulations', icon: FlaskRound, label: 'Simulations' },
+      { to: '/copilot', icon: Sparkles, label: 'Rule Copilot' },
+      { to: '/ab-testing', icon: Split, label: 'A/B Testing' },
+      { to: '/impact-analysis', icon: Target, label: 'Impact Analysis' },
       { to: '/templates', icon: Store, label: 'Templates' },
     ],
   },
@@ -61,10 +76,24 @@ const navSections = [
     items: [
       { to: '/test', icon: FlaskConical, label: 'Test Sandbox' },
       { to: '/monitoring', icon: Activity, label: 'Monitoring' },
+      { to: '/debugger', icon: Bug, label: 'Rule Debugger' },
+      { to: '/replay', icon: RotateCcw, label: 'Execution Replay' },
+      { to: '/decision-explorer', icon: Search, label: 'Decision Trace' },
+      { to: '/batch-execute', icon: Layers, label: 'Batch Executor' },
       { to: '/audit', icon: Shield, label: 'Audit Log' },
       { to: '/notifications', icon: Bell, label: 'Notifications' },
       { to: '/api-docs', icon: Zap, label: 'API & Queue' },
       { to: '/import-export', icon: ArrowDownUp, label: 'Import / Export' },
+    ],
+  },
+  {
+    label: 'Platform',
+    items: [
+      { to: '/environments', icon: Globe, label: 'Environments' },
+      { to: '/functions', icon: Code2, label: 'Function Library' },
+      { to: '/permissions', icon: Lock, label: 'Permissions' },
+      { to: '/reports', icon: FileText, label: 'Reports' },
+      { to: '/compliance-packs', icon: Package, label: 'Compliance Packs' },
     ],
   },
   {
@@ -151,7 +180,7 @@ export function Sidebar() {
         </NavLink>
         {sidebarOpen && (
           <div className="mt-3 px-3 text-[10px] text-slate-600">
-            v4.0.0
+            v8.0.0
           </div>
         )}
       </div>

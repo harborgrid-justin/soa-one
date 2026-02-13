@@ -259,6 +259,90 @@ export const certifyFramework = (id: string) =>
 export const getComplianceAuditTrail = (id: string) =>
   api.get(`/compliance/${id}/audit-trail`).then((r) => r.data);
 
+// ============================================================
+// V7: Environments & Promotion
+// ============================================================
+export const getEnvironments = () => api.get('/environments').then((r) => r.data);
+export const createEnvironment = (data: any) => api.post('/environments', data).then((r) => r.data);
+export const updateEnvironment = (id: string, data: any) => api.put(`/environments/${id}`, data).then((r) => r.data);
+export const deleteEnvironment = (id: string) => api.delete(`/environments/${id}`).then((r) => r.data);
+export const promoteRuleSet = (data: any) => api.post('/environments/promote', data).then((r) => r.data);
+export const getPromotions = (params?: any) => api.get('/environments/promotions', { params }).then((r) => r.data);
+export const approvePromotion = (id: string) => api.put(`/environments/promotions/${id}/approve`).then((r) => r.data);
+export const rejectPromotion = (id: string) => api.put(`/environments/promotions/${id}/reject`).then((r) => r.data);
+
+// V7: Custom Functions
+export const getCustomFunctions = () => api.get('/functions').then((r) => r.data);
+export const getCustomFunction = (id: string) => api.get(`/functions/${id}`).then((r) => r.data);
+export const createCustomFunction = (data: any) => api.post('/functions', data).then((r) => r.data);
+export const updateCustomFunction = (id: string, data: any) => api.put(`/functions/${id}`, data).then((r) => r.data);
+export const deleteCustomFunction = (id: string) => api.delete(`/functions/${id}`).then((r) => r.data);
+export const testCustomFunction = (id: string, args: any[]) => api.post(`/functions/${id}/test`, { args }).then((r) => r.data);
+
+// V7: Decision Trace
+export const getDecisionTrace = (executionLogId: string) => api.get(`/decision-trace/executions/${executionLogId}/trace`).then((r) => r.data);
+export const executeTraced = (ruleSetId: string, input: any) => api.post(`/decision-trace/execute-traced/${ruleSetId}`, input).then((r) => r.data);
+
+// V7: RBAC Permissions
+export const getPermissions = () => api.get('/permissions').then((r) => r.data);
+export const getRolePermissions = (role: string) => api.get(`/permissions/role/${role}`).then((r) => r.data);
+export const setPermission = (data: any) => api.post('/permissions', data).then((r) => r.data);
+export const deletePermission = (id: string) => api.delete(`/permissions/${id}`).then((r) => r.data);
+export const checkPermission = (resource: string, action: string) => api.get('/permissions/check', { params: { resource, action } }).then((r) => r.data);
+export const seedDefaultPermissions = () => api.post('/permissions/seed-defaults').then((r) => r.data);
+
+// V7: Compliance Reports
+export const getReports = () => api.get('/reports').then((r) => r.data);
+export const generateReport = (data: any) => api.post('/reports/generate', data).then((r) => r.data);
+export const getReport = (id: string) => api.get(`/reports/${id}`).then((r) => r.data);
+export const deleteReport = (id: string) => api.delete(`/reports/${id}`).then((r) => r.data);
+export const downloadReport = (id: string) => api.get(`/reports/${id}/download`).then((r) => r.data);
+
+// V7: Batch Execution
+export const batchExecuteRuleSet = (ruleSetId: string, data: any) => api.post(`/batch/rule-sets/${ruleSetId}`, data).then((r) => r.data);
+
+// ============================================================
+// V8: Rule Copilot
+// ============================================================
+export const generateRuleFromNL = (data: { description: string; context?: string }) => api.post('/copilot/generate-rule', data).then((r) => r.data);
+export const generateDecisionTableFromNL = (data: any) => api.post('/copilot/generate-decision-table', data).then((r) => r.data);
+export const explainRule = (ruleId: string) => api.post('/copilot/explain-rule', { ruleId }).then((r) => r.data);
+
+// V8: A/B Testing
+export const getABTests = (params?: any) => api.get('/ab-tests', { params }).then((r) => r.data);
+export const getABTest = (id: string) => api.get(`/ab-tests/${id}`).then((r) => r.data);
+export const createABTest = (data: any) => api.post('/ab-tests', data).then((r) => r.data);
+export const startABTest = (id: string) => api.put(`/ab-tests/${id}/start`).then((r) => r.data);
+export const pauseABTest = (id: string) => api.put(`/ab-tests/${id}/pause`).then((r) => r.data);
+export const completeABTest = (id: string) => api.put(`/ab-tests/${id}/complete`).then((r) => r.data);
+export const deleteABTest = (id: string) => api.delete(`/ab-tests/${id}`).then((r) => r.data);
+export const executeABTest = (id: string, input: any) => api.post(`/ab-tests/${id}/execute`, input).then((r) => r.data);
+
+// V8: Impact Analysis
+export const analyzeImpact = (data: any) => api.post('/impact-analysis/analyze', data).then((r) => r.data);
+export const getImpactAnalyses = (ruleSetId: string) => api.get(`/impact-analysis/rule-sets/${ruleSetId}`).then((r) => r.data);
+export const getImpactAnalysis = (id: string) => api.get(`/impact-analysis/${id}`).then((r) => r.data);
+
+// V8: Rule Debugger
+export const debugRuleSet = (ruleSetId: string, data: any) => api.post(`/debugger/rule-sets/${ruleSetId}/debug`, data).then((r) => r.data);
+export const evaluateRule = (ruleId: string, input: any) => api.post(`/debugger/rules/${ruleId}/evaluate`, input).then((r) => r.data);
+
+// V8: Execution Replay
+export const replayExecution = (data: any) => api.post('/replay/replay', data).then((r) => r.data);
+export const getReplays = (params?: any) => api.get('/replay', { params }).then((r) => r.data);
+export const getReplay = (id: string) => api.get(`/replay/${id}`).then((r) => r.data);
+export const batchReplay = (data: any) => api.post('/replay/batch-replay', data).then((r) => r.data);
+
+// V8: Compliance Packs
+export const getCompliancePacks = () => api.get('/compliance-packs/packs').then((r) => r.data);
+export const getCompliancePack = (framework: string) => api.get(`/compliance-packs/packs/${framework}`).then((r) => r.data);
+export const installCompliancePack = (framework: string) => api.post(`/compliance-packs/packs/${framework}/install`).then((r) => r.data);
+export const getInstalledPacks = () => api.get('/compliance-packs/installed').then((r) => r.data);
+
+// Aliases for frontend pages
+export const getExecutionReplays = (params?: any) => api.get('/replay/executions', { params }).then((r) => r.data);
+export const getImpactHistory = (params?: any) => api.get('/impact-analysis/history', { params }).then((r) => r.data);
+
 // Set auth token on the api instance
 export function setAuthToken(token: string | null) {
   if (token) {

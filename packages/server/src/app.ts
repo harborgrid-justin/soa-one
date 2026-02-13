@@ -33,6 +33,20 @@ import scheduledJobRoutes from './routes/scheduledJobs';
 import templateRoutes from './routes/templates';
 import complianceRoutes from './routes/compliance';
 import importExportRoutes from './routes/importExport';
+// V7 routes
+import environmentRoutes from './routes/environments';
+import functionRoutes from './routes/functions';
+import decisionTraceRoutes from './routes/decisionTrace';
+import permissionRoutes from './routes/permissions';
+import reportRoutes from './routes/reports';
+import batchExecuteRoutes from './routes/batchExecute';
+// V8 routes
+import copilotRoutes from './routes/copilot';
+import abTestRoutes from './routes/abTests';
+import impactAnalysisRoutes from './routes/impactAnalysis';
+import debuggerRoutes from './routes/debugger';
+import replayRoutes from './routes/replay';
+import compliancePackRoutes from './routes/compliancePacks';
 import { prisma } from './prisma';
 
 export async function createApp() {
@@ -49,7 +63,7 @@ export async function createApp() {
 
   // Health check
   app.get('/api/v1/health', (_req, res) => {
-    res.json({ status: 'ok', service: 'soa-one', version: '4.0.0', timestamp: new Date().toISOString() });
+    res.json({ status: 'ok', service: 'soa-one', version: '8.0.0', timestamp: new Date().toISOString() });
   });
 
   // Auth routes (login/register)
@@ -85,6 +99,22 @@ export async function createApp() {
   app.use('/api/v1/templates', templateRoutes);
   app.use('/api/v1/compliance', complianceRoutes);
   app.use('/api/v1/import-export', importExportRoutes);
+
+  // V7 routes
+  app.use('/api/v1/environments', environmentRoutes);
+  app.use('/api/v1/functions', functionRoutes);
+  app.use('/api/v1/decision-trace', decisionTraceRoutes);
+  app.use('/api/v1/permissions', permissionRoutes);
+  app.use('/api/v1/reports', reportRoutes);
+  app.use('/api/v1/batch', batchExecuteRoutes);
+
+  // V8 routes
+  app.use('/api/v1/copilot', copilotRoutes);
+  app.use('/api/v1/ab-tests', abTestRoutes);
+  app.use('/api/v1/impact-analysis', impactAnalysisRoutes);
+  app.use('/api/v1/debugger', debuggerRoutes);
+  app.use('/api/v1/replay', replayRoutes);
+  app.use('/api/v1/compliance-packs', compliancePackRoutes);
 
   // GraphQL
   const apollo = new ApolloServer({ typeDefs, resolvers });

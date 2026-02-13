@@ -27,6 +27,20 @@ const pageTitles: Record<string, string> = {
   '/templates': 'Template Marketplace',
   '/compliance': 'Compliance & Regulatory',
   '/performance': 'Performance Monitor',
+  // V7
+  '/environments': 'Environments',
+  '/functions': 'Function Library',
+  '/decision-explorer': 'Decision Trace Explorer',
+  '/permissions': 'Permission Manager',
+  '/reports': 'Report Generator',
+  '/batch-execute': 'Batch Executor',
+  // V8
+  '/copilot': 'Rule Copilot',
+  '/ab-testing': 'A/B Testing',
+  '/impact-analysis': 'Impact Analysis',
+  '/debugger': 'Rule Debugger',
+  '/replay': 'Execution Replay',
+  '/compliance-packs': 'Compliance Packs',
 };
 
 export function Header() {

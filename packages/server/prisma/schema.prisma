@@ -453,3 +453,160 @@ model ComplianceFramework {
 
   tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
 }
+
+// ============================================================
+// V7: Multi-Environment Promotion
+// ============================================================
+
+model Environment {
+  id        String   @id @default(uuid())
+  tenantId  String
+  name      String   // development | staging | production | custom
+  slug      String
+  color     String   @default("#6366f1") // visual indicator
+  order     Int      @default(0) // promotion order
+  isDefault Boolean  @default(false)
+  locked    Boolean  @default(false) // production environments can be locked
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  promotions      Promotion[]
+  promotionTargets Promotion[] @relation("targetEnv")
+}
+
+model Promotion {
+  id             String   @id @default(uuid())
+  tenantId       String
+  ruleSetId      String
+  sourceEnvId    String
+  targetEnvId    String
+  ruleSetVersion Int
+  snapshot       String   // JSON: full rule set snapshot at promotion time
+  status         String   @default("pending") // pending | approved | promoted | rejected
+  promotedBy     String?
+  approvedBy     String?
+  notes          String   @default("")
+  createdAt      DateTime @default(now())
+  promotedAt     DateTime?
+
+  sourceEnv Environment  @relation(fields: [sourceEnvId], references: [id])
+  targetEnv Environment  @relation("targetEnv", fields: [targetEnvId], references: [id])
+}
+
+// ============================================================
+// V7: Custom Function Library
+// ============================================================
+
+model CustomFunction {
+  id          String   @id @default(uuid())
+  tenantId    String
+  name        String   // e.g., calculateAge, checkBlacklist
+  description String   @default("")
+  code        String   // JavaScript function body
+  parameters  String   @default("[]") // JSON: [{name, type, description}]
+  returnType  String   @default("any") // string | number | boolean | object | any
+  version     Int      @default(1)
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+// ============================================================
+// V7: RBAC Permissions
+// ============================================================
+
+model Permission {
+  id        String   @id @default(uuid())
+  tenantId  String
+  role      String   // admin | editor | viewer | approver | custom
+  resource  String   // project | ruleSet | rule | workflow | adapter | execution | approval | user
+  actions   String   // JSON: ["create", "read", "update", "delete", "publish", "execute", "approve"]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// ============================================================
+// V7: Decision Trace
+// ============================================================
+
+model DecisionTrace {
+  id              String   @id @default(uuid())
+  executionLogId  String
+  ruleSetId       String
+  input           String   // JSON: original input
+  trace           String   // JSON: [{ruleId, ruleName, evaluated: true/false, conditionResults: [{field, operator, value, actualValue, matched}], actionsTaken: [...]}]
+  summary         String   // JSON: {totalRulesEvaluated, rulesFired, rulesSkipped, executionOrder: []}
+  createdAt       DateTime @default(now())
+}
+
+// ============================================================
+// V7: Compliance Reports
+// ============================================================
+
+model ComplianceReport {
+  id           String   @id @default(uuid())
+  tenantId     String
+  frameworkId  String?
+  name         String
+  type         String   // audit-trail | change-summary | decision-report | compliance-status
+  parameters   String   @default("{}") // JSON: date range, entity filters, etc.
+  content      String   // JSON: generated report data
+  format       String   @default("json") // json | csv
+  generatedBy  String
+  createdAt    DateTime @default(now())
+}
+
+// ============================================================
+// V8: A/B Testing for Rules
+// ============================================================
+
+model ABTest {
+  id          String    @id @default(uuid())
+  tenantId    String
+  ruleSetId   String
+  name        String
+  description String    @default("")
+  variantA    String    // version number or snapshot ID for control
+  variantB    String    // version number or snapshot ID for experiment
+  splitRatio  Int       @default(50) // % of traffic to variant B
+  status      String    @default("draft") // draft | running | paused | completed
+  startedAt   DateTime?
+  completedAt DateTime?
+  metrics     String    @default("{}") // JSON: {variantA: {executions, successes, avgTime}, variantB: {...}}
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
+
+// ============================================================
+// V8: Rule Impact Analysis
+// ============================================================
+
+model ImpactAnalysis {
+  id          String   @id @default(uuid())
+  ruleSetId   String
+  ruleId      String?
+  changeType  String   // add | modify | delete | enable | disable
+  changeSummary String @default("") // human-readable description
+  affectedRules String @default("[]") // JSON: [{ruleId, ruleName, impact: 'direct' | 'indirect'}]
+  affectedWorkflows String @default("[]") // JSON: [{workflowId, workflowName}]
+  riskLevel   String   @default("low") // low | medium | high | critical
+  sampleResults String @default("{}") // JSON: {before: {approvalRate, avgTime}, after: {approvalRate, avgTime}}
+  createdAt   DateTime @default(now())
+}
+
+// ============================================================
+// V8: Execution Replay
+// ============================================================
+
+model ExecutionReplay {
+  id              String   @id @default(uuid())
+  originalLogId   String   // reference to original ExecutionLog
+  ruleSetId       String
+  ruleSetVersion  Int      // version used for replay
+  originalVersion Int      // version from original execution
+  input           String   // JSON: same input as original
+  originalOutput  String   // JSON: output from original execution
+  replayOutput    String   // JSON: output from replay with new rules
+  diff            String   @default("{}") // JSON: {changed: true, fieldChanges: [{field, before, after}]}
+  createdAt       DateTime @default(now())
+}

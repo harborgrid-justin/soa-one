@@ -31,6 +31,20 @@ import { ScheduledJobs } from './pages/ScheduledJobs';
 import { TemplateMarketplace } from './pages/TemplateMarketplace';
 import { ComplianceDashboard } from './pages/ComplianceDashboard';
 import { CacheMonitor } from './pages/CacheMonitor';
+// V7 pages
+import { Environments } from './pages/Environments';
+import { FunctionLibrary } from './pages/FunctionLibrary';
+import { DecisionExplorer } from './pages/DecisionExplorer';
+import { PermissionManager } from './pages/PermissionManager';
+import { ReportGenerator } from './pages/ReportGenerator';
+import { BatchExecutor } from './pages/BatchExecutor';
+// V8 pages
+import { RuleCopilot } from './pages/RuleCopilot';
+import { ABTestingDashboard } from './pages/ABTestingDashboard';
+import { ImpactAnalyzer } from './pages/ImpactAnalyzer';
+import { RuleDebugger } from './pages/RuleDebugger';
+import { ExecutionReplay } from './pages/ExecutionReplay';
+import { CompliancePacks } from './pages/CompliancePacks';
 
 export default function App() {
   return (
@@ -69,6 +83,20 @@ export default function App() {
           <Route path="templates" element={<TemplateMarketplace />} />
           <Route path="compliance" element={<ComplianceDashboard />} />
           <Route path="performance" element={<CacheMonitor />} />
+          {/* V7 routes */}
+          <Route path="environments" element={<Environments />} />
+          <Route path="functions" element={<FunctionLibrary />} />
+          <Route path="decision-explorer" element={<DecisionExplorer />} />
+          <Route path="permissions" element={<PermissionManager />} />
+          <Route path="reports" element={<ReportGenerator />} />
+          <Route path="batch-execute" element={<BatchExecutor />} />
+          {/* V8 routes */}
+          <Route path="copilot" element={<RuleCopilot />} />
+          <Route path="ab-testing" element={<ABTestingDashboard />} />
+          <Route path="impact-analysis" element={<ImpactAnalyzer />} />
+          <Route path="debugger" element={<RuleDebugger />} />
+          <Route path="replay" element={<ExecutionReplay />} />
+          <Route path="compliance-packs" element={<CompliancePacks />} />
         </Route>
       </Routes>
     </BrowserRouter>

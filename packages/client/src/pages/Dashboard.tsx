@@ -62,7 +62,7 @@ export function Dashboard() {
         <div className="flex items-center justify-between">
           <div>
             <h2 className="text-xl font-semibold text-slate-900">Welcome to SOA One</h2>
-            <p className="text-sm text-slate-500 mt-1">Enterprise Business Rules Platform — v4.0</p>
+            <p className="text-sm text-slate-500 mt-1">Enterprise Business Rules Platform — v8.0</p>
           </div>
           <div className="flex items-center gap-2">
             <Link to="/analytics" className="btn-secondary">
