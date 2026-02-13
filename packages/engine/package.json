@@ -1,13 +1,59 @@
 {
   "name": "@soa-one/engine",
-  "version": "1.0.0",
-  "private": true,
+  "version": "1.1.0",
+  "description": "Zero-dependency, pluggable rule engine for Service-Oriented Architecture consumers. Evaluate business rules, decision tables, and rule sets with extensible plugins and adapters.",
+  "keywords": [
+    "rule-engine",
+    "business-rules",
+    "decision-table",
+    "soa",
+    "plugin",
+    "zero-dependency"
+  ],
+  "license": "MIT",
+  "author": "SOA One",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/soa-one/soa-one.git",
+    "directory": "packages/engine"
+  },
   "main": "dist/index.js",
+  "module": "dist/index.js",
   "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.js",
+      "default": "./dist/index.js"
+    },
+    "./plugin": {
+      "types": "./dist/plugin.d.ts",
+      "import": "./dist/plugin.js",
+      "require": "./dist/plugin.js"
+    },
+    "./adapter": {
+      "types": "./dist/adapter.d.ts",
+      "import": "./dist/adapter.js",
+      "require": "./dist/adapter.js"
+    },
+    "./engine": {
+      "types": "./dist/engine.d.ts",
+      "import": "./dist/engine.js",
+      "require": "./dist/engine.js"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "sideEffects": false,
   "scripts": {
     "build": "tsc",
     "dev": "tsc --watch",
-    "test": "tsc && node --test dist/**/*.test.js"
+    "test": "tsc && node --test dist/**/*.test.js",
+    "prepublishOnly": "npm run build"
   },
   "devDependencies": {
     "typescript": "^5.9.3"

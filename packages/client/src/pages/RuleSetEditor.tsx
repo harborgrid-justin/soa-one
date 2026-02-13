@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import {
-  ArrowLeft, Plus, Play, Upload, Save, Trash2,
-  ChevronDown, ChevronRight, ToggleLeft, ToggleRight, GripVertical,
-  GitCompare, AlertTriangle, FlaskRound, History,
+  Plus, Play, Upload, Save, Trash2,
+  ChevronDown, ChevronRight, ToggleLeft, ToggleRight,
+  GitCompare, AlertTriangle, FlaskRound,
 } from 'lucide-react';
 import {
   getRuleSet, createRule, updateRule, deleteRule,
@@ -11,6 +11,10 @@ import {
 } from '../api/client';
 import { RuleEditor } from '../components/rules/RuleEditor';
 import { Modal } from '../components/common/Modal';
+import { Breadcrumb } from '../components/common/Breadcrumb';
+import { CopyButton } from '../components/common/CopyButton';
+import { Skeleton } from '../components/common/Skeleton';
+import { Tooltip } from '../components/common/Tooltip';
 import { useStore } from '../store';
 import type { RuleSet, Rule } from '../types';
 
@@ -27,14 +31,13 @@ export function RuleSetEditor() {
   const [newRuleName, setNewRuleName] = useState('');
   const [expandedRules, setExpandedRules] = useState<Set<string>>(new Set());
   const [versions, setVersions] = useState<any[]>([]);
-  const { addNotification } = useStore();
+  const { addNotification, showConfirm } = useStore();
 
   const load = () => {
     if (!id) return;
     getRuleSet(id)
       .then((rs) => {
         setRuleSet(rs);
-        // Parse JSON fields if they're strings
         if (rs.rules) {
           rs.rules = rs.rules.map((r: any) => ({
             ...r,
@@ -90,15 +93,22 @@ export function RuleSetEditor() {
     }
   };
 
-  const handleDeleteRule = async (ruleId: string) => {
-    if (!confirm('Delete this rule?')) return;
-    try {
-      await deleteRule(ruleId);
-      addNotification({ type: 'success', message: 'Rule deleted' });
-      load();
-    } catch {
-      addNotification({ type: 'error', message: 'Failed to delete rule' });
-    }
+  const handleDeleteRule = (ruleId: string, ruleName: string) => {
+    showConfirm({
+      title: 'Delete Rule',
+      message: `Delete rule "${ruleName}"? This cannot be undone.`,
+      variant: 'danger',
+      confirmLabel: 'Delete Rule',
+      onConfirm: async () => {
+        try {
+          await deleteRule(ruleId);
+          addNotification({ type: 'success', message: 'Rule deleted' });
+          load();
+        } catch {
+          addNotification({ type: 'error', message: 'Failed to delete rule' });
+        }
+      },
+    });
   };
 
   const handleToggleRule = async (rule: Rule) => {
@@ -147,50 +157,56 @@ export function RuleSetEditor() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="w-8 h-8 border-2 border-brand-600 border-t-transparent rounded-full animate-spin" />
+      <div className="space-y-6">
+        <Skeleton className="h-4 w-64" />
+        <div className="card p-5 space-y-3">
+          <Skeleton className="h-6 w-48" />
+          <Skeleton className="h-4 w-96" />
+        </div>
+        <div className="card p-5 space-y-3">
+          <Skeleton className="h-5 w-32" />
+          {Array.from({ length: 3 }).map((_, i) => (
+            <Skeleton key={i} className="h-12 w-full" />
+          ))}
+        </div>
       </div>
     );
   }
 
-  if (!ruleSet) return <div className="text-center py-16 text-slate-500">Rule set not found</div>;
+  if (!ruleSet) return <div className="text-center py-16 text-slate-500 dark:text-slate-400">Rule set not found</div>;
+
+  const breadcrumbItems = [
+    { label: 'Projects', href: '/projects' },
+    { label: 'Project', href: `/projects/${ruleSet.projectId}` },
+    { label: ruleSet.name },
+  ];
 
   return (
     <div className="space-y-6">
       {/* Breadcrumb + actions */}
       <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2 text-sm">
-          <Link to="/projects" className="text-slate-500 hover:text-slate-700 flex items-center gap-1">
-            <ArrowLeft className="w-4 h-4" /> Projects
-          </Link>
-          <span className="text-slate-300">/</span>
-          <Link to={`/projects/${ruleSet.projectId}`} className="text-slate-500 hover:text-slate-700">
-            Project
-          </Link>
-          <span className="text-slate-300">/</span>
-          <span className="text-slate-900 font-medium">{ruleSet.name}</span>
-        </div>
+        <Breadcrumb items={breadcrumbItems} />
         <div className="flex items-center gap-2">
-          <Link
-            to={`/rule-sets/${id}/conflicts`}
-            className="btn-secondary btn-sm"
-          >
-            <AlertTriangle className="w-3.5 h-3.5" /> Conflicts
-          </Link>
-          {versions.length >= 2 && (
-            <Link
-              to={`/rule-sets/${id}/diff/${versions[1]?.version}/${versions[0]?.version}`}
-              className="btn-secondary btn-sm"
-            >
-              <GitCompare className="w-3.5 h-3.5" /> Diff
+          <Tooltip content="Detect conflicting rules">
+            <Link to={`/rule-sets/${id}/conflicts`} className="btn-secondary btn-sm">
+              <AlertTriangle className="w-3.5 h-3.5" /> Conflicts
             </Link>
+          </Tooltip>
+          {versions.length >= 2 && (
+            <Tooltip content="Compare versions">
+              <Link
+                to={`/rule-sets/${id}/diff/${versions[1]?.version}/${versions[0]?.version}`}
+                className="btn-secondary btn-sm"
+              >
+                <GitCompare className="w-3.5 h-3.5" /> Diff
+              </Link>
+            </Tooltip>
           )}
-          <Link
-            to={`/simulations?ruleSetId=${id}`}
-            className="btn-secondary btn-sm"
-          >
-            <FlaskRound className="w-3.5 h-3.5" /> Simulate
-          </Link>
+          <Tooltip content="Run simulation scenarios">
+            <Link to={`/simulations?ruleSetId=${id}`} className="btn-secondary btn-sm">
+              <FlaskRound className="w-3.5 h-3.5" /> Simulate
+            </Link>
+          </Tooltip>
           <button onClick={() => setShowTest(true)} className="btn-secondary btn-sm">
             <Play className="w-3.5 h-3.5" /> Test
           </button>
@@ -204,8 +220,8 @@ export function RuleSetEditor() {
       <div className="card p-5">
         <div className="flex items-center justify-between">
           <div>
-            <h2 className="text-lg font-semibold text-slate-900">{ruleSet.name}</h2>
-            <p className="text-sm text-slate-500">{ruleSet.description || 'No description'}</p>
+            <h2 className="text-lg font-semibold text-slate-900 dark:text-white">{ruleSet.name}</h2>
+            <p className="text-sm text-slate-500 dark:text-slate-400">{ruleSet.description || 'No description'}</p>
           </div>
           <div className="flex items-center gap-3">
             <span className={ruleSet.status === 'published' ? 'badge-green' : 'badge-yellow'}>
@@ -218,8 +234,8 @@ export function RuleSetEditor() {
 
       {/* Rules */}
       <div className="card">
-        <div className="px-6 py-4 border-b border-slate-200 flex items-center justify-between">
-          <h3 className="font-semibold text-slate-900">
+        <div className="px-6 py-4 border-b border-slate-200 dark:border-slate-700 flex items-center justify-between">
+          <h3 className="font-semibold text-slate-900 dark:text-white">
             Rules ({ruleSet.rules?.length || 0})
           </h3>
           <button onClick={() => setShowNewRule(true)} className="btn-primary btn-sm">
@@ -228,14 +244,14 @@ export function RuleSetEditor() {
         </div>
 
         {ruleSet.rules && ruleSet.rules.length > 0 ? (
-          <div className="divide-y divide-slate-100">
+          <div className="divide-y divide-slate-100 dark:divide-slate-800">
             {ruleSet.rules.map((rule) => (
               <div key={rule.id} className="group">
                 <div
-                  className="px-6 py-4 flex items-center gap-3 hover:bg-slate-50/50 cursor-pointer"
+                  className="px-6 py-4 flex items-center gap-3 hover:bg-slate-50/50 dark:hover:bg-slate-800/50 cursor-pointer"
                   onClick={() => toggleExpand(rule.id)}
                 >
-                  <div className="text-slate-300">
+                  <div className="text-slate-300 dark:text-slate-600">
                     {expandedRules.has(rule.id)
                       ? <ChevronDown className="w-4 h-4" />
                       : <ChevronRight className="w-4 h-4" />
@@ -243,75 +259,88 @@ export function RuleSetEditor() {
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
-                      <span className="font-medium text-slate-900">{rule.name}</span>
+                      <span className="font-medium text-slate-900 dark:text-white">{rule.name}</span>
                       <span className="badge-gray text-[10px]">P{rule.priority}</span>
                       {!rule.enabled && <span className="badge-red text-[10px]">disabled</span>}
                     </div>
-                    <div className="text-xs text-slate-500 mt-0.5">
+                    <div className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
                       {rule.conditions?.conditions?.length || 0} conditions, {rule.actions?.length || 0} actions
                     </div>
                   </div>
                   <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <button
-                      onClick={(e) => { e.stopPropagation(); handleToggleRule(rule); }}
-                      className="p-1.5 rounded hover:bg-slate-100"
-                      title={rule.enabled ? 'Disable' : 'Enable'}
-                    >
-                      {rule.enabled
-                        ? <ToggleRight className="w-4 h-4 text-emerald-600" />
-                        : <ToggleLeft className="w-4 h-4 text-slate-400" />
-                      }
-                    </button>
-                    <button
-                      onClick={(e) => { e.stopPropagation(); setEditingRule(rule); }}
-                      className="p-1.5 rounded hover:bg-slate-100 text-slate-500"
-                    >
-                      <Save className="w-4 h-4" />
-                    </button>
-                    <button
-                      onClick={(e) => { e.stopPropagation(); handleDeleteRule(rule.id); }}
-                      className="p-1.5 rounded hover:bg-red-50 text-slate-400 hover:text-red-600"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
+                    <Tooltip content={rule.enabled ? 'Disable rule' : 'Enable rule'}>
+                      <button
+                        onClick={(e) => { e.stopPropagation(); handleToggleRule(rule); }}
+                        className="p-1.5 rounded hover:bg-slate-100 dark:hover:bg-slate-700"
+                      >
+                        {rule.enabled
+                          ? <ToggleRight className="w-4 h-4 text-emerald-600" />
+                          : <ToggleLeft className="w-4 h-4 text-slate-400" />
+                        }
+                      </button>
+                    </Tooltip>
+                    <Tooltip content="Edit rule">
+                      <button
+                        onClick={(e) => { e.stopPropagation(); setEditingRule(rule); }}
+                        className="p-1.5 rounded hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-500 dark:text-slate-400"
+                      >
+                        <Save className="w-4 h-4" />
+                      </button>
+                    </Tooltip>
+                    <Tooltip content="Delete rule">
+                      <button
+                        onClick={(e) => { e.stopPropagation(); handleDeleteRule(rule.id, rule.name); }}
+                        className="p-1.5 rounded hover:bg-red-50 dark:hover:bg-red-900/20 text-slate-400 hover:text-red-600"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </Tooltip>
                   </div>
                 </div>
                 {/* Expanded view */}
                 {expandedRules.has(rule.id) && (
                   <div className="px-6 pb-4 pl-14">
-                    <div className="bg-slate-50 rounded-lg p-4 text-xs font-mono space-y-3">
-                      <div>
-                        <div className="text-slate-500 font-sans text-[11px] font-medium mb-1 uppercase tracking-wider">Conditions ({rule.conditions?.logic || 'AND'})</div>
-                        {rule.conditions?.conditions?.length > 0 ? (
-                          <div className="space-y-1">
-                            {rule.conditions.conditions.map((c: any, i: number) => (
-                              <div key={i} className="text-slate-700">
-                                <span className="text-brand-600">{c.field}</span>{' '}
-                                <span className="text-amber-600">{c.operator}</span>{' '}
-                                <span className="text-emerald-600">{JSON.stringify(c.value)}</span>
-                              </div>
-                            ))}
-                          </div>
-                        ) : (
-                          <span className="text-slate-400 italic">No conditions (always fires)</span>
-                        )}
+                    <div className="bg-slate-50 dark:bg-slate-800/50 rounded-lg p-4 text-xs font-mono space-y-3">
+                      <div className="flex items-center justify-between">
+                        <div className="text-slate-500 font-sans text-[11px] font-medium uppercase tracking-wider">Conditions ({rule.conditions?.logic || 'AND'})</div>
+                        <CopyButton
+                          text={JSON.stringify(rule.conditions, null, 2)}
+                          label="Copy"
+                        />
                       </div>
-                      <div>
-                        <div className="text-slate-500 font-sans text-[11px] font-medium mb-1 uppercase tracking-wider">Actions</div>
-                        {rule.actions?.length > 0 ? (
-                          <div className="space-y-1">
-                            {rule.actions.map((a: any, i: number) => (
-                              <div key={i} className="text-slate-700">
-                                <span className="text-purple-600">{a.type}</span>{' '}
-                                <span className="text-brand-600">{a.field}</span>{' '}
-                                = <span className="text-emerald-600">{JSON.stringify(a.value)}</span>
-                              </div>
-                            ))}
-                          </div>
-                        ) : (
-                          <span className="text-slate-400 italic">No actions</span>
-                        )}
+                      {rule.conditions?.conditions?.length > 0 ? (
+                        <div className="space-y-1">
+                          {rule.conditions.conditions.map((c: any, i: number) => (
+                            <div key={i} className="text-slate-700 dark:text-slate-300">
+                              <span className="text-brand-600 dark:text-brand-400">{c.field}</span>{' '}
+                              <span className="text-amber-600 dark:text-amber-400">{c.operator}</span>{' '}
+                              <span className="text-emerald-600 dark:text-emerald-400">{JSON.stringify(c.value)}</span>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <span className="text-slate-400 italic">No conditions (always fires)</span>
+                      )}
+                      <div className="flex items-center justify-between pt-2">
+                        <div className="text-slate-500 font-sans text-[11px] font-medium uppercase tracking-wider">Actions</div>
+                        <CopyButton
+                          text={JSON.stringify(rule.actions, null, 2)}
+                          label="Copy"
+                        />
                       </div>
+                      {rule.actions?.length > 0 ? (
+                        <div className="space-y-1">
+                          {rule.actions.map((a: any, i: number) => (
+                            <div key={i} className="text-slate-700 dark:text-slate-300">
+                              <span className="text-purple-600 dark:text-purple-400">{a.type}</span>{' '}
+                              <span className="text-brand-600 dark:text-brand-400">{a.field}</span>{' '}
+                              = <span className="text-emerald-600 dark:text-emerald-400">{JSON.stringify(a.value)}</span>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <span className="text-slate-400 italic">No actions</span>
+                      )}
                       <button
                         onClick={() => setEditingRule(rule)}
                         className="btn-secondary btn-sm mt-2"
@@ -325,7 +354,7 @@ export function RuleSetEditor() {
             ))}
           </div>
         ) : (
-          <div className="px-6 py-12 text-center text-sm text-slate-500">
+          <div className="px-6 py-12 text-center text-sm text-slate-500 dark:text-slate-400">
             No rules yet. Add your first rule to get started.
           </div>
         )}
@@ -334,12 +363,12 @@ export function RuleSetEditor() {
       {/* Decision Tables summary */}
       {ruleSet.decisionTables && ruleSet.decisionTables.length > 0 && (
         <div className="card">
-          <div className="px-6 py-4 border-b border-slate-200">
-            <h3 className="font-semibold text-slate-900">
+          <div className="px-6 py-4 border-b border-slate-200 dark:border-slate-700">
+            <h3 className="font-semibold text-slate-900 dark:text-white">
               Decision Tables ({ruleSet.decisionTables.length})
             </h3>
           </div>
-          <div className="divide-y divide-slate-100">
+          <div className="divide-y divide-slate-100 dark:divide-slate-800">
             {ruleSet.decisionTables.map((table: any) => {
               const cols = typeof table.columns === 'string' ? JSON.parse(table.columns) : (table.columns || []);
               const rows = typeof table.rows === 'string' ? JSON.parse(table.rows) : (table.rows || []);
@@ -347,10 +376,10 @@ export function RuleSetEditor() {
                 <Link
                   key={table.id}
                   to={`/decision-tables/${table.id}`}
-                  className="block px-6 py-4 hover:bg-slate-50/50"
+                  className="block px-6 py-4 hover:bg-slate-50/50 dark:hover:bg-slate-800/50"
                 >
-                  <div className="font-medium text-slate-900">{table.name}</div>
-                  <div className="text-xs text-slate-500 mt-0.5">
+                  <div className="font-medium text-slate-900 dark:text-white">{table.name}</div>
+                  <div className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
                     {cols.length} columns, {rows.length} rows
                   </div>
                 </Link>
@@ -415,8 +444,11 @@ export function RuleSetEditor() {
             )}
           </button>
           {testResult && (
-            <div className="bg-slate-50 rounded-lg p-4 max-h-[300px] overflow-auto">
-              <pre className="text-xs font-mono text-slate-700 whitespace-pre-wrap">
+            <div className="bg-slate-50 dark:bg-slate-800/50 rounded-lg p-4 max-h-[300px] overflow-auto">
+              <div className="flex justify-end mb-2">
+                <CopyButton text={JSON.stringify(testResult, null, 2)} label="Copy Result" />
+              </div>
+              <pre className="text-xs font-mono text-slate-700 dark:text-slate-300 whitespace-pre-wrap">
                 {JSON.stringify(testResult, null, 2)}
               </pre>
             </div>
