@@ -17,7 +17,6 @@ import {
   BarChart3,
   FlaskRound,
   Bell,
-  AlertTriangle,
   ArrowDownUp,
   CheckSquare,
   Key,
@@ -37,6 +36,7 @@ import {
   Bug,
   RotateCcw,
   Package,
+  X,
 } from 'lucide-react';
 import { useStore } from '../../store';
 
@@ -108,82 +108,175 @@ const navSections = [
 ];
 
 export function Sidebar() {
-  const { sidebarOpen, toggleSidebar } = useStore();
+  const { sidebarOpen, toggleSidebar, mobileSidebarOpen, closeMobileSidebar } = useStore();
+
+  // Close mobile sidebar on navigation
+  const handleNavClick = () => {
+    if (mobileSidebarOpen) closeMobileSidebar();
+  };
 
   return (
-    <aside
-      className={`fixed left-0 top-0 z-40 h-screen transition-all duration-300 ${
-        sidebarOpen ? 'w-64' : 'w-[72px]'
-      } bg-slate-900 text-white flex flex-col`}
-    >
-      {/* Logo */}
-      <div className="flex items-center justify-between h-16 px-4 border-b border-slate-700/50">
-        <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-lg bg-brand-600 flex items-center justify-center font-bold text-sm">
-            S1
+    <>
+      {/* Desktop sidebar */}
+      <aside
+        className={`fixed left-0 top-0 z-40 h-screen transition-all duration-300 ${
+          sidebarOpen ? 'w-64' : 'w-[72px]'
+        } bg-slate-900 text-white flex-col hidden lg:flex`}
+      >
+        {/* Logo */}
+        <div className="flex items-center justify-between h-16 px-4 border-b border-slate-700/50">
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 rounded-lg bg-brand-600 flex items-center justify-center font-bold text-sm">
+              S1
+            </div>
+            {sidebarOpen && (
+              <div>
+                <div className="font-semibold text-sm tracking-tight">SOA One</div>
+                <div className="text-[10px] text-slate-400 uppercase tracking-wider">Rules Platform</div>
+              </div>
+            )}
           </div>
+          <button
+            onClick={toggleSidebar}
+            className="p-1 rounded hover:bg-slate-700/50 text-slate-400 hover:text-white transition-colors"
+          >
+            <ChevronLeft className={`w-4 h-4 transition-transform ${!sidebarOpen ? 'rotate-180' : ''}`} />
+          </button>
+        </div>
+
+        {/* Navigation */}
+        <nav className="flex-1 py-2 px-3 overflow-y-auto">
+          {navSections.map((section) => (
+            <div key={section.label} className="mb-2">
+              {sidebarOpen && (
+                <div className="px-3 py-2 text-[10px] font-semibold text-slate-500 uppercase tracking-wider">
+                  {section.label}
+                </div>
+              )}
+              <div className="space-y-0.5">
+                {section.items.map((item) => (
+                  <NavLink
+                    key={item.to}
+                    to={item.to}
+                    end={item.to === '/'}
+                    title={!sidebarOpen ? item.label : undefined}
+                    className={({ isActive }) =>
+                      `group relative flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-all duration-150 ${
+                        isActive
+                          ? 'bg-brand-600/20 text-brand-300 font-medium'
+                          : 'text-slate-400 hover:text-white hover:bg-slate-800'
+                      }`
+                    }
+                  >
+                    <item.icon className="w-[18px] h-[18px] flex-shrink-0" />
+                    {sidebarOpen && <span>{item.label}</span>}
+                    {/* Collapsed tooltip */}
+                    {!sidebarOpen && (
+                      <span className="absolute left-full ml-2 px-2 py-1 bg-slate-800 text-white text-xs rounded-md whitespace-nowrap opacity-0 pointer-events-none group-hover:opacity-100 transition-opacity z-50 shadow-lg">
+                        {item.label}
+                      </span>
+                    )}
+                  </NavLink>
+                ))}
+              </div>
+            </div>
+          ))}
+        </nav>
+
+        {/* Footer */}
+        <div className="p-3 border-t border-slate-700/50">
+          <NavLink
+            to="/settings"
+            title={!sidebarOpen ? 'Settings' : undefined}
+            className="group relative flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-slate-400 hover:text-white hover:bg-slate-800 transition-all"
+          >
+            <Settings className="w-[18px] h-[18px] flex-shrink-0" />
+            {sidebarOpen && <span>Settings</span>}
+            {!sidebarOpen && (
+              <span className="absolute left-full ml-2 px-2 py-1 bg-slate-800 text-white text-xs rounded-md whitespace-nowrap opacity-0 pointer-events-none group-hover:opacity-100 transition-opacity z-50 shadow-lg">
+                Settings
+              </span>
+            )}
+          </NavLink>
           {sidebarOpen && (
+            <div className="mt-3 px-3 text-[10px] text-slate-600">
+              v8.0.0
+            </div>
+          )}
+        </div>
+      </aside>
+
+      {/* Mobile sidebar drawer */}
+      <aside
+        className={`fixed left-0 top-0 z-40 h-screen w-72 bg-slate-900 text-white flex flex-col lg:hidden transition-transform duration-300 ${
+          mobileSidebarOpen ? 'translate-x-0' : '-translate-x-full'
+        }`}
+      >
+        {/* Mobile header */}
+        <div className="flex items-center justify-between h-16 px-4 border-b border-slate-700/50">
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 rounded-lg bg-brand-600 flex items-center justify-center font-bold text-sm">
+              S1
+            </div>
             <div>
               <div className="font-semibold text-sm tracking-tight">SOA One</div>
               <div className="text-[10px] text-slate-400 uppercase tracking-wider">Rules Platform</div>
             </div>
-          )}
+          </div>
+          <button
+            onClick={closeMobileSidebar}
+            className="p-1 rounded hover:bg-slate-700/50 text-slate-400 hover:text-white transition-colors"
+          >
+            <X className="w-5 h-5" />
+          </button>
         </div>
-        <button
-          onClick={toggleSidebar}
-          className="p-1 rounded hover:bg-slate-700/50 text-slate-400 hover:text-white transition-colors"
-        >
-          <ChevronLeft className={`w-4 h-4 transition-transform ${!sidebarOpen ? 'rotate-180' : ''}`} />
-        </button>
-      </div>
 
-      {/* Navigation */}
-      <nav className="flex-1 py-2 px-3 overflow-y-auto">
-        {navSections.map((section) => (
-          <div key={section.label} className="mb-2">
-            {sidebarOpen && (
+        {/* Mobile navigation */}
+        <nav className="flex-1 py-2 px-3 overflow-y-auto">
+          {navSections.map((section) => (
+            <div key={section.label} className="mb-2">
               <div className="px-3 py-2 text-[10px] font-semibold text-slate-500 uppercase tracking-wider">
                 {section.label}
               </div>
-            )}
-            <div className="space-y-0.5">
-              {section.items.map((item) => (
-                <NavLink
-                  key={item.to}
-                  to={item.to}
-                  end={item.to === '/'}
-                  className={({ isActive }) =>
-                    `flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-all duration-150 ${
-                      isActive
-                        ? 'bg-brand-600/20 text-brand-300 font-medium'
-                        : 'text-slate-400 hover:text-white hover:bg-slate-800'
-                    }`
-                  }
-                >
-                  <item.icon className="w-[18px] h-[18px] flex-shrink-0" />
-                  {sidebarOpen && <span>{item.label}</span>}
-                </NavLink>
-              ))}
+              <div className="space-y-0.5">
+                {section.items.map((item) => (
+                  <NavLink
+                    key={item.to}
+                    to={item.to}
+                    end={item.to === '/'}
+                    onClick={handleNavClick}
+                    className={({ isActive }) =>
+                      `flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-all duration-150 ${
+                        isActive
+                          ? 'bg-brand-600/20 text-brand-300 font-medium'
+                          : 'text-slate-400 hover:text-white hover:bg-slate-800'
+                      }`
+                    }
+                  >
+                    <item.icon className="w-[18px] h-[18px] flex-shrink-0" />
+                    <span>{item.label}</span>
+                  </NavLink>
+                ))}
+              </div>
             </div>
-          </div>
-        ))}
-      </nav>
+          ))}
+        </nav>
 
-      {/* Footer */}
-      <div className="p-3 border-t border-slate-700/50">
-        <NavLink
-          to="/settings"
-          className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-slate-400 hover:text-white hover:bg-slate-800 transition-all"
-        >
-          <Settings className="w-[18px] h-[18px] flex-shrink-0" />
-          {sidebarOpen && <span>Settings</span>}
-        </NavLink>
-        {sidebarOpen && (
+        {/* Mobile footer */}
+        <div className="p-3 border-t border-slate-700/50">
+          <NavLink
+            to="/settings"
+            onClick={handleNavClick}
+            className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-slate-400 hover:text-white hover:bg-slate-800 transition-all"
+          >
+            <Settings className="w-[18px] h-[18px] flex-shrink-0" />
+            <span>Settings</span>
+          </NavLink>
           <div className="mt-3 px-3 text-[10px] text-slate-600">
             v8.0.0
           </div>
-        )}
-      </div>
-    </aside>
+        </div>
+      </aside>
+    </>
   );
 }
