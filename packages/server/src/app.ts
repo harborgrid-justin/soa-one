@@ -7,6 +7,9 @@ import { expressMiddleware } from '@apollo/server/express4';
 import { typeDefs } from './graphql/typeDefs';
 import { resolvers } from './graphql/resolvers';
 import { authMiddleware, type AuthRequest } from './auth/middleware';
+import { apiRateLimiter, authRateLimiter, executionRateLimiter } from './middleware/rateLimiter';
+import { requestIdMiddleware } from './middleware/requestId';
+import { globalErrorHandler } from './middleware/errorHandler';
 import { authRoutes } from './routes/auth';
 import { projectRoutes } from './routes/projects';
 import { ruleSetRoutes } from './routes/ruleSets';
@@ -48,26 +51,85 @@ import debuggerRoutes from './routes/debugger';
 import replayRoutes from './routes/replay';
 import compliancePackRoutes from './routes/compliancePacks';
 import { prisma } from './prisma';
+import { openApiSpec } from './openapi';
 
 export async function createApp() {
   const app = express();
 
-  // Middleware
-  app.use(cors());
-  app.use(helmet({ contentSecurityPolicy: false }));
-  app.use(morgan('dev'));
+  // Request ID — must be first to enable correlation across all middleware
+  app.use(requestIdMiddleware);
+
+  // Middleware — production-hardened
+  const isProduction = process.env.NODE_ENV === 'production';
+
+  app.use(cors({
+    origin: isProduction
+      ? (process.env.CORS_ORIGIN || 'https://app.soaone.com').split(',')
+      : true,
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-API-Key', 'X-Request-ID'],
+    maxAge: 86400,
+  }));
+
+  app.use(helmet({
+    contentSecurityPolicy: isProduction ? undefined : false,
+    hsts: isProduction ? { maxAge: 31536000, includeSubDomains: true, preload: true } : false,
+    referrerPolicy: { policy: 'strict-origin-when-cross-origin' },
+  }));
+
+  app.use(morgan(isProduction ? 'combined' : 'dev'));
   app.use(express.json({ limit: '10mb' }));
+
+  // Disable technology fingerprinting
+  app.disable('x-powered-by');
+
+  // Rate limiting (applied before auth to protect against brute force)
+  if (isProduction) {
+    app.use('/api/v1/', apiRateLimiter);
+  }
 
   // Auth middleware (extracts user from JWT, dev fallback)
   app.use(authMiddleware as any);
 
-  // Health check
+  // Liveness probe — lightweight, always responds if process is running
   app.get('/api/v1/health', (_req, res) => {
     res.json({ status: 'ok', service: 'soa-one', version: '8.0.0', timestamp: new Date().toISOString() });
   });
 
-  // Auth routes (login/register)
-  app.use('/api/v1/auth', authRoutes);
+  // Readiness probe — verifies database connectivity
+  app.get('/api/v1/health/ready', async (_req, res) => {
+    try {
+      await prisma.$queryRaw`SELECT 1`;
+      res.json({
+        status: 'ready',
+        service: 'soa-one',
+        version: '8.0.0',
+        checks: {
+          database: { status: 'up' },
+        },
+        timestamp: new Date().toISOString(),
+      });
+    } catch (err: any) {
+      res.status(503).json({
+        status: 'not_ready',
+        service: 'soa-one',
+        version: '8.0.0',
+        checks: {
+          database: { status: 'down', error: err.message },
+        },
+        timestamp: new Date().toISOString(),
+      });
+    }
+  });
+
+  // OpenAPI specification endpoint — machine-readable API documentation
+  app.get('/api/v1/openapi.json', (_req, res) => {
+    res.json(openApiSpec);
+  });
+
+  // Auth routes (login/register) — with stricter rate limit
+  app.use('/api/v1/auth', authRateLimiter, authRoutes);
 
   // Core API routes (v1)
   app.use('/api/v1/projects', projectRoutes);
@@ -75,7 +137,7 @@ export async function createApp() {
   app.use('/api/v1/rules', ruleRoutes);
   app.use('/api/v1/decision-tables', decisionTableRoutes);
   app.use('/api/v1/data-models', dataModelRoutes);
-  app.use('/api/v1/execute', executeRoutes);
+  app.use('/api/v1/execute', executionRateLimiter, executeRoutes);
   app.use('/api/v1/dashboard', dashboardRoutes);
   app.use('/api/v1/queue', queueRoutes);
   app.use('/api/v1/versions', versionRoutes);
@@ -129,11 +191,8 @@ export async function createApp() {
     }),
   );
 
-  // Error handler
-  app.use((err: any, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
-    console.error('Unhandled error:', err);
-    res.status(500).json({ error: 'Internal server error' });
-  });
+  // Global error handler — structured errors with request ID correlation
+  app.use(globalErrorHandler);
 
   return app;
 }
