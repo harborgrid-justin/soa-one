@@ -17,10 +17,21 @@
     "db:push": "npm run db:push -w @soa-one/server",
     "db:seed": "npm run db:seed -w @soa-one/server",
     "start": "npm run start -w @soa-one/server",
+    "test": "npm run test -w @soa-one/engine",
+    "test:all": "npm run test -w @soa-one/engine",
+    "lint": "eslint 'packages/*/src/**/*.{ts,tsx}' --max-warnings 0",
+    "lint:fix": "eslint 'packages/*/src/**/*.{ts,tsx}' --fix",
+    "format:check": "prettier --check 'packages/*/src/**/*.{ts,tsx,json}'",
+    "format": "prettier --write 'packages/*/src/**/*.{ts,tsx,json}'",
     "clean": "rm -rf packages/*/dist packages/*/node_modules node_modules"
   },
   "devDependencies": {
-    "concurrently": "^8.2.2",
-    "typescript": "^5.3.3"
+    "@typescript-eslint/eslint-plugin": "^8.55.0",
+    "@typescript-eslint/parser": "^8.55.0",
+    "concurrently": "^9.2.1",
+    "eslint": "^9.39.2",
+    "eslint-config-prettier": "^10.1.8",
+    "prettier": "^3.8.1",
+    "typescript": "^5.9.3"
   }
 }

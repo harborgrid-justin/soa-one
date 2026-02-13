@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { prisma } from '../prisma';
+import { validateBody, createProjectSchema, updateProjectSchema } from '../utils/schemas';
 
 export const projectRoutes = Router();
 
@@ -26,9 +27,8 @@ projectRoutes.get('/:id', async (req, res) => {
 });
 
 // Create project
-projectRoutes.post('/', async (req, res) => {
+projectRoutes.post('/', validateBody(createProjectSchema), async (req, res) => {
   const { name, description } = req.body;
-  if (!name) return res.status(400).json({ error: 'Name is required' });
   const project = await prisma.project.create({
     data: { name, description: description || '' },
   });
@@ -36,7 +36,7 @@ projectRoutes.post('/', async (req, res) => {
 });
 
 // Update project
-projectRoutes.put('/:id', async (req, res) => {
+projectRoutes.put('/:id', validateBody(updateProjectSchema), async (req, res) => {
   const { name, description } = req.body;
   const project = await prisma.project.update({
     where: { id: req.params.id },

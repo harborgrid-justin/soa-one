@@ -1,28 +1,16 @@
-/** @type {import('tailwindcss').Config} */
+/**
+ * Tailwind CSS v4 Configuration
+ *
+ * In Tailwind v4, theme configuration has moved to the @theme directive
+ * in src/index.css. This file is retained only for tooling compatibility
+ * (IDE plugins, Prettier plugin, etc.) but does NOT drive the build.
+ *
+ * The actual theme (colors, fonts, animations, keyframes) is defined in:
+ *   src/index.css → @theme { ... }
+ *
+ * The build is driven by @tailwindcss/postcss in postcss.config.js.
+ */
 export default {
   content: ['./index.html', './src/**/*.{js,ts,jsx,tsx}'],
-  theme: {
-    extend: {
-      colors: {
-        brand: {
-          50: '#eef2ff',
-          100: '#e0e7ff',
-          200: '#c7d2fe',
-          300: '#a5b4fc',
-          400: '#818cf8',
-          500: '#6366f1',
-          600: '#4f46e5',
-          700: '#4338ca',
-          800: '#3730a3',
-          900: '#312e81',
-          950: '#1e1b4b',
-        },
-      },
-      fontFamily: {
-        sans: ['Inter', 'system-ui', '-apple-system', 'sans-serif'],
-        mono: ['JetBrains Mono', 'Fira Code', 'monospace'],
-      },
-    },
-  },
-  plugins: [],
+  darkMode: 'class',
 };

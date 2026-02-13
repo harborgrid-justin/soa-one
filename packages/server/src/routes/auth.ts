@@ -3,16 +3,22 @@ import bcrypt from 'bcryptjs';
 import { prisma } from '../prisma';
 import { signToken, verifyToken, requireAuth, type AuthRequest } from '../auth/middleware';
 import { createAuditLog } from './audit';
+import {
+  validateBody,
+  registerSchema,
+  loginSchema,
+  changePasswordSchema,
+  updateProfileSchema,
+  inviteUserSchema,
+  acceptInviteSchema,
+  updateRoleSchema,
+} from '../utils/schemas';
 
 export const authRoutes = Router();
 
 // Register (creates a new tenant + admin user)
-authRoutes.post('/register', async (req, res) => {
+authRoutes.post('/register', validateBody(registerSchema), async (req, res) => {
   const { email, password, name, tenantName } = req.body;
-
-  if (!email || !password || !name || !tenantName) {
-    return res.status(400).json({ error: 'email, password, name, and tenantName are required' });
-  }
 
   // Check if email already exists
   const existing = await prisma.user.findUnique({ where: { email } });
@@ -85,12 +91,8 @@ authRoutes.post('/register', async (req, res) => {
 });
 
 // Login
-authRoutes.post('/login', async (req, res) => {
+authRoutes.post('/login', validateBody(loginSchema), async (req, res) => {
   const { email, password } = req.body;
-
-  if (!email || !password) {
-    return res.status(400).json({ error: 'email and password are required' });
-  }
 
   const user = await prisma.user.findUnique({
     where: { email },
@@ -202,12 +204,8 @@ authRoutes.put('/me', requireAuth, async (req: AuthRequest, res) => {
 });
 
 // Change password
-authRoutes.put('/me/password', requireAuth, async (req: AuthRequest, res) => {
+authRoutes.put('/me/password', requireAuth, validateBody(changePasswordSchema), async (req: AuthRequest, res) => {
   const { currentPassword, newPassword } = req.body;
-
-  if (!currentPassword || !newPassword) {
-    return res.status(400).json({ error: 'currentPassword and newPassword are required' });
-  }
 
   const user = await prisma.user.findUnique({ where: { id: req.user!.id } });
   if (!user) return res.status(404).json({ error: 'User not found' });
@@ -246,8 +244,8 @@ authRoutes.put('/users/:id/role', requireAuth, async (req: AuthRequest, res) => 
   }
 
   const { role } = req.body;
-  if (!['admin', 'editor', 'viewer'].includes(role)) {
-    return res.status(400).json({ error: 'Invalid role' });
+  if (!role || !['admin', 'editor', 'viewer'].includes(role)) {
+    return res.status(400).json({ error: 'Invalid role. Must be admin, editor, or viewer' });
   }
 
   const user = await prisma.user.update({

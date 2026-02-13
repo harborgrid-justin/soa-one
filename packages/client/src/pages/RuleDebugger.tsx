@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import {
   Bug,
   Play,
@@ -8,9 +8,13 @@ import {
   XCircle,
   RefreshCw,
   Code,
+  GitBranch,
 } from 'lucide-react';
 import { getRuleSets, debugRuleSet } from '../api/client';
 import { useStore } from '../store';
+import { ReadOnlyFlowGraph } from '../components/flow/ReadOnlyFlowGraph';
+import { getAutoLayout } from '../components/flow/autoLayout';
+import type { Node, Edge } from '@xyflow/react';
 
 interface DebugStep {
   ruleName: string;
@@ -345,6 +349,11 @@ export function RuleDebugger() {
                 </div>
               </div>
 
+              {/* Execution Flow Graph */}
+              {debugResult.steps && debugResult.steps.length > 0 && (
+                <DebugFlowGraph steps={debugResult.steps} />
+              )}
+
               {/* Final output */}
               {debugResult.finalOutput && (
                 <div className="card">
@@ -365,14 +374,56 @@ export function RuleDebugger() {
           {!debugResult && !error && (
             <div className="card p-12 text-center">
               <Bug className="w-10 h-10 text-slate-300 mx-auto mb-3" />
-              <h3 className="text-lg font-semibold text-slate-900 mb-1">No Debug Session</h3>
-              <p className="text-sm text-slate-500">
+              <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-1">No Debug Session</h3>
+              <p className="text-sm text-slate-500 dark:text-slate-400">
                 Select a rule set, provide test input, and click Debug to step through execution.
               </p>
             </div>
           )}
         </div>
       </div>
+    </div>
+  );
+}
+
+/** Visualizes debug steps as an execution flow graph */
+function DebugFlowGraph({ steps }: { steps: DebugStep[] }) {
+  const { nodes, edges } = useMemo(() => {
+    const rawNodes: Node[] = [
+      { id: 'start', type: 'dependency', position: { x: 0, y: 0 }, data: { label: 'Input', status: 'fired' } },
+      ...steps.map((step, i) => ({
+        id: `step-${i}`,
+        type: 'dependency' as const,
+        position: { x: 0, y: 0 },
+        data: {
+          label: step.ruleName,
+          status: step.conditionResult ? 'fired' : 'skipped',
+          description: step.conditionResult ? 'Condition: TRUE' : 'Condition: FALSE',
+        },
+      })),
+      { id: 'output', type: 'dependency', position: { x: 0, y: 0 }, data: { label: 'Output', status: 'fired' } },
+    ];
+    const rawEdges: Edge[] = [
+      { id: 'e-start-0', source: 'start', target: 'step-0', animated: true, type: 'labeled' },
+      ...steps.slice(1).map((_, i) => ({
+        id: `e-${i}-${i + 1}`,
+        source: `step-${i}`,
+        target: `step-${i + 1}`,
+        animated: true,
+        type: 'labeled' as const,
+      })),
+      { id: `e-last-output`, source: `step-${steps.length - 1}`, target: 'output', animated: true, type: 'labeled' },
+    ];
+    return getAutoLayout(rawNodes, rawEdges);
+  }, [steps]);
+
+  return (
+    <div className="card overflow-hidden">
+      <div className="px-6 py-4 border-b border-slate-200 dark:border-slate-700 flex items-center gap-2">
+        <GitBranch className="w-4 h-4 text-brand-600" />
+        <h3 className="font-semibold text-slate-900 dark:text-white">Execution Flow</h3>
+      </div>
+      <ReadOnlyFlowGraph nodes={nodes} edges={edges} height="300px" showMinimap={false} className="border-0 shadow-none rounded-none" />
     </div>
   );
 }

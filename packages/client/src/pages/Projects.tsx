@@ -1,9 +1,12 @@
 import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Plus, FolderOpen, GitBranch, Database, MoreVertical, Trash2, Edit3 } from 'lucide-react';
+import { Plus, FolderOpen, GitBranch, Database, Trash2 } from 'lucide-react';
 import { getProjects, createProject, deleteProject } from '../api/client';
 import { Modal } from '../components/common/Modal';
 import { EmptyState } from '../components/common/EmptyState';
+import { Breadcrumb } from '../components/common/Breadcrumb';
+import { GridSkeleton } from '../components/common/Skeleton';
+import { Tooltip } from '../components/common/Tooltip';
 import { useStore } from '../store';
 import type { Project } from '../types';
 
@@ -13,7 +16,7 @@ export function Projects() {
   const [showCreate, setShowCreate] = useState(false);
   const [newName, setNewName] = useState('');
   const [newDesc, setNewDesc] = useState('');
-  const { addNotification } = useStore();
+  const { addNotification, showConfirm } = useStore();
   const navigate = useNavigate();
 
   const load = () => {
@@ -40,30 +43,40 @@ export function Projects() {
     }
   };
 
-  const handleDelete = async (id: string, name: string) => {
-    if (!confirm(`Delete project "${name}" and all its rules? This cannot be undone.`)) return;
-    try {
-      await deleteProject(id);
-      addNotification({ type: 'success', message: `Project "${name}" deleted` });
-      load();
-    } catch {
-      addNotification({ type: 'error', message: 'Failed to delete project' });
-    }
+  const handleDelete = (id: string, name: string) => {
+    showConfirm({
+      title: 'Delete Project',
+      message: `Delete project "${name}" and all its rules? This cannot be undone.`,
+      variant: 'danger',
+      confirmLabel: 'Delete Project',
+      onConfirm: async () => {
+        try {
+          await deleteProject(id);
+          addNotification({ type: 'success', message: `Project "${name}" deleted` });
+          load();
+        } catch {
+          addNotification({ type: 'error', message: 'Failed to delete project' });
+        }
+      },
+    });
   };
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="w-8 h-8 border-2 border-brand-600 border-t-transparent rounded-full animate-spin" />
+      <div className="space-y-6">
+        <Breadcrumb items={[{ label: 'Projects' }]} />
+        <GridSkeleton count={6} />
       </div>
     );
   }
 
   return (
     <div className="space-y-6">
+      <Breadcrumb items={[{ label: 'Projects' }]} />
+
       <div className="flex items-center justify-between">
         <div>
-          <p className="text-sm text-slate-500">Organize your business rules by project</p>
+          <p className="text-sm text-slate-500 dark:text-slate-400">Organize your business rules by project</p>
         </div>
         <button onClick={() => setShowCreate(true)} className="btn-primary">
           <Plus className="w-4 h-4" />
@@ -92,21 +105,23 @@ export function Projects() {
               onClick={() => navigate(`/projects/${project.id}`)}
             >
               <div className="flex items-start justify-between mb-3">
-                <div className="w-10 h-10 rounded-lg bg-brand-50 flex items-center justify-center">
-                  <FolderOpen className="w-5 h-5 text-brand-600" />
+                <div className="w-10 h-10 rounded-lg bg-brand-50 dark:bg-brand-900/30 flex items-center justify-center">
+                  <FolderOpen className="w-5 h-5 text-brand-600 dark:text-brand-400" />
                 </div>
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleDelete(project.id, project.name);
-                  }}
-                  className="p-1 rounded opacity-0 group-hover:opacity-100 hover:bg-red-50 text-slate-400 hover:text-red-600 transition-all"
-                >
-                  <Trash2 className="w-4 h-4" />
-                </button>
+                <Tooltip content="Delete project" side="left">
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleDelete(project.id, project.name);
+                    }}
+                    className="p-1 rounded opacity-0 group-hover:opacity-100 hover:bg-red-50 dark:hover:bg-red-900/20 text-slate-400 hover:text-red-600 transition-all"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                </Tooltip>
               </div>
-              <h3 className="font-semibold text-slate-900 mb-1">{project.name}</h3>
-              <p className="text-sm text-slate-500 mb-4 line-clamp-2">{project.description || 'No description'}</p>
+              <h3 className="font-semibold text-slate-900 dark:text-white mb-1">{project.name}</h3>
+              <p className="text-sm text-slate-500 dark:text-slate-400 mb-4 line-clamp-2">{project.description || 'No description'}</p>
               <div className="flex items-center gap-4 text-xs text-slate-400">
                 <div className="flex items-center gap-1">
                   <GitBranch className="w-3.5 h-3.5" />

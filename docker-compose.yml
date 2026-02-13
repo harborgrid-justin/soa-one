@@ -7,7 +7,7 @@ services:
     environment:
       POSTGRES_DB: soaone
       POSTGRES_USER: soaone
-      POSTGRES_PASSWORD: soaone_secure_password
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-soaone_secure_password}
     volumes:
       - pgdata:/var/lib/postgresql/data
     ports:
@@ -17,17 +17,36 @@ services:
       interval: 5s
       timeout: 5s
       retries: 5
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: '1.0'
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
 
   # Redis for message queue (production)
   redis:
     image: redis:7-alpine
+    command: redis-server --maxmemory 256mb --maxmemory-policy allkeys-lru
     ports:
       - "6379:6379"
+    volumes:
+      - redisdata:/data
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 5s
       timeout: 5s
       retries: 5
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+          cpus: '0.5'
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
 
   # SOA One Backend
   server:
@@ -36,10 +55,14 @@ services:
       dockerfile: Dockerfile
       target: server
     environment:
-      DATABASE_URL: postgresql://soaone:soaone_secure_password@db:5432/soaone
+      DATABASE_URL: postgresql://soaone:${POSTGRES_PASSWORD:-soaone_secure_password}@db:5432/soaone
       REDIS_URL: redis://redis:6379
       PORT: "4000"
       NODE_ENV: production
+      JWT_SECRET: ${JWT_SECRET:?JWT_SECRET is required}
+      CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost:3000}
+      RATE_LIMIT_WINDOW_MS: ${RATE_LIMIT_WINDOW_MS:-900000}
+      RATE_LIMIT_MAX_REQUESTS: ${RATE_LIMIT_MAX_REQUESTS:-100}
     ports:
       - "4000:4000"
     depends_on:
@@ -47,6 +70,17 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+          cpus: '2.0'
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    read_only: true
+    tmpfs:
+      - /tmp
 
   # SOA One Frontend (served by nginx)
   client:
@@ -58,6 +92,20 @@ services:
       - "3000:80"
     depends_on:
       - server
+    deploy:
+      resources:
+        limits:
+          memory: 128M
+          cpus: '0.5'
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    read_only: true
+    tmpfs:
+      - /var/cache/nginx
+      - /var/run
+      - /tmp
 
 volumes:
   pgdata:
+  redisdata:

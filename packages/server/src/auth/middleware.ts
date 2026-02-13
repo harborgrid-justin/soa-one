@@ -2,7 +2,11 @@ import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
 import { prisma } from '../prisma';
 
-const JWT_SECRET = process.env.JWT_SECRET || 'soa-one-dev-secret-change-in-production';
+const JWT_SECRET = process.env.JWT_SECRET || (
+  process.env.NODE_ENV === 'production'
+    ? (() => { throw new Error('JWT_SECRET environment variable is required in production'); })()
+    : 'soa-one-dev-secret-change-in-production'
+);
 
 export interface AuthUser {
   id: string;
@@ -36,7 +40,8 @@ export function verifyToken(token: string): AuthUser | null {
 
 /**
  * Auth middleware — extracts user from JWT Bearer token.
- * In dev mode, allows unauthenticated access with a default context.
+ * Also supports API key authentication via X-API-Key header.
+ * In dev mode only, allows unauthenticated access with a default context.
  */
 export function authMiddleware(req: AuthRequest, _res: Response, next: NextFunction) {
   const authHeader = req.headers.authorization;
@@ -49,8 +54,9 @@ export function authMiddleware(req: AuthRequest, _res: Response, next: NextFunct
     }
   }
 
-  // In development, if no auth, use a default user context
-  if (!req.user && process.env.NODE_ENV !== 'production') {
+  // SECURITY: Only allow dev fallback when NODE_ENV is explicitly "development" or "test"
+  const env = process.env.NODE_ENV;
+  if (!req.user && (env === 'development' || env === 'test')) {
     req.user = {
       id: 'dev-user',
       email: 'admin@soaone.local',

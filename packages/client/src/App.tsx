@@ -45,6 +45,7 @@ import { ImpactAnalyzer } from './pages/ImpactAnalyzer';
 import { RuleDebugger } from './pages/RuleDebugger';
 import { ExecutionReplay } from './pages/ExecutionReplay';
 import { CompliancePacks } from './pages/CompliancePacks';
+import { NotFound } from './pages/NotFound';
 
 export default function App() {
   return (
@@ -97,6 +98,8 @@ export default function App() {
           <Route path="debugger" element={<RuleDebugger />} />
           <Route path="replay" element={<ExecutionReplay />} />
           <Route path="compliance-packs" element={<CompliancePacks />} />
+          {/* Catch-all 404 */}
+          <Route path="*" element={<NotFound />} />
         </Route>
       </Routes>
     </BrowserRouter>
