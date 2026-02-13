@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import {
   RotateCcw,
   Search,
@@ -15,6 +15,9 @@ import {
 import { getRuleSets, getVersions } from '../api/client';
 import api from '../api/client';
 import { useStore } from '../store';
+import { ReadOnlyFlowGraph } from '../components/flow/ReadOnlyFlowGraph';
+import { getAutoLayout } from '../components/flow/autoLayout';
+import type { Node, Edge } from '@xyflow/react';
 
 interface Execution {
   id: string;
@@ -373,6 +376,11 @@ export function ExecutionReplay() {
                     </div>
                   </div>
 
+                  {/* Diff Flow Visualization */}
+                  {replayResult.diff.length > 0 && (
+                    <DiffFlowGraph diff={replayResult.diff} originalVersion={selectedExecution!.version} replayVersion={replayResult.replayVersion} />
+                  )}
+
                   {/* Diff details */}
                   {replayResult.diff.length > 0 && (
                     <div className="card p-5">
@@ -565,6 +573,38 @@ export function ExecutionReplay() {
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+/** Visualizes diff fields as a comparison flow graph */
+function DiffFlowGraph({ diff, originalVersion, replayVersion }: { diff: DiffField[]; originalVersion: number; replayVersion: number }) {
+  const { nodes, edges } = useMemo(() => {
+    const statusMap: Record<string, string> = { changed: 'affected', added: 'fired', removed: 'error' };
+    const rawNodes: Node[] = [
+      { id: 'original', type: 'dependency', position: { x: 0, y: 0 }, data: { label: `v${originalVersion} (Original)`, status: 'fired' } },
+      { id: 'replay', type: 'dependency', position: { x: 0, y: 0 }, data: { label: `v${replayVersion} (Replay)`, status: 'fired' } },
+      ...diff.map((d, i) => ({
+        id: `diff-${i}`,
+        type: 'dependency' as const,
+        position: { x: 0, y: 0 },
+        data: { label: d.path, status: statusMap[d.type] || 'affected', description: d.type },
+      })),
+    ];
+    const rawEdges: Edge[] = diff.flatMap((d, i) => [
+      { id: `e-orig-${i}`, source: 'original', target: `diff-${i}`, animated: true, type: 'labeled' as const },
+      { id: `e-replay-${i}`, source: 'replay', target: `diff-${i}`, animated: true, type: 'labeled' as const },
+    ]);
+    return getAutoLayout(rawNodes, rawEdges, { direction: 'LR', nodeWidth: 180 });
+  }, [diff, originalVersion, replayVersion]);
+
+  return (
+    <div className="card overflow-hidden">
+      <div className="px-6 py-4 border-b border-slate-200 dark:border-slate-700 flex items-center gap-2">
+        <GitCompare className="w-4 h-4 text-brand-600" />
+        <h3 className="font-semibold text-slate-900 dark:text-white text-sm">Diff Visualization</h3>
+      </div>
+      <ReadOnlyFlowGraph nodes={nodes} edges={edges} height="250px" showMinimap={false} className="border-0 shadow-none rounded-none" />
     </div>
   );
 }

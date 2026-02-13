@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import {
   Target,
   AlertTriangle,
@@ -7,9 +7,13 @@ import {
   RefreshCw,
   Clock,
   ChevronRight,
+  GitBranch,
 } from 'lucide-react';
 import { analyzeImpact, getImpactAnalyses, getRuleSets } from '../api/client';
 import { useStore } from '../store';
+import { ReadOnlyFlowGraph } from '../components/flow/ReadOnlyFlowGraph';
+import { getAutoLayout } from '../components/flow/autoLayout';
+import type { Node, Edge } from '@xyflow/react';
 
 interface ImpactResult {
   id: string;
@@ -265,9 +269,14 @@ export function ImpactAnalyzer() {
                 </div>
               </div>
 
+              {/* Impact Dependency Graph */}
+              {result.affectedSystems && result.affectedSystems.length > 0 && (
+                <ImpactGraph ruleSetName={result.ruleSetName || result.ruleSetId} systems={result.affectedSystems} riskLevel={result.riskLevel} />
+              )}
+
               {/* Details */}
               <div className="card p-6">
-                <h3 className="font-semibold text-slate-900 mb-4">Impact Details</h3>
+                <h3 className="font-semibold text-slate-900 dark:text-white mb-4">Impact Details</h3>
                 <div className="space-y-4">
                   <div>
                     <label className="text-xs font-medium text-slate-500">Proposed Change</label>
@@ -326,14 +335,49 @@ export function ImpactAnalyzer() {
           {!result && !error && (
             <div className="card p-12 text-center">
               <Target className="w-10 h-10 text-slate-300 mx-auto mb-3" />
-              <h3 className="text-lg font-semibold text-slate-900 mb-1">No Analysis Results</h3>
-              <p className="text-sm text-slate-500">
+              <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-1">No Analysis Results</h3>
+              <p className="text-sm text-slate-500 dark:text-slate-400">
                 Select a rule set, describe a proposed change, and click Analyze Impact.
               </p>
             </div>
           )}
         </div>
       </div>
+    </div>
+  );
+}
+
+/** Visualizes impacted systems as a dependency flow graph */
+function ImpactGraph({ ruleSetName, systems, riskLevel }: { ruleSetName: string; systems: string[]; riskLevel: string }) {
+  const { nodes, edges } = useMemo(() => {
+    const riskColors: Record<string, string> = { low: 'fired', medium: 'affected', high: 'error' };
+    const rawNodes: Node[] = [
+      { id: 'source', type: 'dependency', position: { x: 0, y: 0 }, data: { label: ruleSetName, status: riskColors[riskLevel] || 'affected', description: 'Modified Rule Set' } },
+      ...systems.map((sys, i) => ({
+        id: `sys-${i}`,
+        type: 'dependency' as const,
+        position: { x: 0, y: 0 },
+        data: { label: sys, status: 'affected', description: 'Downstream system' },
+      })),
+    ];
+    const rawEdges: Edge[] = systems.map((_, i) => ({
+      id: `e-source-sys-${i}`,
+      source: 'source',
+      target: `sys-${i}`,
+      animated: true,
+      type: 'labeled',
+      label: 'impacts',
+    }));
+    return getAutoLayout(rawNodes, rawEdges);
+  }, [ruleSetName, systems, riskLevel]);
+
+  return (
+    <div>
+      <div className="flex items-center gap-2 mb-2">
+        <GitBranch className="w-4 h-4 text-brand-600" />
+        <h3 className="font-semibold text-slate-900 dark:text-white text-sm">Dependency Graph</h3>
+      </div>
+      <ReadOnlyFlowGraph nodes={nodes} edges={edges} height="280px" showMinimap={false} />
     </div>
   );
 }

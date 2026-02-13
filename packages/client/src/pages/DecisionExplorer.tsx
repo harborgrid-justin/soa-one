@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import {
   Search,
   GitBranch,
@@ -14,6 +14,9 @@ import {
 } from 'lucide-react';
 import api from '../api/client';
 import { useStore } from '../store';
+import { ReadOnlyFlowGraph } from '../components/flow/ReadOnlyFlowGraph';
+import { getAutoLayout } from '../components/flow/autoLayout';
+import type { Node, Edge } from '@xyflow/react';
 
 interface ConditionEval {
   field: string;
@@ -248,8 +251,11 @@ export function DecisionExplorer() {
             </div>
           </div>
 
-          {/* Right: Timeline */}
-          <div className="lg:col-span-2">
+          {/* Right: Flow + Timeline */}
+          <div className="lg:col-span-2 space-y-4">
+            {/* Decision Trace Flow Graph */}
+            {trace.evaluations.length > 0 && <TraceFlowGraph evaluations={trace.evaluations} />}
+
             <div className="card">
               <div className="px-6 py-4 border-b border-slate-200">
                 <h3 className="font-semibold text-slate-900">Evaluation Timeline</h3>
@@ -391,11 +397,58 @@ export function DecisionExplorer() {
       {!trace && !loading && (
         <div className="card px-6 py-16 text-center">
           <BarChart3 className="w-10 h-10 text-slate-300 mx-auto mb-3" />
-          <p className="text-sm text-slate-500">
+          <p className="text-sm text-slate-500 dark:text-slate-400">
             Enter an execution ID or select a recent execution to view its decision trace.
           </p>
         </div>
       )}
+    </div>
+  );
+}
+
+/** Visualizes rule evaluations as a decision trace flow */
+function TraceFlowGraph({ evaluations }: { evaluations: RuleEval[] }) {
+  const { nodes, edges } = useMemo(() => {
+    const sorted = [...evaluations].sort((a, b) => a.executionOrder - b.executionOrder);
+    const rawNodes: Node[] = [
+      { id: 'input', type: 'dependency', position: { x: 0, y: 0 }, data: { label: 'Input', status: 'fired' } },
+      ...sorted.map((ev) => ({
+        id: ev.ruleId,
+        type: 'dependency' as const,
+        position: { x: 0, y: 0 },
+        data: {
+          label: ev.ruleName,
+          status: ev.fired ? 'fired' : ev.evaluated ? 'skipped' : 'skipped',
+          description: ev.fired ? `Fired (${ev.conditions.length} conditions)` : 'Skipped',
+        },
+      })),
+      { id: 'output', type: 'dependency', position: { x: 0, y: 0 }, data: { label: 'Output', status: 'fired' } },
+    ];
+    const rawEdges: Edge[] = [
+      { id: 'e-input-first', source: 'input', target: sorted[0]?.ruleId || 'output', animated: true, type: 'labeled' },
+      ...sorted.slice(1).map((ev, i) => ({
+        id: `e-${sorted[i].ruleId}-${ev.ruleId}`,
+        source: sorted[i].ruleId,
+        target: ev.ruleId,
+        animated: true,
+        type: 'labeled' as const,
+      })),
+      { id: 'e-last-output', source: sorted[sorted.length - 1]?.ruleId || 'input', target: 'output', animated: true, type: 'labeled' },
+    ];
+    return getAutoLayout(rawNodes, rawEdges);
+  }, [evaluations]);
+
+  return (
+    <div className="card overflow-hidden">
+      <div className="px-6 py-4 border-b border-slate-200 dark:border-slate-700 flex items-center gap-2">
+        <GitBranch className="w-4 h-4 text-brand-600" />
+        <h3 className="font-semibold text-slate-900 dark:text-white text-sm">Decision Trace Flow</h3>
+        <div className="ml-auto flex items-center gap-3 text-[10px]">
+          <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-emerald-500" /> Fired</span>
+          <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-slate-300" /> Skipped</span>
+        </div>
+      </div>
+      <ReadOnlyFlowGraph nodes={nodes} edges={edges} height="280px" showMinimap={false} className="border-0 shadow-none rounded-none" />
     </div>
   );
 }
