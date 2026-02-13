@@ -207,7 +207,7 @@ function WorkflowDesignerInner() {
       y: event.clientY,
     });
     const newNode: Node = {
-      id: `${type}-${Date.now()}`,
+      id: `${type}-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
       type,
       position,
       data: { label: defaultLabels[type] || type },
