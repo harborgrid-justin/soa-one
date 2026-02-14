@@ -165,6 +165,115 @@ export interface DashboardStats {
   avgExecutionTimeMs: number;
 }
 
+// ============================================================
+// V9: Enterprise Service Bus (ESB)
+// ============================================================
+
+export interface ESBChannel {
+  id: string;
+  name: string;
+  type: 'point-to-point' | 'pub-sub' | 'dead-letter' | 'request-reply' | 'priority';
+  config: Record<string, any>;
+  status: 'active' | 'paused' | 'draining' | 'closed';
+  messageCount: number;
+  errorCount: number;
+  lastActivity: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ESBEndpoint {
+  id: string;
+  name: string;
+  channelId: string | null;
+  protocol: 'rest' | 'soap' | 'jms';
+  config: Record<string, any>;
+  status: 'active' | 'inactive' | 'error';
+  createdAt: string;
+  updatedAt: string;
+}
+
+export type ESBRoutingStrategy =
+  | 'content-based' | 'header-based' | 'round-robin' | 'weighted'
+  | 'failover' | 'multicast' | 'priority-based' | 'dynamic'
+  | 'itinerary' | 'recipient-list';
+
+export interface ESBRoute {
+  id: string;
+  name: string;
+  source: string;
+  strategy: ESBRoutingStrategy;
+  conditions: any[];
+  targets: string[];
+  priority: number;
+  enabled: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ESBTransformer {
+  id: string;
+  name: string;
+  channel: string | null;
+  pipeline: any[];
+  enabled: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ESBSagaDefinition {
+  id: string;
+  name: string;
+  description: string;
+  steps: any[];
+  timeout: number | null;
+  retryPolicy: any | null;
+  createdAt: string;
+  updatedAt: string;
+  instances?: ESBSagaInstance[];
+}
+
+export interface ESBSagaInstance {
+  id: string;
+  definitionId: string;
+  status: 'running' | 'completed' | 'compensating' | 'compensated' | 'failed';
+  context: Record<string, any>;
+  currentStep: number;
+  logs: any[];
+  error: string | null;
+  startedAt: string;
+  completedAt: string | null;
+}
+
+export interface ESBMessageRecord {
+  id: string;
+  channelName: string;
+  type: 'command' | 'event' | 'document' | 'query' | 'reply';
+  headers: Record<string, any>;
+  body: Record<string, any>;
+  status: 'pending' | 'delivered' | 'failed' | 'dead-letter';
+  correlationId: string | null;
+  error: string | null;
+  createdAt: string;
+  deliveredAt: string | null;
+}
+
+export interface ESBMetricsSummary {
+  totalChannels: number;
+  totalEndpoints: number;
+  totalRoutes: number;
+  totalTransformers: number;
+  activeSagas: number;
+  totalMessages: number;
+  deadLetterCount: number;
+}
+
+export interface ESBDashboardData {
+  summary: ESBMetricsSummary;
+  channels: Pick<ESBChannel, 'id' | 'name' | 'type' | 'status' | 'messageCount' | 'errorCount' | 'lastActivity'>[];
+  recentMessages: ESBMessageRecord[];
+}
+
 export const OPERATOR_LABELS: Record<ComparisonOperator, string> = {
   equals: 'equals',
   notEquals: 'not equals',

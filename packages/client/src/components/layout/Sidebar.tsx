@@ -37,6 +37,9 @@ import {
   RotateCcw,
   Package,
   X,
+  Radio,
+  Repeat,
+  MessageSquare,
 } from 'lucide-react';
 import { useStore } from '../../store';
 
@@ -69,6 +72,17 @@ const navSections = [
       { to: '/ab-testing', icon: Split, label: 'A/B Testing' },
       { to: '/impact-analysis', icon: Target, label: 'Impact Analysis' },
       { to: '/templates', icon: Store, label: 'Templates' },
+    ],
+  },
+  {
+    label: 'Service Bus',
+    items: [
+      { to: '/esb', icon: Radio, label: 'ESB Dashboard' },
+      { to: '/esb/channels', icon: MessageSquare, label: 'Channels' },
+      { to: '/esb/routes', icon: GitBranch, label: 'Routing' },
+      { to: '/esb/transformers', icon: Repeat, label: 'Transformers' },
+      { to: '/esb/sagas', icon: Workflow, label: 'Sagas' },
+      { to: '/esb/monitoring', icon: Activity, label: 'ESB Monitor' },
     ],
   },
   {

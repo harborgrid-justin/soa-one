@@ -339,6 +339,54 @@ export const getCompliancePack = (framework: string) => api.get(`/compliance-pac
 export const installCompliancePack = (framework: string) => api.post(`/compliance-packs/packs/${framework}/install`).then((r) => r.data);
 export const getInstalledPacks = () => api.get('/compliance-packs/installed').then((r) => r.data);
 
+// ============================================================
+// V9: Enterprise Service Bus (ESB)
+// ============================================================
+
+// ESB Channels
+export const getESBChannels = () => api.get('/esb/channels').then((r) => r.data);
+export const getESBChannel = (id: string) => api.get(`/esb/channels/${id}`).then((r) => r.data);
+export const createESBChannel = (data: any) => api.post('/esb/channels', data).then((r) => r.data);
+export const updateESBChannel = (id: string, data: any) => api.put(`/esb/channels/${id}`, data).then((r) => r.data);
+export const deleteESBChannel = (id: string) => api.delete(`/esb/channels/${id}`).then((r) => r.data);
+
+// ESB Endpoints
+export const getESBEndpoints = () => api.get('/esb/endpoints').then((r) => r.data);
+export const getESBEndpoint = (id: string) => api.get(`/esb/endpoints/${id}`).then((r) => r.data);
+export const createESBEndpoint = (data: any) => api.post('/esb/endpoints', data).then((r) => r.data);
+export const updateESBEndpoint = (id: string, data: any) => api.put(`/esb/endpoints/${id}`, data).then((r) => r.data);
+export const deleteESBEndpoint = (id: string) => api.delete(`/esb/endpoints/${id}`).then((r) => r.data);
+
+// ESB Routes
+export const getESBRoutes = () => api.get('/esb/routes').then((r) => r.data);
+export const getESBRoute = (id: string) => api.get(`/esb/routes/${id}`).then((r) => r.data);
+export const createESBRoute = (data: any) => api.post('/esb/routes', data).then((r) => r.data);
+export const updateESBRoute = (id: string, data: any) => api.put(`/esb/routes/${id}`, data).then((r) => r.data);
+export const deleteESBRoute = (id: string) => api.delete(`/esb/routes/${id}`).then((r) => r.data);
+
+// ESB Transformers
+export const getESBTransformers = () => api.get('/esb/transformers').then((r) => r.data);
+export const getESBTransformer = (id: string) => api.get(`/esb/transformers/${id}`).then((r) => r.data);
+export const createESBTransformer = (data: any) => api.post('/esb/transformers', data).then((r) => r.data);
+export const updateESBTransformer = (id: string, data: any) => api.put(`/esb/transformers/${id}`, data).then((r) => r.data);
+export const deleteESBTransformer = (id: string) => api.delete(`/esb/transformers/${id}`).then((r) => r.data);
+
+// ESB Sagas
+export const getESBSagas = () => api.get('/esb/sagas').then((r) => r.data);
+export const getESBSaga = (id: string) => api.get(`/esb/sagas/${id}`).then((r) => r.data);
+export const createESBSaga = (data: any) => api.post('/esb/sagas', data).then((r) => r.data);
+export const updateESBSaga = (id: string, data: any) => api.put(`/esb/sagas/${id}`, data).then((r) => r.data);
+export const deleteESBSaga = (id: string) => api.delete(`/esb/sagas/${id}`).then((r) => r.data);
+export const getESBSagaInstances = (id: string) => api.get(`/esb/sagas/${id}/instances`).then((r) => r.data);
+
+// ESB Messages
+export const getESBMessages = (params?: any) => api.get('/esb/messages', { params }).then((r) => r.data);
+export const sendESBMessage = (data: any) => api.post('/esb/messages', data).then((r) => r.data);
+
+// ESB Metrics
+export const getESBMetrics = () => api.get('/esb/metrics').then((r) => r.data);
+export const getESBMetricSnapshots = (params?: any) => api.get('/esb/metrics/snapshots', { params }).then((r) => r.data);
+
 // Aliases for frontend pages
 export const getExecutionReplays = (params?: any) => api.get('/replay/executions', { params }).then((r) => r.data);
 export const getImpactHistory = (params?: any) => api.get('/impact-analysis/history', { params }).then((r) => r.data);
