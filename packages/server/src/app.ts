@@ -50,6 +50,8 @@ import impactAnalysisRoutes from './routes/impactAnalysis';
 import debuggerRoutes from './routes/debugger';
 import replayRoutes from './routes/replay';
 import compliancePackRoutes from './routes/compliancePacks';
+// V9: ESB routes
+import esbRoutes from './routes/esb';
 import { prisma } from './prisma';
 import { openApiSpec } from './openapi';
 
@@ -177,6 +179,9 @@ export async function createApp() {
   app.use('/api/v1/debugger', debuggerRoutes);
   app.use('/api/v1/replay', replayRoutes);
   app.use('/api/v1/compliance-packs', compliancePackRoutes);
+
+  // V9: ESB routes
+  app.use('/api/v1/esb', esbRoutes);
 
   // GraphQL
   const apollo = new ApolloServer({ typeDefs, resolvers });

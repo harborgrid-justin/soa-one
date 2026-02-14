@@ -45,6 +45,13 @@ import { ImpactAnalyzer } from './pages/ImpactAnalyzer';
 import { RuleDebugger } from './pages/RuleDebugger';
 import { ExecutionReplay } from './pages/ExecutionReplay';
 import { CompliancePacks } from './pages/CompliancePacks';
+// V9: ESB pages
+import { ESBDashboard } from './pages/ESBDashboard';
+import { ESBChannels } from './pages/ESBChannels';
+import { ESBRoutes } from './pages/ESBRoutes';
+import { ESBTransformers } from './pages/ESBTransformers';
+import { ESBSagas } from './pages/ESBSagas';
+import { ESBMonitoring } from './pages/ESBMonitoring';
 import { NotFound } from './pages/NotFound';
 
 export default function App() {
@@ -98,6 +105,13 @@ export default function App() {
           <Route path="debugger" element={<RuleDebugger />} />
           <Route path="replay" element={<ExecutionReplay />} />
           <Route path="compliance-packs" element={<CompliancePacks />} />
+          {/* V9: ESB routes */}
+          <Route path="esb" element={<ESBDashboard />} />
+          <Route path="esb/channels" element={<ESBChannels />} />
+          <Route path="esb/routes" element={<ESBRoutes />} />
+          <Route path="esb/transformers" element={<ESBTransformers />} />
+          <Route path="esb/sagas" element={<ESBSagas />} />
+          <Route path="esb/monitoring" element={<ESBMonitoring />} />
           {/* Catch-all 404 */}
           <Route path="*" element={<NotFound />} />
         </Route>

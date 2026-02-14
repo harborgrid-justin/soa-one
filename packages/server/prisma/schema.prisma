@@ -4,7 +4,6 @@ generator client {
 
 datasource db {
   provider = "sqlite"
-  url      = env("DATABASE_URL")
 }
 
 // ============================================================
@@ -608,5 +607,119 @@ model ExecutionReplay {
   originalOutput  String   // JSON: output from original execution
   replayOutput    String   // JSON: output from replay with new rules
   diff            String   @default("{}") // JSON: {changed: true, fieldChanges: [{field, before, after}]}
+  createdAt       DateTime @default(now())
+}
+
+// ============================================================
+// V9: Enterprise Service Bus (ESB)
+// ============================================================
+
+model ESBChannel {
+  id           String   @id @default(uuid())
+  tenantId     String?
+  name         String
+  type         String   @default("point-to-point") // point-to-point | pub-sub | dead-letter | request-reply | priority
+  config       String   @default("{}") // JSON: ChannelConfig (maxDepth, ttl, deduplication, etc.)
+  status       String   @default("active") // active | paused | draining | closed
+  messageCount Int      @default(0)
+  errorCount   Int      @default(0)
+  lastActivity DateTime?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+model ESBEndpoint {
+  id         String   @id @default(uuid())
+  tenantId   String?
+  name       String
+  channelId  String?
+  protocol   String   @default("rest") // rest | soap | jms
+  config     String   @default("{}") // JSON: EndpointConfig (url, method, headers, auth, etc.)
+  status     String   @default("active") // active | inactive | error
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+}
+
+model ESBRoute {
+  id         String   @id @default(uuid())
+  tenantId   String?
+  name       String
+  source     String   // source channel name
+  strategy   String   @default("content-based") // content-based | header-based | round-robin | weighted | failover | multicast | priority-based | dynamic | itinerary | recipient-list
+  conditions String   @default("[]") // JSON: routing conditions
+  targets    String   @default("[]") // JSON: destination channel names
+  priority   Int      @default(0)
+  enabled    Boolean  @default(true)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+}
+
+model ESBTransformer {
+  id         String   @id @default(uuid())
+  tenantId   String?
+  name       String
+  channel    String?  // bound to a specific channel, or null for reusable
+  pipeline   String   @default("[]") // JSON: array of TransformerConfig steps
+  enabled    Boolean  @default(true)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+}
+
+model ESBSagaDefinition {
+  id            String   @id @default(uuid())
+  tenantId      String?
+  name          String
+  description   String   @default("")
+  steps         String   @default("[]") // JSON: SagaStep definitions
+  timeout       Int?     // overall saga timeout in ms
+  retryPolicy   String?  // JSON: RetryPolicy
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  instances ESBSagaInstance[]
+}
+
+model ESBSagaInstance {
+  id           String    @id @default(uuid())
+  definitionId String
+  status       String    @default("running") // running | completed | compensating | compensated | failed
+  context      String    @default("{}") // JSON: saga context/state
+  currentStep  Int       @default(0)
+  logs         String    @default("[]") // JSON: step execution logs
+  error        String?
+  startedAt    DateTime  @default(now())
+  completedAt  DateTime?
+
+  definition ESBSagaDefinition @relation(fields: [definitionId], references: [id], onDelete: Cascade)
+}
+
+model ESBMessage {
+  id            String   @id @default(uuid())
+  tenantId      String?
+  channelName   String
+  type          String   @default("event") // command | event | document | query | reply
+  headers       String   @default("{}") // JSON: message headers
+  body          String   @default("{}") // JSON: message payload
+  status        String   @default("pending") // pending | delivered | failed | dead-letter
+  correlationId String?
+  causationId   String?
+  error         String?
+  createdAt     DateTime @default(now())
+  deliveredAt   DateTime?
+}
+
+model ESBMetricSnapshot {
+  id              String   @id @default(uuid())
+  tenantId        String?
+  totalMessages   Int      @default(0)
+  deliveredCount  Int      @default(0)
+  failedCount     Int      @default(0)
+  avgLatencyMs    Float    @default(0)
+  activeChannels  Int      @default(0)
+  activeEndpoints Int      @default(0)
+  activeSagas     Int      @default(0)
+  circuitBreakers String   @default("{}") // JSON: circuit breaker states
+  rateLimiters    String   @default("{}") // JSON: rate limiter states
+  snapshot        String   @default("{}") // JSON: full ESBMetrics snapshot
   createdAt       DateTime @default(now())
 }
