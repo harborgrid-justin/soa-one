@@ -52,6 +52,15 @@ import { ESBRoutes } from './pages/ESBRoutes';
 import { ESBTransformers } from './pages/ESBTransformers';
 import { ESBSagas } from './pages/ESBSagas';
 import { ESBMonitoring } from './pages/ESBMonitoring';
+// V10: CMS pages
+import { CMSDashboard } from './pages/CMSDashboard';
+import { CMSDocuments } from './pages/CMSDocuments';
+import { CMSSearch } from './pages/CMSSearch';
+import { CMSWorkflows } from './pages/CMSWorkflows';
+import { CMSTaxonomies } from './pages/CMSTaxonomies';
+import { CMSRetention } from './pages/CMSRetention';
+import { CMSSecurity } from './pages/CMSSecurity';
+import { CMSMonitoring } from './pages/CMSMonitoring';
 import { NotFound } from './pages/NotFound';
 
 export default function App() {
@@ -112,6 +121,15 @@ export default function App() {
           <Route path="esb/transformers" element={<ESBTransformers />} />
           <Route path="esb/sagas" element={<ESBSagas />} />
           <Route path="esb/monitoring" element={<ESBMonitoring />} />
+          {/* V10: CMS routes */}
+          <Route path="cms" element={<CMSDashboard />} />
+          <Route path="cms/documents" element={<CMSDocuments />} />
+          <Route path="cms/search" element={<CMSSearch />} />
+          <Route path="cms/workflows" element={<CMSWorkflows />} />
+          <Route path="cms/taxonomies" element={<CMSTaxonomies />} />
+          <Route path="cms/retention" element={<CMSRetention />} />
+          <Route path="cms/security" element={<CMSSecurity />} />
+          <Route path="cms/monitoring" element={<CMSMonitoring />} />
           {/* Catch-all 404 */}
           <Route path="*" element={<NotFound />} />
         </Route>

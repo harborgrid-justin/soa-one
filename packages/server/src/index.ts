@@ -4,6 +4,7 @@ dotenv.config();
 import { createApp } from './app';
 import { prisma } from './prisma';
 import { startQueueConsumer } from './queue/consumer';
+import { initIntegration, shutdownIntegration } from './services/integration';
 import type { Server } from 'http';
 
 const PORT = process.env.PORT || 4000;
@@ -11,6 +12,9 @@ const PORT = process.env.PORT || 4000;
 let server: Server;
 
 async function main() {
+  // Initialize cross-module integration (ESB ⇄ Engine ⇄ CMS)
+  await initIntegration();
+
   const app = await createApp();
 
   // Start the message queue consumer
@@ -25,6 +29,7 @@ async function main() {
   ║  REST API:   http://localhost:${PORT}/api/v1  ║
   ║  GraphQL:    http://localhost:${PORT}/graphql  ║
   ║  Health:     http://localhost:${PORT}/api/v1/health ║
+  ║  Modules:    Engine + ESB + CMS          ║
   ╚══════════════════════════════════════════╝
     `);
   });
@@ -65,6 +70,14 @@ async function gracefulShutdown(signal: string) {
     console.error('[shutdown] Forced shutdown after 30s timeout');
     process.exit(1);
   }, 30_000);
+
+  try {
+    // Shut down ESB ⇄ Engine ⇄ CMS integration
+    await shutdownIntegration();
+    console.log('[shutdown] Integration modules shut down');
+  } catch (err) {
+    console.error('[shutdown] Error shutting down integration:', err);
+  }
 
   try {
     // Disconnect Prisma database connection pool

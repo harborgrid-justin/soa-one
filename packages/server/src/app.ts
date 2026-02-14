@@ -52,6 +52,10 @@ import replayRoutes from './routes/replay';
 import compliancePackRoutes from './routes/compliancePacks';
 // V9: ESB routes
 import esbRoutes from './routes/esb';
+// V10: CMS routes
+import cmsRoutes from './routes/cms';
+// V11: Integration status route
+import integrationRoutes from './routes/integration';
 import { prisma } from './prisma';
 import { openApiSpec } from './openapi';
 
@@ -99,8 +103,9 @@ export async function createApp() {
     res.json({ status: 'ok', service: 'soa-one', version: '8.0.0', timestamp: new Date().toISOString() });
   });
 
-  // Readiness probe — verifies database connectivity
+  // Readiness probe — verifies database connectivity and module integration
   app.get('/api/v1/health/ready', async (_req, res) => {
+    const { isIntegrationReady } = await import('./services/integration');
     try {
       await prisma.$queryRaw`SELECT 1`;
       res.json({
@@ -109,6 +114,7 @@ export async function createApp() {
         version: '8.0.0',
         checks: {
           database: { status: 'up' },
+          integration: { status: isIntegrationReady() ? 'up' : 'down' },
         },
         timestamp: new Date().toISOString(),
       });
@@ -119,6 +125,7 @@ export async function createApp() {
         version: '8.0.0',
         checks: {
           database: { status: 'down', error: err.message },
+          integration: { status: isIntegrationReady() ? 'up' : 'down' },
         },
         timestamp: new Date().toISOString(),
       });
@@ -182,6 +189,12 @@ export async function createApp() {
 
   // V9: ESB routes
   app.use('/api/v1/esb', esbRoutes);
+
+  // V10: CMS routes
+  app.use('/api/v1/cms', cmsRoutes);
+
+  // V11: Integration status (Engine ⇄ ESB ⇄ CMS)
+  app.use('/api/v1/integration', integrationRoutes);
 
   // GraphQL
   const apollo = new ApolloServer({ typeDefs, resolvers });

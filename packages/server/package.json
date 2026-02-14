@@ -14,7 +14,9 @@
   "dependencies": {
     "@apollo/server": "^5.4.0",
     "@prisma/client": "^7.4.0",
+    "@soa-one/cms": "*",
     "@soa-one/engine": "*",
+    "@soa-one/esb": "*",
     "bcryptjs": "^3.0.3",
     "bullmq": "^5.69.1",
     "cors": "^2.8.6",

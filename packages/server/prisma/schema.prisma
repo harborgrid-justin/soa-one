@@ -723,3 +723,197 @@ model ESBMetricSnapshot {
   snapshot        String   @default("{}") // JSON: full ESBMetrics snapshot
   createdAt       DateTime @default(now())
 }
+
+// ============================================================
+// V10: Content Management System (CMS)
+// ============================================================
+
+model CMSDocument {
+  id              String    @id @default(uuid())
+  tenantId        String?
+  name            String
+  description     String    @default("")
+  mimeType        String    @default("text/plain")
+  content         String    @default("")
+  contentHash     String?
+  sizeBytes       Int       @default(0)
+  category        String    @default("document") // document | spreadsheet | presentation | image | video | audio | email | form | report | contract | invoice | policy | template
+  status          String    @default("draft") // draft | pending-review | in-review | approved | published | archived | suspended | expired | deleted | superseded
+  version         Int       @default(1)
+  majorVersion    Int       @default(1)
+  minorVersion    Int       @default(0)
+  folderId        String?
+  lockedBy        String?
+  lockedAt        DateTime?
+  checkedOutBy    String?
+  checkedOutAt    DateTime?
+  tags            String    @default("[]") // JSON: string[]
+  metadata        String    @default("{}") // JSON: custom metadata key-value pairs
+  retentionDate   DateTime?
+  legalHold       Boolean   @default(false)
+  securityLevel   String    @default("internal") // public | internal | confidential | restricted | top-secret
+  createdBy       String    @default("system")
+  updatedBy       String    @default("system")
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  folder     CMSFolder?       @relation(fields: [folderId], references: [id])
+  versions   CMSDocumentVersion[]
+  renditions CMSRendition[]
+  comments   CMSComment[]
+}
+
+model CMSDocumentVersion {
+  id          String   @id @default(uuid())
+  documentId  String
+  version     Int
+  content     String   @default("")
+  contentHash String?
+  sizeBytes   Int      @default(0)
+  changelog   String   @default("")
+  createdBy   String   @default("system")
+  createdAt   DateTime @default(now())
+
+  document CMSDocument @relation(fields: [documentId], references: [id], onDelete: Cascade)
+}
+
+model CMSFolder {
+  id          String   @id @default(uuid())
+  tenantId    String?
+  name        String
+  parentId    String?
+  path        String   @default("/")
+  description String   @default("")
+  metadata    String   @default("{}") // JSON
+  createdBy   String   @default("system")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  parent    CMSFolder?    @relation("FolderTree", fields: [parentId], references: [id])
+  children  CMSFolder[]   @relation("FolderTree")
+  documents CMSDocument[]
+}
+
+model CMSWorkflow {
+  id          String   @id @default(uuid())
+  tenantId    String?
+  name        String
+  description String   @default("")
+  steps       String   @default("[]") // JSON: workflow step definitions
+  triggers    String   @default("[]") // JSON: auto-trigger conditions
+  enabled     Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  instances CMSWorkflowInstance[]
+}
+
+model CMSWorkflowInstance {
+  id          String    @id @default(uuid())
+  workflowId  String
+  documentId  String?
+  status      String    @default("running") // running | completed | failed | cancelled | paused
+  currentStep Int       @default(0)
+  context     String    @default("{}") // JSON: workflow context/state
+  logs        String    @default("[]") // JSON: step execution logs
+  error       String?
+  startedBy   String    @default("system")
+  startedAt   DateTime  @default(now())
+  completedAt DateTime?
+
+  workflow CMSWorkflow @relation(fields: [workflowId], references: [id], onDelete: Cascade)
+}
+
+model CMSTaxonomy {
+  id          String   @id @default(uuid())
+  tenantId    String?
+  name        String
+  description String   @default("")
+  type        String   @default("hierarchical") // hierarchical | flat | network | faceted
+  nodes       String   @default("[]") // JSON: taxonomy node tree
+  rules       String   @default("[]") // JSON: auto-classification rules
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model CMSRetentionPolicy {
+  id              String   @id @default(uuid())
+  tenantId        String?
+  name            String
+  description     String   @default("")
+  trigger         String   @default("creation") // creation | lastModified | lastAccessed | published | approved | custom
+  retentionPeriod Int      @default(365) // days
+  disposition     String   @default("archive") // delete | archive | transfer | review | extend | reclassify
+  categories      String   @default("[]") // JSON: which document categories this applies to
+  enabled         Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+model CMSLegalHold {
+  id          String    @id @default(uuid())
+  tenantId    String?
+  name        String
+  description String    @default("")
+  reason      String    @default("")
+  documentIds String    @default("[]") // JSON: string[]
+  createdBy   String    @default("system")
+  active      Boolean   @default(true)
+  createdAt   DateTime  @default(now())
+  releasedAt  DateTime?
+}
+
+model CMSRendition {
+  id         String   @id @default(uuid())
+  documentId String
+  type       String   @default("thumbnail") // thumbnail | pdf | text-extract | preview | web-optimized | compressed
+  mimeType   String   @default("image/png")
+  content    String   @default("")
+  sizeBytes  Int      @default(0)
+  metadata   String   @default("{}") // JSON
+  createdAt  DateTime @default(now())
+
+  document CMSDocument @relation(fields: [documentId], references: [id], onDelete: Cascade)
+}
+
+model CMSComment {
+  id          String   @id @default(uuid())
+  documentId  String
+  parentId    String?
+  content     String
+  authorId    String
+  authorName  String   @default("")
+  resolved    Boolean  @default(false)
+  reactions   String   @default("{}") // JSON: { emoji: count }
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  document CMSDocument @relation(fields: [documentId], references: [id], onDelete: Cascade)
+}
+
+model CMSMetadataSchema {
+  id          String   @id @default(uuid())
+  tenantId    String?
+  name        String
+  description String   @default("")
+  fields      String   @default("[]") // JSON: field definitions with type, required, validation
+  categories  String   @default("[]") // JSON: which document categories this schema applies to
+  version     Int      @default(1)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model CMSAuditEntry {
+  id         String   @id @default(uuid())
+  tenantId   String?
+  documentId String?
+  userId     String?
+  userName   String?
+  action     String   // view | create | update | delete | download | share | checkout | checkin | approve | publish | classify
+  entity     String   // document | folder | workflow | taxonomy | retention | rendition | comment
+  entityId   String?
+  entityName String?
+  details    String   @default("{}") // JSON: additional context
+  ipAddress  String?
+  createdAt  DateTime @default(now())
+}

@@ -274,6 +274,203 @@ export interface ESBDashboardData {
   recentMessages: ESBMessageRecord[];
 }
 
+// ============================================================
+// V10: Content Management System (CMS)
+// ============================================================
+
+export type CMSDocumentStatus =
+  | 'draft' | 'pending-review' | 'in-review' | 'approved' | 'published'
+  | 'archived' | 'suspended' | 'expired' | 'deleted' | 'superseded';
+
+export type CMSDocumentCategory =
+  | 'document' | 'spreadsheet' | 'presentation' | 'image' | 'video'
+  | 'audio' | 'email' | 'form' | 'report' | 'contract' | 'invoice'
+  | 'policy' | 'template';
+
+export type CMSSecurityLevel = 'public' | 'internal' | 'confidential' | 'restricted' | 'top-secret';
+
+export interface CMSDocument {
+  id: string;
+  name: string;
+  description: string;
+  mimeType: string;
+  content: string;
+  contentHash: string | null;
+  sizeBytes: number;
+  category: CMSDocumentCategory;
+  status: CMSDocumentStatus;
+  version: number;
+  majorVersion: number;
+  minorVersion: number;
+  folderId: string | null;
+  lockedBy: string | null;
+  lockedAt: string | null;
+  checkedOutBy: string | null;
+  checkedOutAt: string | null;
+  tags: string[];
+  metadata: Record<string, any>;
+  retentionDate: string | null;
+  legalHold: boolean;
+  securityLevel: CMSSecurityLevel;
+  createdBy: string;
+  updatedBy: string;
+  createdAt: string;
+  updatedAt: string;
+  versions?: CMSDocumentVersion[];
+  renditions?: CMSRendition[];
+  comments?: CMSCommentRecord[];
+}
+
+export interface CMSDocumentVersion {
+  id: string;
+  documentId: string;
+  version: number;
+  content: string;
+  contentHash: string | null;
+  sizeBytes: number;
+  changelog: string;
+  createdBy: string;
+  createdAt: string;
+}
+
+export interface CMSFolder {
+  id: string;
+  name: string;
+  parentId: string | null;
+  path: string;
+  description: string;
+  metadata: Record<string, any>;
+  createdBy: string;
+  createdAt: string;
+  updatedAt: string;
+  documents?: CMSDocument[];
+  children?: CMSFolder[];
+  _count?: { documents: number; children: number };
+}
+
+export interface CMSWorkflow {
+  id: string;
+  name: string;
+  description: string;
+  steps: any[];
+  triggers: any[];
+  enabled: boolean;
+  createdAt: string;
+  updatedAt: string;
+  instances?: CMSWorkflowInstance[];
+}
+
+export interface CMSWorkflowInstance {
+  id: string;
+  workflowId: string;
+  documentId: string | null;
+  status: 'running' | 'completed' | 'failed' | 'cancelled' | 'paused';
+  currentStep: number;
+  context: Record<string, any>;
+  logs: any[];
+  error: string | null;
+  startedBy: string;
+  startedAt: string;
+  completedAt: string | null;
+}
+
+export interface CMSTaxonomy {
+  id: string;
+  name: string;
+  description: string;
+  type: 'hierarchical' | 'flat' | 'network' | 'faceted';
+  nodes: any[];
+  rules: any[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CMSRetentionPolicy {
+  id: string;
+  name: string;
+  description: string;
+  trigger: string;
+  retentionPeriod: number;
+  disposition: string;
+  categories: string[];
+  enabled: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CMSLegalHold {
+  id: string;
+  name: string;
+  description: string;
+  reason: string;
+  documentIds: string[];
+  createdBy: string;
+  active: boolean;
+  createdAt: string;
+  releasedAt: string | null;
+}
+
+export interface CMSRendition {
+  id: string;
+  documentId: string;
+  type: 'thumbnail' | 'pdf' | 'text-extract' | 'preview' | 'web-optimized' | 'compressed';
+  mimeType: string;
+  content: string;
+  sizeBytes: number;
+  metadata: Record<string, any>;
+  createdAt: string;
+}
+
+export interface CMSCommentRecord {
+  id: string;
+  documentId: string;
+  parentId: string | null;
+  content: string;
+  authorId: string;
+  authorName: string;
+  resolved: boolean;
+  reactions: Record<string, number>;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CMSMetadataSchema {
+  id: string;
+  name: string;
+  description: string;
+  fields: any[];
+  categories: string[];
+  version: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CMSMetricsSummary {
+  totalDocuments: number;
+  totalFolders: number;
+  totalWorkflows: number;
+  activeWorkflows: number;
+  totalTaxonomies: number;
+  retentionPolicies: number;
+  activeLegalHolds: number;
+  totalComments: number;
+  totalRenditions: number;
+  metadataSchemas: number;
+}
+
+export interface CMSDashboardData {
+  summary: CMSMetricsSummary;
+  recentDocuments: Pick<CMSDocument, 'id' | 'name' | 'category' | 'status' | 'mimeType' | 'sizeBytes' | 'updatedAt' | 'createdBy'>[];
+  statusBreakdown: { status: string; count: number }[];
+  categoryBreakdown: { category: string; count: number }[];
+}
+
+export interface CMSSearchResult {
+  query: string;
+  total: number;
+  results: Pick<CMSDocument, 'id' | 'name' | 'description' | 'category' | 'status' | 'mimeType' | 'sizeBytes' | 'securityLevel' | 'tags' | 'createdBy' | 'updatedAt'>[];
+}
+
 export const OPERATOR_LABELS: Record<ComparisonOperator, string> = {
   equals: 'equals',
   notEquals: 'not equals',
