@@ -93,6 +93,18 @@ import { SOAPolicies } from './pages/SOAPolicies';
 import { SOAMesh } from './pages/SOAMesh';
 import { SOABAM } from './pages/SOABAM';
 import { SOAMonitoring } from './pages/SOAMonitoring';
+// V15: IAM pages
+import { IAMDashboard } from './pages/IAMDashboard';
+import { IAMIdentities } from './pages/IAMIdentities';
+import { IAMRoles } from './pages/IAMRoles';
+import { IAMAuthorization } from './pages/IAMAuthorization';
+import { IAMSessions } from './pages/IAMSessions';
+import { IAMTokens } from './pages/IAMTokens';
+import { IAMFederation } from './pages/IAMFederation';
+import { IAMGovernance } from './pages/IAMGovernance';
+import { IAMPAM } from './pages/IAMPAM';
+import { IAMRisk } from './pages/IAMRisk';
+import { IAMMonitoring } from './pages/IAMMonitoring';
 import { NotFound } from './pages/NotFound';
 
 export default function App() {
@@ -194,6 +206,18 @@ export default function App() {
           <Route path="soa/mesh" element={<SOAMesh />} />
           <Route path="soa/bam" element={<SOABAM />} />
           <Route path="soa/monitoring" element={<SOAMonitoring />} />
+          {/* V15: IAM routes */}
+          <Route path="iam" element={<IAMDashboard />} />
+          <Route path="iam/identities" element={<IAMIdentities />} />
+          <Route path="iam/roles" element={<IAMRoles />} />
+          <Route path="iam/authorization" element={<IAMAuthorization />} />
+          <Route path="iam/sessions" element={<IAMSessions />} />
+          <Route path="iam/tokens" element={<IAMTokens />} />
+          <Route path="iam/federation" element={<IAMFederation />} />
+          <Route path="iam/governance" element={<IAMGovernance />} />
+          <Route path="iam/pam" element={<IAMPAM />} />
+          <Route path="iam/risk" element={<IAMRisk />} />
+          <Route path="iam/monitoring" element={<IAMMonitoring />} />
           {/* Catch-all 404 */}
           <Route path="*" element={<NotFound />} />
         </Route>
