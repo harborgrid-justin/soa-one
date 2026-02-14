@@ -40,6 +40,9 @@ import {
   Radio,
   Repeat,
   MessageSquare,
+  Tags,
+  Archive,
+  Image,
 } from 'lucide-react';
 import { useStore } from '../../store';
 
@@ -83,6 +86,19 @@ const navSections = [
       { to: '/esb/transformers', icon: Repeat, label: 'Transformers' },
       { to: '/esb/sagas', icon: Workflow, label: 'Sagas' },
       { to: '/esb/monitoring', icon: Activity, label: 'ESB Monitor' },
+    ],
+  },
+  {
+    label: 'Content',
+    items: [
+      { to: '/cms', icon: FileText, label: 'CMS Dashboard' },
+      { to: '/cms/documents', icon: FolderOpen, label: 'Documents' },
+      { to: '/cms/search', icon: Search, label: 'Search' },
+      { to: '/cms/workflows', icon: Workflow, label: 'Workflows' },
+      { to: '/cms/taxonomies', icon: Tags, label: 'Taxonomies' },
+      { to: '/cms/retention', icon: Archive, label: 'Retention' },
+      { to: '/cms/security', icon: Shield, label: 'Security' },
+      { to: '/cms/monitoring', icon: Activity, label: 'CMS Monitor' },
     ],
   },
   {

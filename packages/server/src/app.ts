@@ -52,6 +52,8 @@ import replayRoutes from './routes/replay';
 import compliancePackRoutes from './routes/compliancePacks';
 // V9: ESB routes
 import esbRoutes from './routes/esb';
+// V10: CMS routes
+import cmsRoutes from './routes/cms';
 import { prisma } from './prisma';
 import { openApiSpec } from './openapi';
 
@@ -182,6 +184,9 @@ export async function createApp() {
 
   // V9: ESB routes
   app.use('/api/v1/esb', esbRoutes);
+
+  // V10: CMS routes
+  app.use('/api/v1/cms', cmsRoutes);
 
   // GraphQL
   const apollo = new ApolloServer({ typeDefs, resolvers });

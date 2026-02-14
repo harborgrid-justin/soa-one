@@ -387,6 +387,77 @@ export const sendESBMessage = (data: any) => api.post('/esb/messages', data).the
 export const getESBMetrics = () => api.get('/esb/metrics').then((r) => r.data);
 export const getESBMetricSnapshots = (params?: any) => api.get('/esb/metrics/snapshots', { params }).then((r) => r.data);
 
+// ============================================================
+// V10: Content Management System (CMS)
+// ============================================================
+
+// CMS Documents
+export const getCMSDocuments = (params?: any) => api.get('/cms/documents', { params }).then((r) => r.data);
+export const getCMSDocument = (id: string) => api.get(`/cms/documents/${id}`).then((r) => r.data);
+export const createCMSDocument = (data: any) => api.post('/cms/documents', data).then((r) => r.data);
+export const updateCMSDocument = (id: string, data: any) => api.put(`/cms/documents/${id}`, data).then((r) => r.data);
+export const deleteCMSDocument = (id: string) => api.delete(`/cms/documents/${id}`).then((r) => r.data);
+export const getCMSDocumentVersions = (id: string) => api.get(`/cms/documents/${id}/versions`).then((r) => r.data);
+export const createCMSDocumentVersion = (id: string, data?: any) => api.post(`/cms/documents/${id}/versions`, data || {}).then((r) => r.data);
+
+// CMS Folders
+export const getCMSFolders = () => api.get('/cms/folders').then((r) => r.data);
+export const getCMSFolder = (id: string) => api.get(`/cms/folders/${id}`).then((r) => r.data);
+export const createCMSFolder = (data: any) => api.post('/cms/folders', data).then((r) => r.data);
+export const updateCMSFolder = (id: string, data: any) => api.put(`/cms/folders/${id}`, data).then((r) => r.data);
+export const deleteCMSFolder = (id: string) => api.delete(`/cms/folders/${id}`).then((r) => r.data);
+
+// CMS Workflows
+export const getCMSWorkflows = () => api.get('/cms/workflows').then((r) => r.data);
+export const getCMSWorkflow = (id: string) => api.get(`/cms/workflows/${id}`).then((r) => r.data);
+export const createCMSWorkflow = (data: any) => api.post('/cms/workflows', data).then((r) => r.data);
+export const updateCMSWorkflow = (id: string, data: any) => api.put(`/cms/workflows/${id}`, data).then((r) => r.data);
+export const deleteCMSWorkflow = (id: string) => api.delete(`/cms/workflows/${id}`).then((r) => r.data);
+export const getCMSWorkflowInstances = (id: string) => api.get(`/cms/workflows/${id}/instances`).then((r) => r.data);
+
+// CMS Taxonomies
+export const getCMSTaxonomies = () => api.get('/cms/taxonomies').then((r) => r.data);
+export const getCMSTaxonomy = (id: string) => api.get(`/cms/taxonomies/${id}`).then((r) => r.data);
+export const createCMSTaxonomy = (data: any) => api.post('/cms/taxonomies', data).then((r) => r.data);
+export const updateCMSTaxonomy = (id: string, data: any) => api.put(`/cms/taxonomies/${id}`, data).then((r) => r.data);
+export const deleteCMSTaxonomy = (id: string) => api.delete(`/cms/taxonomies/${id}`).then((r) => r.data);
+
+// CMS Retention
+export const getCMSRetentionPolicies = () => api.get('/cms/retention').then((r) => r.data);
+export const createCMSRetentionPolicy = (data: any) => api.post('/cms/retention', data).then((r) => r.data);
+export const updateCMSRetentionPolicy = (id: string, data: any) => api.put(`/cms/retention/${id}`, data).then((r) => r.data);
+export const deleteCMSRetentionPolicy = (id: string) => api.delete(`/cms/retention/${id}`).then((r) => r.data);
+
+// CMS Legal Holds
+export const getCMSLegalHolds = () => api.get('/cms/legal-holds').then((r) => r.data);
+export const createCMSLegalHold = (data: any) => api.post('/cms/legal-holds', data).then((r) => r.data);
+export const updateCMSLegalHold = (id: string, data: any) => api.put(`/cms/legal-holds/${id}`, data).then((r) => r.data);
+
+// CMS Comments
+export const getCMSComments = (documentId: string) => api.get(`/cms/documents/${documentId}/comments`).then((r) => r.data);
+export const createCMSComment = (documentId: string, data: any) => api.post(`/cms/documents/${documentId}/comments`, data).then((r) => r.data);
+export const updateCMSComment = (id: string, data: any) => api.put(`/cms/comments/${id}`, data).then((r) => r.data);
+export const deleteCMSComment = (id: string) => api.delete(`/cms/comments/${id}`).then((r) => r.data);
+
+// CMS Metadata Schemas
+export const getCMSMetadataSchemas = () => api.get('/cms/metadata-schemas').then((r) => r.data);
+export const createCMSMetadataSchema = (data: any) => api.post('/cms/metadata-schemas', data).then((r) => r.data);
+export const updateCMSMetadataSchema = (id: string, data: any) => api.put(`/cms/metadata-schemas/${id}`, data).then((r) => r.data);
+export const deleteCMSMetadataSchema = (id: string) => api.delete(`/cms/metadata-schemas/${id}`).then((r) => r.data);
+
+// CMS Renditions
+export const getCMSRenditions = (documentId: string) => api.get(`/cms/documents/${documentId}/renditions`).then((r) => r.data);
+export const createCMSRendition = (documentId: string, data: any) => api.post(`/cms/documents/${documentId}/renditions`, data).then((r) => r.data);
+
+// CMS Audit
+export const getCMSAudit = (params?: any) => api.get('/cms/audit', { params }).then((r) => r.data);
+
+// CMS Search
+export const searchCMSDocuments = (params: any) => api.get('/cms/search', { params }).then((r) => r.data);
+
+// CMS Metrics
+export const getCMSMetrics = () => api.get('/cms/metrics').then((r) => r.data);
+
 // Aliases for frontend pages
 export const getExecutionReplays = (params?: any) => api.get('/replay/executions', { params }).then((r) => r.data);
 export const getImpactHistory = (params?: any) => api.get('/impact-analysis/history', { params }).then((r) => r.data);
