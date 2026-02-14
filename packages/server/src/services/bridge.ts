@@ -1,10 +1,10 @@
 // ============================================================
-// SOA One — ESB ⇄ CMS ⇄ DI ⇄ DQM ⇄ SOA Bridge
+// SOA One — ESB ⇄ CMS ⇄ DI ⇄ DQM ⇄ SOA ⇄ IAM Bridge
 // ============================================================
 //
 // Provides multi-directional awareness between the ESB, CMS, DI,
-// DQM, and SOA modules without any module importing the others
-// directly.
+// DQM, SOA, and IAM modules without any module importing the
+// others directly.
 //
 // 1. CMS → ESB: CMS document/workflow events are published
 //    to ESB channels so downstream consumers can react.
@@ -30,8 +30,13 @@
 //
 // 8. SOA → CMS: SOA audit events are recorded in CMS audit.
 //
-// 9. Bridge Plugin: An engine plugin that exposes cross-module
-//    functions usable in rules.
+// 9. IAM → ESB: IAM identity/auth/governance/risk/PAM events are
+//    published to ESB channels for downstream processing.
+//
+// 10. IAM → CMS: IAM audit events are recorded in CMS audit.
+//
+// 11. Bridge Plugin: An engine plugin that exposes cross-module
+//     functions usable in rules.
 // ============================================================
 
 import type { ServiceBus } from '@soa-one/esb';
@@ -39,6 +44,7 @@ import type { ContentManagementSystem } from '@soa-one/cms';
 import type { DataIntegrator } from '@soa-one/di';
 import type { DataQualityMessaging } from '@soa-one/dqm';
 import type { SOASuite } from '@soa-one/soa';
+import type { IdentityAccessManager } from '@soa-one/iam';
 
 // ── SDK-Compatible Types (same as ESB/CMS plugins) ──────────
 
@@ -80,9 +86,10 @@ interface EnginePlugin {
  * Create an engine plugin that provides cross-module operations.
  *
  * This plugin gives rules the ability to coordinate between ESB,
- * CMS, DI, DQM, and SOA — for example, a rule can validate data
- * quality, execute a DI pipeline, start a BPEL process, AND
- * publish an ESB notification in a single execution.
+ * CMS, DI, DQM, SOA, and IAM — for example, a rule can validate
+ * data quality, execute a DI pipeline, start a BPEL process,
+ * authenticate an identity, AND publish an ESB notification in a
+ * single execution.
  */
 export function createBridgePlugin(
   bus: ServiceBus,
@@ -90,6 +97,7 @@ export function createBridgePlugin(
   di?: DataIntegrator,
   dqm?: DataQualityMessaging,
   soa?: SOASuite,
+  iam?: IdentityAccessManager,
 ): EnginePlugin {
   return {
     name: 'soa-one-bridge',
@@ -302,6 +310,142 @@ export function createBridgePlugin(
           // Swallow errors
         }
       },
+
+      /**
+       * Authenticate via IAM and publish an ESB event.
+       * Usage: type="BRIDGE_AUTHENTICATE_AND_NOTIFY", field="username",
+       *        value={ method, password, channel }
+       */
+      BRIDGE_AUTHENTICATE_AND_NOTIFY: (
+        output: Record<string, any>,
+        action: { type: string; field: string; value: any },
+        _input: Record<string, any>,
+      ): void => {
+        if (!iam) return;
+        const config = action.value;
+
+        try {
+          const result = iam.authentication.authenticate({
+            username: action.field,
+            method: config?.method ?? 'password',
+            password: config?.password,
+            ipAddress: config?.ipAddress,
+            userAgent: config?.userAgent,
+          });
+
+          const channel = config?.channel ?? 'iam.auth';
+          bus.send(channel, {
+            event: 'auth:completed',
+            username: action.field,
+            status: result.status,
+            identityId: result.identityId,
+            methods: result.methods,
+            timestamp: new Date().toISOString(),
+          }, {
+            headers: { messageType: 'iam.auth.completed' },
+          }).catch(() => {});
+
+          if (!output._bridgeOps) output._bridgeOps = [];
+          output._bridgeOps.push({
+            action: 'authenticate-and-notify',
+            username: action.field,
+            status: result.status,
+            channel,
+            timestamp: new Date().toISOString(),
+          });
+        } catch {
+          // Swallow errors
+        }
+      },
+
+      /**
+       * Authorize via IAM and publish an ESB event.
+       * Usage: type="BRIDGE_AUTHORIZE_AND_NOTIFY", field="subjectId",
+       *        value={ resource, action, channel }
+       */
+      BRIDGE_AUTHORIZE_AND_NOTIFY: (
+        output: Record<string, any>,
+        action: { type: string; field: string; value: any },
+        _input: Record<string, any>,
+      ): void => {
+        if (!iam) return;
+        const config = action.value;
+
+        try {
+          const decision = iam.authorization.authorize({
+            subjectId: action.field,
+            resource: config?.resource ?? '',
+            action: config?.action ?? 'read',
+            environment: config?.environment,
+            context: config?.context,
+          });
+
+          const channel = config?.channel ?? 'iam.auth';
+          bus.send(channel, {
+            event: 'authz:completed',
+            subjectId: action.field,
+            resource: config?.resource,
+            allowed: decision.allowed,
+            matchedPolicies: decision.matchedPolicies,
+            timestamp: new Date().toISOString(),
+          }, {
+            headers: { messageType: 'iam.authz.completed' },
+          }).catch(() => {});
+
+          if (!output._bridgeOps) output._bridgeOps = [];
+          output._bridgeOps.push({
+            action: 'authorize-and-notify',
+            subjectId: action.field,
+            allowed: decision.allowed,
+            channel,
+            timestamp: new Date().toISOString(),
+          });
+        } catch {
+          // Swallow errors
+        }
+      },
+
+      /**
+       * Assess risk via IAM and publish an ESB event.
+       * Usage: type="BRIDGE_ASSESS_RISK_AND_NOTIFY", field="identityId",
+       *        value={ sessionId, channel }
+       */
+      BRIDGE_ASSESS_RISK_AND_NOTIFY: (
+        output: Record<string, any>,
+        action: { type: string; field: string; value: any },
+        _input: Record<string, any>,
+      ): void => {
+        if (!iam) return;
+        const config = action.value;
+
+        try {
+          const assessment = iam.risk.assessRisk(action.field, config?.sessionId);
+
+          const channel = config?.channel ?? 'iam.risk';
+          bus.send(channel, {
+            event: 'risk:assessment-completed',
+            identityId: action.field,
+            overallScore: assessment.overallScore,
+            riskLevel: assessment.riskLevel,
+            recommendation: assessment.recommendation,
+            timestamp: new Date().toISOString(),
+          }, {
+            headers: { messageType: 'iam.risk.assessed' },
+          }).catch(() => {});
+
+          if (!output._bridgeOps) output._bridgeOps = [];
+          output._bridgeOps.push({
+            action: 'assess-risk-and-notify',
+            identityId: action.field,
+            riskLevel: assessment.riskLevel,
+            overallScore: assessment.overallScore,
+            channel,
+            timestamp: new Date().toISOString(),
+          });
+        } catch {
+          // Swallow errors
+        }
+      },
     },
 
     // ── Execution Hooks ─────────────────────────────────────
@@ -345,6 +489,18 @@ export function createBridgePlugin(
               totalPartners: soa.getMetrics().totalPartners,
               totalAPIs: soa.getMetrics().totalAPIs,
               totalKPIs: soa.getMetrics().totalKPIs,
+            } : { available: false },
+            iam: iam ? {
+              available: true,
+              iamName: iam.name,
+              totalIdentities: iam.getMetrics().totalIdentities,
+              activeIdentities: iam.getMetrics().activeIdentities,
+              totalRoles: iam.getMetrics().totalRoles,
+              totalPolicies: iam.getMetrics().totalPolicies,
+              activeSessions: iam.getMetrics().activeSessions,
+              averageRiskScore: iam.getMetrics().averageRiskScore,
+              activeSoDViolations: iam.getMetrics().activeSoDViolations,
+              totalPrivilegedAccounts: iam.getMetrics().totalPrivilegedAccounts,
             } : { available: false },
             bridge: { version: '1.0.0' },
           };
@@ -740,14 +896,149 @@ export function createBridgePlugin(
           return false;
         }
       },
+
+      /**
+       * Get IAM metrics from a rule.
+       * Usage in rules: bridge_getIAMMetrics()
+       */
+      bridge_getIAMMetrics: (): any => {
+        if (!iam) return null;
+        return iam.getMetrics();
+      },
+
+      /**
+       * Publish an IAM identity event to the ESB.
+       * Usage in rules: bridge_notifyIdentityEvent(identityId, eventType)
+       */
+      bridge_notifyIdentityEvent: (
+        identityId: string,
+        eventType: string,
+      ): boolean => {
+        bus.send('iam.identity', {
+          event: eventType,
+          identityId,
+          timestamp: new Date().toISOString(),
+        }, {
+          headers: { messageType: `iam.${eventType}` },
+        }).catch(() => {});
+        return true;
+      },
+
+      /**
+       * Publish an IAM auth event to the ESB.
+       * Usage in rules: bridge_notifyAuthEvent(eventType, data)
+       */
+      bridge_notifyAuthEvent: (
+        eventType: string,
+        data?: Record<string, any>,
+      ): boolean => {
+        bus.send('iam.auth', {
+          event: eventType,
+          ...(data ?? {}),
+          timestamp: new Date().toISOString(),
+        }, {
+          headers: { messageType: `iam.${eventType}` },
+        }).catch(() => {});
+        return true;
+      },
+
+      /**
+       * Publish an IAM risk event to the ESB.
+       * Usage in rules: bridge_notifyRiskEvent(eventType, data)
+       */
+      bridge_notifyRiskEvent: (
+        eventType: string,
+        data?: Record<string, any>,
+      ): boolean => {
+        bus.send('iam.risk', {
+          event: eventType,
+          ...(data ?? {}),
+          timestamp: new Date().toISOString(),
+        }, {
+          headers: { messageType: `iam.${eventType}` },
+        }).catch(() => {});
+        return true;
+      },
+
+      /**
+       * Authorize via IAM and record in CMS audit.
+       * Usage in rules: bridge_authorizeAndAudit(subjectId, resource, action)
+       */
+      bridge_authorizeAndAudit: (
+        subjectId: string,
+        resource: string,
+        actionName: string,
+      ): boolean => {
+        if (!iam) return false;
+        try {
+          const decision = iam.authorization.authorize({
+            subjectId,
+            resource,
+            action: actionName,
+          });
+
+          cms.security.recordAudit({
+            action: `iam.authz.${decision.allowed ? 'granted' : 'denied'}`,
+            actor: 'iam-bridge',
+            details: {
+              subjectId,
+              resource,
+              action: actionName,
+              allowed: decision.allowed,
+              matchedPolicies: decision.matchedPolicies,
+              matchedRoles: decision.matchedRoles,
+              bridgedFrom: 'iam',
+            },
+            success: decision.allowed,
+          });
+
+          return decision.allowed;
+        } catch {
+          return false;
+        }
+      },
+
+      /**
+       * Assess risk via IAM and store report as CMS document.
+       * Usage in rules: bridge_assessRiskAndStore(identityId, sessionId)
+       */
+      bridge_assessRiskAndStore: (
+        identityId: string,
+        sessionId?: string,
+      ): string | null => {
+        if (!iam) return null;
+        try {
+          const assessment = iam.risk.assessRisk(identityId, sessionId);
+
+          const doc = cms.repository.store({
+            name: `risk-assessment-${identityId}-${Date.now()}`,
+            content: JSON.stringify(assessment, null, 2),
+            mimeType: 'application/json',
+            path: '/iam-risk-assessments',
+            tags: ['iam-risk-assessment', identityId],
+            metadata: {
+              source: 'iam-bridge',
+              identityId,
+              riskLevel: assessment.riskLevel,
+              overallScore: assessment.overallScore,
+              recommendation: assessment.recommendation,
+            },
+            owner: 'bridge',
+          });
+
+          return doc.id;
+        } catch {
+          return null;
+        }
+      },
     },
 
     onRegister: () => {
-      console.log('[bridge] ESB ⇄ CMS ⇄ DI ⇄ DQM ⇄ SOA bridge plugin registered');
+      console.log('[bridge] ESB ⇄ CMS ⇄ DI ⇄ DQM ⇄ SOA ⇄ IAM bridge plugin registered');
     },
 
     onDestroy: () => {
-      console.log('[bridge] ESB ⇄ CMS ⇄ DI ⇄ DQM ⇄ SOA bridge plugin destroyed');
+      console.log('[bridge] ESB ⇄ CMS ⇄ DI ⇄ DQM ⇄ SOA ⇄ IAM bridge plugin destroyed');
     },
   };
 }
@@ -755,7 +1046,7 @@ export function createBridgePlugin(
 // ── Event Bridge ────────────────────────────────────────────
 
 /**
- * Set up multi-directional event forwarding between ESB, CMS, DI, DQM, and SOA.
+ * Set up multi-directional event forwarding between ESB, CMS, DI, DQM, SOA, and IAM.
  *
  * CMS → ESB: Document and workflow events are published to
  *            ESB pub/sub channels for downstream consumers.
@@ -777,6 +1068,11 @@ export function createBridgePlugin(
  *            to ESB channels for downstream processing.
  *
  * SOA → CMS: SOA audit events are recorded in CMS audit.
+ *
+ * IAM → ESB: Identity, auth, governance, risk, and PAM events are
+ *            published to ESB channels for downstream processing.
+ *
+ * IAM → CMS: IAM audit events are recorded in CMS audit.
  */
 export function setupEventBridge(
   bus: ServiceBus,
@@ -784,6 +1080,7 @@ export function setupEventBridge(
   di?: DataIntegrator,
   dqm?: DataQualityMessaging,
   soa?: SOASuite,
+  iam?: IdentityAccessManager,
 ): void {
   // ── CMS → ESB: Forward document lifecycle events ──────
 
@@ -1121,6 +1418,173 @@ export function setupEventBridge(
             bridgedFrom: 'soa',
           },
           success: !eventType.includes('failed') && !eventType.includes('faulted'),
+        });
+      });
+    }
+  }
+
+  // ── IAM → ESB: Forward IAM identity, auth, governance, risk, and PAM events ─
+
+  if (iam) {
+    const iamIdentityEvents = [
+      'identity:created',
+      'identity:updated',
+      'identity:activated',
+      'identity:suspended',
+      'identity:locked',
+      'identity:unlocked',
+      'identity:deprovisioned',
+      'identity:deleted',
+    ] as const;
+
+    for (const eventType of iamIdentityEvents) {
+      iam.on(eventType, (event) => {
+        bus.send('iam.identity', {
+          ...event,
+          bridgedFrom: 'iam',
+        }, {
+          headers: { messageType: eventType },
+        }).catch(() => {});
+      });
+    }
+
+    // ── IAM → ESB: Forward auth events ────────────────
+
+    const iamAuthEvents = [
+      'auth:login-success',
+      'auth:login-failed',
+      'auth:logout',
+      'auth:mfa-challenge',
+      'auth:mfa-success',
+      'auth:mfa-failed',
+      'auth:password-changed',
+      'auth:password-reset',
+      'auth:account-locked',
+      'auth:account-unlocked',
+    ] as const;
+
+    for (const eventType of iamAuthEvents) {
+      iam.on(eventType, (event) => {
+        bus.send('iam.auth', {
+          ...event,
+          bridgedFrom: 'iam',
+        }, {
+          headers: { messageType: eventType },
+        }).catch(() => {});
+      });
+    }
+
+    // ── IAM → ESB: Forward governance events ──────────
+
+    const iamGovernanceEvents = [
+      'governance:certification-started',
+      'governance:certification-completed',
+      'governance:access-certified',
+      'governance:access-revoked',
+      'governance:sod-violation-detected',
+      'governance:sod-violation-resolved',
+      'governance:access-request-created',
+      'governance:access-request-approved',
+      'governance:access-request-rejected',
+    ] as const;
+
+    for (const eventType of iamGovernanceEvents) {
+      iam.on(eventType, (event) => {
+        bus.send('iam.governance', {
+          ...event,
+          bridgedFrom: 'iam',
+        }, {
+          headers: { messageType: eventType },
+        }).catch(() => {});
+      });
+    }
+
+    // ── IAM → ESB: Forward risk events ────────────────
+
+    const iamRiskEvents = [
+      'risk:assessment-completed',
+      'risk:anomaly-detected',
+      'risk:threat-indicator-matched',
+      'risk:level-changed',
+    ] as const;
+
+    for (const eventType of iamRiskEvents) {
+      iam.on(eventType, (event) => {
+        bus.send('iam.risk', {
+          ...event,
+          bridgedFrom: 'iam',
+        }, {
+          headers: { messageType: eventType },
+        }).catch(() => {});
+      });
+    }
+
+    // ── IAM → ESB: Forward PAM events ─────────────────
+
+    const iamPAMEvents = [
+      'pam:checkout',
+      'pam:checkin',
+      'pam:session-started',
+      'pam:session-ended',
+      'pam:command-denied',
+      'pam:credential-rotated',
+    ] as const;
+
+    for (const eventType of iamPAMEvents) {
+      iam.on(eventType, (event) => {
+        bus.send('iam.pam', {
+          ...event,
+          bridgedFrom: 'iam',
+        }, {
+          headers: { messageType: eventType },
+        }).catch(() => {});
+      });
+    }
+
+    // ── IAM → ESB: Forward lifecycle events ───────────
+
+    const iamLifecycleEvents = [
+      'iam:started',
+      'iam:stopped',
+      'alert:fired',
+      'alert:resolved',
+    ] as const;
+
+    for (const eventType of iamLifecycleEvents) {
+      iam.on(eventType, (event) => {
+        bus.send('iam.events', {
+          ...event,
+          bridgedFrom: 'iam',
+        }, {
+          headers: { messageType: eventType },
+        }).catch(() => {});
+      });
+    }
+
+    // ── IAM → CMS: Record IAM events in CMS audit ────
+
+    const allIamAuditEvents = [
+      ...iamIdentityEvents,
+      ...iamAuthEvents,
+      ...iamGovernanceEvents,
+      ...iamRiskEvents,
+      ...iamPAMEvents,
+      ...iamLifecycleEvents,
+    ];
+
+    for (const eventType of allIamAuditEvents) {
+      iam.on(eventType, (event) => {
+        cms.security.recordAudit({
+          action: `iam.${eventType}`,
+          actor: 'iam-bridge',
+          details: {
+            ...event.data,
+            identityId: event.identityId,
+            sessionId: event.sessionId,
+            riskScore: event.riskScore,
+            bridgedFrom: 'iam',
+          },
+          success: !eventType.includes('failed') && !eventType.includes('denied') && !eventType.includes('violation'),
         });
       });
     }

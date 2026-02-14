@@ -1,0 +1,129 @@
+{
+  "name": "@soa-one/iam",
+  "version": "1.0.0",
+  "description": "Zero-dependency Identity and Access Management module for SOA One. Identity lifecycle, authentication (MFA/adaptive/passwordless/SSO), authorization (RBAC/ABAC/PBAC), directory services, federation (SAML/OAuth2/OIDC/SCIM), session management, token service, identity governance, privileged access management, risk engine, credential management, and full @soa-one/engine integration. Surpasses Oracle Identity and Access Manager.",
+  "keywords": [
+    "iam",
+    "identity",
+    "access-management",
+    "authentication",
+    "authorization",
+    "rbac",
+    "abac",
+    "mfa",
+    "sso",
+    "oauth2",
+    "oidc",
+    "saml",
+    "scim",
+    "federation",
+    "pam",
+    "privileged-access",
+    "identity-governance",
+    "risk-engine",
+    "zero-dependency"
+  ],
+  "license": "MIT",
+  "author": "SOA One",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/soa-one/soa-one.git",
+    "directory": "packages/iam"
+  },
+  "main": "dist/index.js",
+  "module": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.js",
+      "default": "./dist/index.js"
+    },
+    "./identity": {
+      "types": "./dist/identity.d.ts",
+      "import": "./dist/identity.js",
+      "require": "./dist/identity.js"
+    },
+    "./authentication": {
+      "types": "./dist/authentication.d.ts",
+      "import": "./dist/authentication.js",
+      "require": "./dist/authentication.js"
+    },
+    "./authorization": {
+      "types": "./dist/authorization.d.ts",
+      "import": "./dist/authorization.js",
+      "require": "./dist/authorization.js"
+    },
+    "./directory": {
+      "types": "./dist/directory.d.ts",
+      "import": "./dist/directory.js",
+      "require": "./dist/directory.js"
+    },
+    "./federation": {
+      "types": "./dist/federation.d.ts",
+      "import": "./dist/federation.js",
+      "require": "./dist/federation.js"
+    },
+    "./session": {
+      "types": "./dist/session.d.ts",
+      "import": "./dist/session.js",
+      "require": "./dist/session.js"
+    },
+    "./token": {
+      "types": "./dist/token.d.ts",
+      "import": "./dist/token.js",
+      "require": "./dist/token.js"
+    },
+    "./governance": {
+      "types": "./dist/governance.d.ts",
+      "import": "./dist/governance.js",
+      "require": "./dist/governance.js"
+    },
+    "./pam": {
+      "types": "./dist/pam.d.ts",
+      "import": "./dist/pam.js",
+      "require": "./dist/pam.js"
+    },
+    "./risk": {
+      "types": "./dist/risk.d.ts",
+      "import": "./dist/risk.js",
+      "require": "./dist/risk.js"
+    },
+    "./credential": {
+      "types": "./dist/credential.d.ts",
+      "import": "./dist/credential.js",
+      "require": "./dist/credential.js"
+    },
+    "./monitoring": {
+      "types": "./dist/monitoring.d.ts",
+      "import": "./dist/monitoring.js",
+      "require": "./dist/monitoring.js"
+    },
+    "./security": {
+      "types": "./dist/security.d.ts",
+      "import": "./dist/security.js",
+      "require": "./dist/security.js"
+    },
+    "./plugin": {
+      "types": "./dist/plugin.d.ts",
+      "import": "./dist/plugin.js",
+      "require": "./dist/plugin.js"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "sideEffects": false,
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "test": "tsc && node --test dist/**/*.test.js",
+    "prepublishOnly": "npm run build"
+  },
+  "devDependencies": {
+    "typescript": "^5.9.3"
+  }
+}
