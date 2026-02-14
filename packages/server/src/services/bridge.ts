@@ -1,9 +1,10 @@
 // ============================================================
-// SOA One — ESB ⇄ CMS ⇄ DI ⇄ DQM Bridge
+// SOA One — ESB ⇄ CMS ⇄ DI ⇄ DQM ⇄ SOA Bridge
 // ============================================================
 //
-// Provides quad-directional awareness between the ESB, CMS, DI,
-// and DQM modules without any module importing the others directly.
+// Provides multi-directional awareness between the ESB, CMS, DI,
+// DQM, and SOA modules without any module importing the others
+// directly.
 //
 // 1. CMS → ESB: CMS document/workflow events are published
 //    to ESB channels so downstream consumers can react.
@@ -24,7 +25,12 @@
 // 6. DQM → CMS: DQM quality audit events are recorded in CMS
 //    audit for compliance and traceability.
 //
-// 7. Bridge Plugin: An engine plugin that exposes cross-module
+// 7. SOA → ESB: SOA process/task/CEP/B2B/API events are published
+//    to ESB channels for downstream processing.
+//
+// 8. SOA → CMS: SOA audit events are recorded in CMS audit.
+//
+// 9. Bridge Plugin: An engine plugin that exposes cross-module
 //    functions usable in rules.
 // ============================================================
 
@@ -32,6 +38,7 @@ import type { ServiceBus } from '@soa-one/esb';
 import type { ContentManagementSystem } from '@soa-one/cms';
 import type { DataIntegrator } from '@soa-one/di';
 import type { DataQualityMessaging } from '@soa-one/dqm';
+import type { SOASuite } from '@soa-one/soa';
 
 // ── SDK-Compatible Types (same as ESB/CMS plugins) ──────────
 
@@ -73,15 +80,16 @@ interface EnginePlugin {
  * Create an engine plugin that provides cross-module operations.
  *
  * This plugin gives rules the ability to coordinate between ESB,
- * CMS, DI, and DQM — for example, a rule can validate data quality,
- * execute a DI pipeline, AND publish an ESB notification in a
- * single execution.
+ * CMS, DI, DQM, and SOA — for example, a rule can validate data
+ * quality, execute a DI pipeline, start a BPEL process, AND
+ * publish an ESB notification in a single execution.
  */
 export function createBridgePlugin(
   bus: ServiceBus,
   cms: ContentManagementSystem,
   di?: DataIntegrator,
   dqm?: DataQualityMessaging,
+  soa?: SOASuite,
 ): EnginePlugin {
   return {
     name: 'soa-one-bridge',
@@ -326,6 +334,17 @@ export function createBridgePlugin(
               totalTopics: dqm.getMetrics().totalTopics,
               totalQueues: dqm.getMetrics().totalQueues,
               currentQualityScore: dqm.getMetrics().currentQualityScore,
+            } : { available: false },
+            soa: soa ? {
+              available: true,
+              soaName: soa.name,
+              totalServices: soa.getMetrics().totalServices,
+              totalProcesses: soa.getMetrics().totalProcessDefinitions,
+              activeProcesses: soa.getMetrics().activeProcessInstances,
+              pendingTasks: soa.getMetrics().pendingTasks,
+              totalPartners: soa.getMetrics().totalPartners,
+              totalAPIs: soa.getMetrics().totalAPIs,
+              totalKPIs: soa.getMetrics().totalKPIs,
             } : { available: false },
             bridge: { version: '1.0.0' },
           };
@@ -609,14 +628,126 @@ export function createBridgePlugin(
         if (!dqm) return 'N/A';
         return dqm.scoring.lastScore?.grade ?? 'N/A';
       },
+
+      /**
+       * Get SOA metrics from a rule.
+       * Usage in rules: bridge_getSOAMetrics()
+       */
+      bridge_getSOAMetrics: (): any => {
+        if (!soa) return null;
+        return soa.getMetrics();
+      },
+
+      /**
+       * Notify ESB about a SOA process event.
+       * Usage in rules: bridge_notifyProcessEvent(processInstanceId, eventType)
+       */
+      bridge_notifyProcessEvent: (
+        processInstanceId: string,
+        eventType: string,
+      ): boolean => {
+        bus.send('soa.processes', {
+          event: eventType,
+          processInstanceId,
+          timestamp: new Date().toISOString(),
+        }, {
+          headers: { messageType: `soa.${eventType}` },
+        }).catch(() => {});
+        return true;
+      },
+
+      /**
+       * Notify ESB about a SOA task event.
+       * Usage in rules: bridge_notifyTaskEvent(taskInstanceId, eventType)
+       */
+      bridge_notifyTaskEvent: (
+        taskInstanceId: string,
+        eventType: string,
+      ): boolean => {
+        bus.send('soa.tasks', {
+          event: eventType,
+          taskInstanceId,
+          timestamp: new Date().toISOString(),
+        }, {
+          headers: { messageType: `soa.${eventType}` },
+        }).catch(() => {});
+        return true;
+      },
+
+      /**
+       * Forward a SOA B2B document exchange to ESB.
+       * Usage in rules: bridge_notifyB2BExchange(exchangeId, eventType)
+       */
+      bridge_notifyB2BExchange: (
+        exchangeId: string,
+        eventType: string,
+      ): boolean => {
+        bus.send('soa.b2b', {
+          event: eventType,
+          exchangeId,
+          timestamp: new Date().toISOString(),
+        }, {
+          headers: { messageType: `soa.b2b.${eventType}` },
+        }).catch(() => {});
+        return true;
+      },
+
+      /**
+       * Start a SOA BPEL process and notify ESB.
+       * Usage in rules: bridge_startProcessAndNotify(processId, input)
+       */
+      bridge_startProcessAndNotify: (
+        processId: string,
+        input?: Record<string, any>,
+      ): boolean => {
+        if (!soa) return false;
+        soa.bpel.startProcess(processId, input ?? {}, 'bridge')
+          .then((instance) => {
+            bus.send('soa.processes', {
+              event: 'process:started',
+              processId,
+              instanceId: instance.instanceId,
+              timestamp: new Date().toISOString(),
+            }, {
+              headers: { messageType: 'soa.process.started' },
+            }).catch(() => {});
+          })
+          .catch(() => {});
+        return true;
+      },
+
+      /**
+       * Create a SOA human task and notify ESB.
+       * Usage in rules: bridge_createTaskAndNotify(definitionId, input)
+       */
+      bridge_createTaskAndNotify: (
+        definitionId: string,
+        input?: Record<string, any>,
+      ): boolean => {
+        if (!soa) return false;
+        try {
+          const task = soa.tasks.createTask(definitionId, input ?? {});
+          bus.send('soa.tasks', {
+            event: 'task:created',
+            taskInstanceId: task.instanceId,
+            definitionId,
+            timestamp: new Date().toISOString(),
+          }, {
+            headers: { messageType: 'soa.task.created' },
+          }).catch(() => {});
+          return true;
+        } catch {
+          return false;
+        }
+      },
     },
 
     onRegister: () => {
-      console.log('[bridge] ESB ⇄ CMS ⇄ DI ⇄ DQM bridge plugin registered');
+      console.log('[bridge] ESB ⇄ CMS ⇄ DI ⇄ DQM ⇄ SOA bridge plugin registered');
     },
 
     onDestroy: () => {
-      console.log('[bridge] ESB ⇄ CMS ⇄ DI ⇄ DQM bridge plugin destroyed');
+      console.log('[bridge] ESB ⇄ CMS ⇄ DI ⇄ DQM ⇄ SOA bridge plugin destroyed');
     },
   };
 }
@@ -624,7 +755,7 @@ export function createBridgePlugin(
 // ── Event Bridge ────────────────────────────────────────────
 
 /**
- * Set up quad-directional event forwarding between ESB, CMS, DI, and DQM.
+ * Set up multi-directional event forwarding between ESB, CMS, DI, DQM, and SOA.
  *
  * CMS → ESB: Document and workflow events are published to
  *            ESB pub/sub channels for downstream consumers.
@@ -641,12 +772,18 @@ export function createBridgePlugin(
  *            to ESB channels for downstream processing.
  *
  * DQM → CMS: DQM audit events are recorded in CMS audit.
+ *
+ * SOA → ESB: Process, task, CEP, B2B, and API events are published
+ *            to ESB channels for downstream processing.
+ *
+ * SOA → CMS: SOA audit events are recorded in CMS audit.
  */
 export function setupEventBridge(
   bus: ServiceBus,
   cms: ContentManagementSystem,
   di?: DataIntegrator,
   dqm?: DataQualityMessaging,
+  soa?: SOASuite,
 ): void {
   // ── CMS → ESB: Forward document lifecycle events ──────
 
@@ -853,6 +990,137 @@ export function setupEventBridge(
             bridgedFrom: 'dqm',
           },
           success: !eventType.includes('failed'),
+        });
+      });
+    }
+  }
+
+  // ── SOA → ESB: Forward SOA process and task events ────
+
+  if (soa) {
+    const soaProcessEvents = [
+      'process:started',
+      'process:completed',
+      'process:faulted',
+      'process:terminated',
+      'process:compensating',
+      'process:compensated',
+    ] as const;
+
+    for (const eventType of soaProcessEvents) {
+      soa.on(eventType, (event) => {
+        bus.send('soa.processes', {
+          ...event,
+          bridgedFrom: 'soa',
+        }, {
+          headers: { messageType: eventType },
+        }).catch(() => {});
+      });
+    }
+
+    const soaTaskEvents = [
+      'task:created',
+      'task:claimed',
+      'task:completed',
+      'task:delegated',
+      'task:escalated',
+      'task:expired',
+    ] as const;
+
+    for (const eventType of soaTaskEvents) {
+      soa.on(eventType, (event) => {
+        bus.send('soa.tasks', {
+          ...event,
+          bridgedFrom: 'soa',
+        }, {
+          headers: { messageType: eventType },
+        }).catch(() => {});
+      });
+    }
+
+    // ── SOA → ESB: Forward CEP pattern events ─────────
+
+    soa.on('cep:pattern-matched', (event) => {
+      bus.send('soa.cep', {
+        ...event,
+        bridgedFrom: 'soa',
+      }, {
+        headers: { messageType: 'cep:pattern-matched' },
+      }).catch(() => {});
+    });
+
+    // ── SOA → ESB: Forward B2B document events ────────
+
+    const soaB2BEvents = [
+      'b2b:document-sent',
+      'b2b:document-received',
+      'b2b:document-failed',
+    ] as const;
+
+    for (const eventType of soaB2BEvents) {
+      soa.on(eventType, (event) => {
+        bus.send('soa.b2b', {
+          ...event,
+          bridgedFrom: 'soa',
+        }, {
+          headers: { messageType: eventType },
+        }).catch(() => {});
+      });
+    }
+
+    // ── SOA → ESB: Forward API events ─────────────────
+
+    soa.on('api:published', (event) => {
+      bus.send('soa.api', {
+        ...event,
+        bridgedFrom: 'soa',
+      }, {
+        headers: { messageType: 'api:published' },
+      }).catch(() => {});
+    });
+
+    const soaLifecycleEvents = [
+      'soa:started',
+      'soa:stopped',
+      'sla:breached',
+      'compensation:started',
+      'compensation:completed',
+      'compensation:failed',
+      'bam:alert-fired',
+      'bam:alert-resolved',
+    ] as const;
+
+    for (const eventType of soaLifecycleEvents) {
+      soa.on(eventType, (event) => {
+        bus.send('soa.events', {
+          ...event,
+          bridgedFrom: 'soa',
+        }, {
+          headers: { messageType: eventType },
+        }).catch(() => {});
+      });
+    }
+
+    // ── SOA → CMS: Record SOA events in CMS audit ─────
+
+    const allSoaEvents = [
+      ...soaProcessEvents,
+      ...soaTaskEvents,
+      ...soaB2BEvents,
+      ...soaLifecycleEvents,
+    ];
+
+    for (const eventType of allSoaEvents) {
+      soa.on(eventType, (event) => {
+        cms.security.recordAudit({
+          action: `soa.${eventType}`,
+          actor: 'soa-bridge',
+          details: {
+            ...event.data,
+            processInstanceId: event.processInstanceId,
+            bridgedFrom: 'soa',
+          },
+          success: !eventType.includes('failed') && !eventType.includes('faulted'),
         });
       });
     }

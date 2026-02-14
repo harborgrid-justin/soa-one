@@ -60,6 +60,8 @@ import integrationRoutes from './routes/integration';
 import diRoutes from './routes/di';
 // V13: DQM routes
 import dqmRoutes from './routes/dqm';
+// V14: SOA routes
+import soaRoutes from './routes/soa';
 import { prisma } from './prisma';
 import { openApiSpec } from './openapi';
 
@@ -205,6 +207,9 @@ export async function createApp() {
 
   // V13: DQM routes
   app.use('/api/v1/dqm', dqmRoutes);
+
+  // V14: SOA routes
+  app.use('/api/v1/soa', soaRoutes);
 
   // GraphQL
   const apollo = new ApolloServer({ typeDefs, resolvers });

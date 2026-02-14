@@ -1,0 +1,120 @@
+{
+  "name": "@soa-one/soa",
+  "version": "1.0.0",
+  "description": "Zero-dependency SOA Suite module for SOA One. BPEL process orchestration, service registry, human task management, complex event processing, B2B gateway, policy management, service mesh, API gateway, compensation, business activity monitoring, and full @soa-one/engine integration. Surpasses Oracle SOA Suite.",
+  "keywords": [
+    "soa",
+    "soa-suite",
+    "bpel",
+    "service-registry",
+    "human-task",
+    "cep",
+    "complex-event-processing",
+    "b2b",
+    "policy-management",
+    "service-mesh",
+    "api-gateway",
+    "compensation",
+    "bam",
+    "business-activity-monitoring",
+    "zero-dependency"
+  ],
+  "license": "MIT",
+  "author": "SOA One",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/soa-one/soa-one.git",
+    "directory": "packages/soa"
+  },
+  "main": "dist/index.js",
+  "module": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.js",
+      "default": "./dist/index.js"
+    },
+    "./registry": {
+      "types": "./dist/registry.d.ts",
+      "import": "./dist/registry.js",
+      "require": "./dist/registry.js"
+    },
+    "./bpel": {
+      "types": "./dist/bpel.d.ts",
+      "import": "./dist/bpel.js",
+      "require": "./dist/bpel.js"
+    },
+    "./humantask": {
+      "types": "./dist/humantask.d.ts",
+      "import": "./dist/humantask.js",
+      "require": "./dist/humantask.js"
+    },
+    "./cep": {
+      "types": "./dist/cep.d.ts",
+      "import": "./dist/cep.js",
+      "require": "./dist/cep.js"
+    },
+    "./b2b": {
+      "types": "./dist/b2b.d.ts",
+      "import": "./dist/b2b.js",
+      "require": "./dist/b2b.js"
+    },
+    "./policy": {
+      "types": "./dist/policy.d.ts",
+      "import": "./dist/policy.js",
+      "require": "./dist/policy.js"
+    },
+    "./mesh": {
+      "types": "./dist/mesh.d.ts",
+      "import": "./dist/mesh.js",
+      "require": "./dist/mesh.js"
+    },
+    "./api": {
+      "types": "./dist/api.d.ts",
+      "import": "./dist/api.js",
+      "require": "./dist/api.js"
+    },
+    "./compensation": {
+      "types": "./dist/compensation.d.ts",
+      "import": "./dist/compensation.js",
+      "require": "./dist/compensation.js"
+    },
+    "./analytics": {
+      "types": "./dist/analytics.d.ts",
+      "import": "./dist/analytics.js",
+      "require": "./dist/analytics.js"
+    },
+    "./monitoring": {
+      "types": "./dist/monitoring.d.ts",
+      "import": "./dist/monitoring.js",
+      "require": "./dist/monitoring.js"
+    },
+    "./security": {
+      "types": "./dist/security.d.ts",
+      "import": "./dist/security.js",
+      "require": "./dist/security.js"
+    },
+    "./plugin": {
+      "types": "./dist/plugin.d.ts",
+      "import": "./dist/plugin.js",
+      "require": "./dist/plugin.js"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "sideEffects": false,
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "test": "tsc && node --test dist/**/*.test.js",
+    "prepublishOnly": "npm run build"
+  },
+  "devDependencies": {
+    "typescript": "^5.9.3"
+  }
+}

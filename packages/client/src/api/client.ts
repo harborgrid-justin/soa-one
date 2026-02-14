@@ -576,6 +576,85 @@ export const getDQMMaskingRules = () => api.get('/dqm/security/masking-rules').t
 // DQM Metrics (Dashboard)
 export const getDQMMetrics = () => api.get('/dqm/metrics').then((r) => r.data);
 
+// ============================================================
+// V14: SOA Suite
+// ============================================================
+
+// SOA Services (Registry)
+export const getSOAServices = () => api.get('/soa/services').then((r) => r.data);
+export const getSOAService = (id: string) => api.get(`/soa/services/${id}`).then((r) => r.data);
+export const createSOAService = (data: any) => api.post('/soa/services', data).then((r) => r.data);
+export const deleteSOAService = (id: string) => api.delete(`/soa/services/${id}`).then((r) => r.data);
+
+// SOA BPEL Processes
+export const getSOAProcesses = () => api.get('/soa/processes').then((r) => r.data);
+export const getSOAProcess = (id: string) => api.get(`/soa/processes/${id}`).then((r) => r.data);
+export const createSOAProcess = (data: any) => api.post('/soa/processes', data).then((r) => r.data);
+export const getSOAProcessInstances = (id: string) => api.get(`/soa/processes/${id}/instances`).then((r) => r.data);
+export const startSOAProcess = (id: string, data?: any) => api.post(`/soa/processes/${id}/start`, data || {}).then((r) => r.data);
+
+// SOA Human Tasks
+export const getSOATasks = () => api.get('/soa/tasks').then((r) => r.data);
+export const getSOATask = (id: string) => api.get(`/soa/tasks/${id}`).then((r) => r.data);
+export const createSOATask = (data: any) => api.post('/soa/tasks', data).then((r) => r.data);
+export const claimSOATask = (id: string, assignee: string) => api.post(`/soa/tasks/${id}/claim`, { assignee }).then((r) => r.data);
+export const completeSOATask = (id: string, output?: any) => api.post(`/soa/tasks/${id}/complete`, { output }).then((r) => r.data);
+export const getSOATaskDefinitions = () => api.get('/soa/task-definitions').then((r) => r.data);
+
+// SOA CEP
+export const getSOACEPRules = () => api.get('/soa/cep/rules').then((r) => r.data);
+export const getSOACEPRule = (id: string) => api.get(`/soa/cep/rules/${id}`).then((r) => r.data);
+export const createSOACEPRule = (data: any) => api.post('/soa/cep/rules', data).then((r) => r.data);
+export const processSOACEPEvent = (event: any) => api.post('/soa/cep/events', event).then((r) => r.data);
+
+// SOA B2B Gateway
+export const getSOAPartners = () => api.get('/soa/b2b/partners').then((r) => r.data);
+export const getSOAPartner = (id: string) => api.get(`/soa/b2b/partners/${id}`).then((r) => r.data);
+export const createSOAPartner = (data: any) => api.post('/soa/b2b/partners', data).then((r) => r.data);
+export const getSOAAgreements = () => api.get('/soa/b2b/agreements').then((r) => r.data);
+export const createSOAAgreement = (data: any) => api.post('/soa/b2b/agreements', data).then((r) => r.data);
+export const getSOAExchanges = () => api.get('/soa/b2b/exchanges').then((r) => r.data);
+
+// SOA API Gateway
+export const getSOAAPIs = () => api.get('/soa/apis').then((r) => r.data);
+export const getSOAAPI = (id: string) => api.get(`/soa/apis/${id}`).then((r) => r.data);
+export const createSOAAPI = (data: any) => api.post('/soa/apis', data).then((r) => r.data);
+export const publishSOAAPI = (id: string) => api.post(`/soa/apis/${id}/publish`).then((r) => r.data);
+export const deprecateSOAAPI = (id: string) => api.post(`/soa/apis/${id}/deprecate`).then((r) => r.data);
+
+// SOA Policies & SLAs
+export const getSOAPolicies = () => api.get('/soa/policies').then((r) => r.data);
+export const getSOAPolicy = (id: string) => api.get(`/soa/policies/${id}`).then((r) => r.data);
+export const createSOAPolicy = (data: any) => api.post('/soa/policies', data).then((r) => r.data);
+export const getSOASLAs = () => api.get('/soa/slas').then((r) => r.data);
+export const createSOASLA = (data: any) => api.post('/soa/slas', data).then((r) => r.data);
+
+// SOA Service Mesh
+export const getSOAProxies = () => api.get('/soa/mesh/proxies').then((r) => r.data);
+export const getSOAProxy = (id: string) => api.get(`/soa/mesh/proxies/${id}`).then((r) => r.data);
+export const createSOAProxy = (data: any) => api.post('/soa/mesh/proxies', data).then((r) => r.data);
+
+// SOA BAM
+export const getSOAKPIs = () => api.get('/soa/bam/kpis').then((r) => r.data);
+export const createSOAKPI = (data: any) => api.post('/soa/bam/kpis', data).then((r) => r.data);
+export const recordSOAKPI = (id: string, value: number) => api.post(`/soa/bam/kpis/${id}/record`, { value }).then((r) => r.data);
+export const getSOABAMAlerts = () => api.get('/soa/bam/alerts').then((r) => r.data);
+export const getSOABAMDashboards = () => api.get('/soa/bam/dashboards').then((r) => r.data);
+
+// SOA Monitoring
+export const getSOAMonitoringAlerts = () => api.get('/soa/monitoring/alerts').then((r) => r.data);
+export const acknowledgeSOAAlert = (id: string) => api.post(`/soa/monitoring/alerts/${id}/acknowledge`).then((r) => r.data);
+export const resolveSOAAlert = (id: string) => api.post(`/soa/monitoring/alerts/${id}/resolve`).then((r) => r.data);
+export const getSOACounters = () => api.get('/soa/monitoring/counters').then((r) => r.data);
+
+// SOA Security
+export const getSOAAudit = (params?: any) => api.get('/soa/security/audit', { params }).then((r) => r.data);
+export const getSOAAccessPolicies = () => api.get('/soa/security/policies').then((r) => r.data);
+export const getSOAMaskingRules = () => api.get('/soa/security/masking-rules').then((r) => r.data);
+
+// SOA Metrics (Dashboard)
+export const getSOAMetrics = () => api.get('/soa/metrics').then((r) => r.data);
+
 // Aliases for frontend pages
 export const getExecutionReplays = (params?: any) => api.get('/replay/executions', { params }).then((r) => r.data);
 export const getImpactHistory = (params?: any) => api.get('/impact-analysis/history', { params }).then((r) => r.data);
