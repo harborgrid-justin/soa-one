@@ -155,6 +155,11 @@ export class SOAAccessControl {
     return results;
   }
 
+  /** All registered access policies. */
+  get policies(): SOAAccessPolicy[] {
+    return Array.from(this._policies.values());
+  }
+
   /** The total number of registered policies. */
   get policyCount(): number {
     return this._policies.size;
@@ -336,6 +341,11 @@ export class SOADataMasker {
     }
 
     return result;
+  }
+
+  /** All registered masking rules. */
+  get rules(): SOAMaskingRule[] {
+    return Array.from(this._rules.values());
   }
 
   /** The total number of registered masking rules. */

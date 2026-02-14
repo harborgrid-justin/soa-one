@@ -698,6 +698,11 @@ export class APIGateway {
 
   // ── Aggregate Getters ──────────────────────────────────────
 
+  /** All registered API definitions. */
+  get allAPIs(): APIDefinition[] {
+    return Array.from(this._apis.values());
+  }
+
   /** Total number of registered API definitions. */
   get apiCount(): number {
     return this._apis.size;

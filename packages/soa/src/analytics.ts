@@ -404,6 +404,16 @@ export class BAMEngine {
 
   // ── Aggregate Accessors ──────────────────────────────────
 
+  /** All registered KPI definitions. */
+  get allKPIs(): KPIDefinition[] {
+    return Array.from(this._kpis.values());
+  }
+
+  /** All dashboards. */
+  get allDashboards(): BAMDashboard[] {
+    return Array.from(this._dashboards.values());
+  }
+
   /** Total number of registered KPI definitions. */
   get kpiCount(): number {
     return this._kpis.size;

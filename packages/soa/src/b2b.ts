@@ -563,6 +563,21 @@ export class B2BGateway {
 
   // ── Computed Properties ─────────────────────────────────
 
+  /** All registered trading partners. */
+  get allPartners(): TradingPartner[] {
+    return Array.from(this._partners.values());
+  }
+
+  /** All registered agreements. */
+  get allAgreements(): TradingPartnerAgreement[] {
+    return Array.from(this._agreements.values());
+  }
+
+  /** All document exchanges. */
+  get allExchanges(): B2BDocumentExchange[] {
+    return Array.from(this._exchanges.values());
+  }
+
   /** Total number of registered trading partners. */
   get partnerCount(): number {
     return this._partners.size;

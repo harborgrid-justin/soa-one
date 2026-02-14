@@ -44,6 +44,8 @@ import {
   Archive,
   Image,
   Inbox,
+  Building2,
+  Network,
 } from 'lucide-react';
 import { useStore } from '../../store';
 
@@ -128,6 +130,22 @@ const navSections = [
       { to: '/dqm/matching', icon: GitBranch, label: 'Matching' },
       { to: '/dqm/scoring', icon: BarChart3, label: 'Scoring' },
       { to: '/dqm/monitoring', icon: Activity, label: 'DQM Monitor' },
+    ],
+  },
+  {
+    label: 'SOA Suite',
+    items: [
+      { to: '/soa', icon: Globe, label: 'SOA Dashboard' },
+      { to: '/soa/services', icon: Globe, label: 'Services' },
+      { to: '/soa/processes', icon: Workflow, label: 'BPEL Processes' },
+      { to: '/soa/tasks', icon: Users, label: 'Human Tasks' },
+      { to: '/soa/cep', icon: Zap, label: 'Event Processing' },
+      { to: '/soa/b2b', icon: Building2, label: 'B2B Gateway' },
+      { to: '/soa/apis', icon: Code2, label: 'API Gateway' },
+      { to: '/soa/policies', icon: Shield, label: 'Policies & SLAs' },
+      { to: '/soa/mesh', icon: Network, label: 'Service Mesh' },
+      { to: '/soa/bam', icon: BarChart3, label: 'BAM' },
+      { to: '/soa/monitoring', icon: Activity, label: 'SOA Monitor' },
     ],
   },
   {

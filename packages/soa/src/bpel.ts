@@ -1389,6 +1389,11 @@ export class BPELEngine {
 
   // ── Computed Properties ─────────────────────────────────────
 
+  /** All deployed process definitions. */
+  get allProcesses(): BPELProcessDefinition[] {
+    return Array.from(this._processes.values());
+  }
+
   /** Total number of deployed process definitions. */
   get processCount(): number {
     return this._processes.size;

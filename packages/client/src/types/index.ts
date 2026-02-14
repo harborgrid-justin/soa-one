@@ -567,6 +567,70 @@ export interface DQMDashboardData {
   queues: any[];
 }
 
+// ============================================================
+// V14: SOA Suite
+// ============================================================
+
+export interface SOAMetricsSummary {
+  totalServices: number;
+  activeServices: number;
+  totalEndpoints: number;
+  totalContracts: number;
+  totalProcessDefinitions: number;
+  activeProcessInstances: number;
+  completedProcessInstances: number;
+  faultedProcessInstances: number;
+  totalTaskDefinitions: number;
+  pendingTasks: number;
+  inProgressTasks: number;
+  completedTasks: number;
+  overdueTasks: number;
+  totalCEPRules: number;
+  activeCEPRules: number;
+  eventsProcessed: number;
+  patternsMatched: number;
+  totalPartners: number;
+  activePartners: number;
+  totalAgreements: number;
+  documentsExchanged: number;
+  totalPolicies: number;
+  activePolicies: number;
+  totalSLAs: number;
+  slaBreaches: number;
+  totalProxies: number;
+  healthyProxies: number;
+  totalAPIs: number;
+  publishedAPIs: number;
+  totalAPIKeys: number;
+  apiRequestsTotal: number;
+  activeCompensations: number;
+  completedCompensations: number;
+  failedCompensations: number;
+  totalKPIs: number;
+  activeAlerts: number;
+  uptimeMs: number;
+}
+
+export interface SOAServiceSummary {
+  id: string;
+  name: string;
+  status: string;
+  endpointCount: number;
+}
+
+export interface SOAProcessSummary {
+  id: string;
+  name: string;
+  version: string;
+  status: string;
+}
+
+export interface SOADashboardData {
+  summary: SOAMetricsSummary;
+  services: SOAServiceSummary[];
+  processes: SOAProcessSummary[];
+}
+
 export const OPERATOR_LABELS: Record<ComparisonOperator, string> = {
   equals: 'equals',
   notEquals: 'not equals',

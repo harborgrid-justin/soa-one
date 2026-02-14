@@ -589,6 +589,16 @@ export class PolicyManager {
 
   // ── Aggregate Getters ────────────────────────────────────
 
+  /** All registered policies. */
+  get allPolicies(): PolicyDefinition[] {
+    return Array.from(this._policies.values());
+  }
+
+  /** All registered SLA definitions. */
+  get allSLAs(): SLADefinition[] {
+    return Array.from(this._slas.values());
+  }
+
   /** Total number of registered policies. */
   get policyCount(): number {
     return this._policies.size;

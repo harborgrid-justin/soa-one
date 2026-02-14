@@ -894,6 +894,11 @@ export class CEPEngine {
 
   // ── Getters ─────────────────────────────────────────────────
 
+  /** All registered CEP rules. */
+  get allRules(): CEPRule[] {
+    return Array.from(this._rules.values());
+  }
+
   /** Total number of registered rules. */
   get ruleCount(): number {
     return this._rules.size;

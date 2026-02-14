@@ -81,6 +81,18 @@ import { DQMCleansing } from './pages/DQMCleansing';
 import { DQMMatching } from './pages/DQMMatching';
 import { DQMScoring } from './pages/DQMScoring';
 import { DQMMonitoring } from './pages/DQMMonitoring';
+// V14: SOA pages
+import { SOADashboard } from './pages/SOADashboard';
+import { SOAServices } from './pages/SOAServices';
+import { SOAProcesses } from './pages/SOAProcesses';
+import { SOATasks } from './pages/SOATasks';
+import { SOACEP } from './pages/SOACEP';
+import { SOAB2B } from './pages/SOAB2B';
+import { SOAAPIs } from './pages/SOAAPIs';
+import { SOAPolicies } from './pages/SOAPolicies';
+import { SOAMesh } from './pages/SOAMesh';
+import { SOABAM } from './pages/SOABAM';
+import { SOAMonitoring } from './pages/SOAMonitoring';
 import { NotFound } from './pages/NotFound';
 
 export default function App() {
@@ -170,6 +182,18 @@ export default function App() {
           <Route path="dqm/matching" element={<DQMMatching />} />
           <Route path="dqm/scoring" element={<DQMScoring />} />
           <Route path="dqm/monitoring" element={<DQMMonitoring />} />
+          {/* V14: SOA routes */}
+          <Route path="soa" element={<SOADashboard />} />
+          <Route path="soa/services" element={<SOAServices />} />
+          <Route path="soa/processes" element={<SOAProcesses />} />
+          <Route path="soa/tasks" element={<SOATasks />} />
+          <Route path="soa/cep" element={<SOACEP />} />
+          <Route path="soa/b2b" element={<SOAB2B />} />
+          <Route path="soa/apis" element={<SOAAPIs />} />
+          <Route path="soa/policies" element={<SOAPolicies />} />
+          <Route path="soa/mesh" element={<SOAMesh />} />
+          <Route path="soa/bam" element={<SOABAM />} />
+          <Route path="soa/monitoring" element={<SOAMonitoring />} />
           {/* Catch-all 404 */}
           <Route path="*" element={<NotFound />} />
         </Route>

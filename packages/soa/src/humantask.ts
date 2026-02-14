@@ -631,6 +631,16 @@ export class HumanTaskManager {
 
   // ── Metrics ───────────────────────────────────────────────
 
+  /** All registered task definitions. */
+  get allDefinitions(): HumanTaskDefinition[] {
+    return Array.from(this._definitions.values());
+  }
+
+  /** All task instances. */
+  get allTasks(): HumanTaskInstance[] {
+    return Array.from(this._instances.values());
+  }
+
   /** Total number of registered task definitions. */
   get definitionCount(): number {
     return this._definitions.size;
