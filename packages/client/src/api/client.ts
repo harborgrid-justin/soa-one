@@ -386,6 +386,7 @@ export const sendESBMessage = (data: any) => api.post('/esb/messages', data).the
 // ESB Metrics
 export const getESBMetrics = () => api.get('/esb/metrics').then((r) => r.data);
 export const getESBMetricSnapshots = (params?: any) => api.get('/esb/metrics/snapshots', { params }).then((r) => r.data);
+export const createESBMetricSnapshot = () => api.post('/esb/metrics/snapshots').then((r) => r.data);
 
 // ============================================================
 // V10: Content Management System (CMS)
@@ -564,6 +565,8 @@ export const profileDQMColumn = (data: any) => api.post('/dqm/profiling/column',
 export const getDQMAlerts = () => api.get('/dqm/monitoring/alerts').then((r) => r.data);
 export const acknowledgeDQMAlert = (id: string) => api.post(`/dqm/monitoring/alerts/${id}/acknowledge`).then((r) => r.data);
 export const resolveDQMAlert = (id: string) => api.post(`/dqm/monitoring/alerts/${id}/resolve`).then((r) => r.data);
+
+export const getDQMAlertRules = () => api.get('/dqm/monitoring/alert-rules').then((r) => r.data);
 
 // DQM Security
 export const getDQMAudit = (params?: any) => api.get('/dqm/security/audit', { params }).then((r) => r.data);
