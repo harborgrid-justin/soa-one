@@ -458,6 +458,66 @@ export const searchCMSDocuments = (params: any) => api.get('/cms/search', { para
 // CMS Metrics
 export const getCMSMetrics = () => api.get('/cms/metrics').then((r) => r.data);
 
+// ============================================================
+// V12: Data Integration (DI)
+// ============================================================
+
+// DI Connectors
+export const getDIConnectors = () => api.get('/di/connectors').then((r) => r.data);
+export const createDIConnector = (data: any) => api.post('/di/connectors', data).then((r) => r.data);
+export const deleteDIConnector = (id: string) => api.delete(`/di/connectors/${id}`).then((r) => r.data);
+
+// DI Pipelines
+export const getDIPipelines = () => api.get('/di/pipelines').then((r) => r.data);
+export const getDIPipeline = (id: string) => api.get(`/di/pipelines/${id}`).then((r) => r.data);
+export const createDIPipeline = (data: any) => api.post('/di/pipelines', data).then((r) => r.data);
+export const deleteDIPipeline = (id: string) => api.delete(`/di/pipelines/${id}`).then((r) => r.data);
+export const getDIPipelineInstances = (id: string) => api.get(`/di/pipelines/${id}/instances`).then((r) => r.data);
+
+// DI CDC
+export const getDICDCStreams = () => api.get('/di/cdc').then((r) => r.data);
+export const createDICDCStream = (data: any) => api.post('/di/cdc', data).then((r) => r.data);
+export const deleteDICDCStream = (id: string) => api.delete(`/di/cdc/${id}`).then((r) => r.data);
+
+// DI Replication
+export const getDIReplicationStreams = () => api.get('/di/replication').then((r) => r.data);
+export const createDIReplicationStream = (data: any) => api.post('/di/replication', data).then((r) => r.data);
+export const deleteDIReplicationStream = (id: string) => api.delete(`/di/replication/${id}`).then((r) => r.data);
+
+// DI Quality
+export const getDIQualityRules = () => api.get('/di/quality/rules').then((r) => r.data);
+export const getDIQualityScore = () => api.get('/di/quality/score').then((r) => r.data);
+export const createDIQualityRule = (data: any) => api.post('/di/quality/rules', data).then((r) => r.data);
+
+// DI Lineage
+export const getDILineage = () => api.get('/di/lineage/nodes').then((r) => r.data);
+export const createDILineageNode = (data: any) => api.post('/di/lineage/nodes', data).then((r) => r.data);
+export const getDILineageImpact = (nodeId: string, direction?: string) => api.get(`/di/lineage/impact/${nodeId}`, { params: { direction } }).then((r) => r.data);
+
+// DI Catalog
+export const getDICatalog = (params?: any) => api.get('/di/catalog', { params }).then((r) => r.data);
+export const getDICatalogEntry = (id: string) => api.get(`/di/catalog/${id}`).then((r) => r.data);
+export const createDICatalogEntry = (data: any) => api.post('/di/catalog', data).then((r) => r.data);
+export const deleteDICatalogEntry = (id: string) => api.delete(`/di/catalog/${id}`).then((r) => r.data);
+export const getDIGlossaryTerms = () => api.get('/di/catalog/glossary/terms').then((r) => r.data);
+
+// DI Scheduling
+export const getDISchedules = () => api.get('/di/schedules').then((r) => r.data);
+export const createDISchedule = (data: any) => api.post('/di/schedules', data).then((r) => r.data);
+export const getDIScheduleJobs = (id: string) => api.get(`/di/schedules/${id}/jobs`).then((r) => r.data);
+
+// DI Monitoring
+export const getDIAlerts = () => api.get('/di/monitoring/alerts').then((r) => r.data);
+export const getDIPipelineHealth = () => api.get('/di/monitoring/health').then((r) => r.data);
+
+// DI Security
+export const getDIAudit = (params?: any) => api.get('/di/security/audit', { params }).then((r) => r.data);
+export const getDIAccessPolicies = () => api.get('/di/security/policies').then((r) => r.data);
+export const getDIMaskingRules = () => api.get('/di/security/masking-rules').then((r) => r.data);
+
+// DI Metrics (Dashboard)
+export const getDIMetrics = () => api.get('/di/metrics').then((r) => r.data);
+
 // Aliases for frontend pages
 export const getExecutionReplays = (params?: any) => api.get('/replay/executions', { params }).then((r) => r.data);
 export const getImpactHistory = (params?: any) => api.get('/impact-analysis/history', { params }).then((r) => r.data);

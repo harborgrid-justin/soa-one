@@ -102,6 +102,20 @@ const navSections = [
     ],
   },
   {
+    label: 'Data Integration',
+    items: [
+      { to: '/di', icon: Database, label: 'DI Dashboard' },
+      { to: '/di/connectors', icon: Plug, label: 'Connectors' },
+      { to: '/di/pipelines', icon: GitBranch, label: 'Pipelines' },
+      { to: '/di/cdc', icon: Radio, label: 'CDC' },
+      { to: '/di/replication', icon: Layers, label: 'Replication' },
+      { to: '/di/quality', icon: Shield, label: 'Quality' },
+      { to: '/di/lineage', icon: Workflow, label: 'Lineage' },
+      { to: '/di/catalog', icon: Search, label: 'Catalog' },
+      { to: '/di/monitoring', icon: Activity, label: 'DI Monitor' },
+    ],
+  },
+  {
     label: 'Operations',
     items: [
       { to: '/test', icon: FlaskConical, label: 'Test Sandbox' },

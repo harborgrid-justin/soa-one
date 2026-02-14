@@ -61,6 +61,16 @@ import { CMSTaxonomies } from './pages/CMSTaxonomies';
 import { CMSRetention } from './pages/CMSRetention';
 import { CMSSecurity } from './pages/CMSSecurity';
 import { CMSMonitoring } from './pages/CMSMonitoring';
+// V12: DI pages
+import { DIDashboard } from './pages/DIDashboard';
+import { DIConnectors } from './pages/DIConnectors';
+import { DIPipelines } from './pages/DIPipelines';
+import { DICDC } from './pages/DICDC';
+import { DIReplication } from './pages/DIReplication';
+import { DIQuality } from './pages/DIQuality';
+import { DILineage } from './pages/DILineage';
+import { DICatalog } from './pages/DICatalog';
+import { DIMonitoring } from './pages/DIMonitoring';
 import { NotFound } from './pages/NotFound';
 
 export default function App() {
@@ -130,6 +140,16 @@ export default function App() {
           <Route path="cms/retention" element={<CMSRetention />} />
           <Route path="cms/security" element={<CMSSecurity />} />
           <Route path="cms/monitoring" element={<CMSMonitoring />} />
+          {/* V12: DI routes */}
+          <Route path="di" element={<DIDashboard />} />
+          <Route path="di/connectors" element={<DIConnectors />} />
+          <Route path="di/pipelines" element={<DIPipelines />} />
+          <Route path="di/cdc" element={<DICDC />} />
+          <Route path="di/replication" element={<DIReplication />} />
+          <Route path="di/quality" element={<DIQuality />} />
+          <Route path="di/lineage" element={<DILineage />} />
+          <Route path="di/catalog" element={<DICatalog />} />
+          <Route path="di/monitoring" element={<DIMonitoring />} />
           {/* Catch-all 404 */}
           <Route path="*" element={<NotFound />} />
         </Route>

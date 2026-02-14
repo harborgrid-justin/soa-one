@@ -1,9 +1,9 @@
 // ============================================================
-// SOA One — ESB ⇄ CMS Bridge
+// SOA One — ESB ⇄ CMS ⇄ DI Bridge
 // ============================================================
 //
-// Provides bidirectional awareness between the ESB and CMS
-// modules without either module importing the other directly.
+// Provides tri-directional awareness between the ESB, CMS, and
+// DI modules without any module importing the others directly.
 //
 // 1. CMS → ESB: CMS document/workflow events are published
 //    to ESB channels so downstream consumers can react.
@@ -12,14 +12,19 @@
 //    trigger CMS operations (document creation, status
 //    changes, workflow starts).
 //
-// 3. Bridge Plugin: An engine plugin that exposes cross-module
-//    functions usable in rules (e.g., send a CMS document
-//    change notification via ESB, or query CMS state from
-//    an ESB-triggered rule).
+// 3. DI → ESB: DI pipeline/CDC/replication events are published
+//    to ESB channels for downstream processing.
+//
+// 4. DI → CMS: DI lineage and catalog data can be stored
+//    as CMS documents for governance.
+//
+// 5. Bridge Plugin: An engine plugin that exposes cross-module
+//    functions usable in rules.
 // ============================================================
 
 import type { ServiceBus } from '@soa-one/esb';
 import type { ContentManagementSystem } from '@soa-one/cms';
+import type { DataIntegrator } from '@soa-one/di';
 
 // ── SDK-Compatible Types (same as ESB/CMS plugins) ──────────
 
@@ -60,13 +65,14 @@ interface EnginePlugin {
 /**
  * Create an engine plugin that provides cross-module operations.
  *
- * This plugin gives rules the ability to coordinate between ESB
- * and CMS — for example, a rule can create a CMS document AND
+ * This plugin gives rules the ability to coordinate between ESB,
+ * CMS, and DI — for example, a rule can execute a DI pipeline AND
  * publish an ESB notification in a single execution.
  */
 export function createBridgePlugin(
   bus: ServiceBus,
   cms: ContentManagementSystem,
+  di?: DataIntegrator,
 ): EnginePlugin {
   return {
     name: 'soa-one-bridge',
@@ -159,13 +165,51 @@ export function createBridgePlugin(
           // Swallow errors
         }
       },
+
+      /**
+       * Execute a DI pipeline and notify via ESB.
+       * Usage: type="BRIDGE_PIPELINE_AND_NOTIFY", field="pipelineId",
+       *        value={ parameters, channel }
+       */
+      BRIDGE_PIPELINE_AND_NOTIFY: (
+        output: Record<string, any>,
+        action: { type: string; field: string; value: any },
+        _input: Record<string, any>,
+      ): void => {
+        if (!di) return;
+        const config = action.value;
+        const pipelineId = action.field;
+        const params = typeof config === 'object' ? (config.parameters ?? {}) : {};
+
+        di.pipelines.execute(pipelineId, params, 'bridge').then((instance) => {
+          const channel = config?.channel ?? 'di.pipelines';
+          bus.send(channel, {
+            event: 'pipeline:executed',
+            pipelineId,
+            instanceId: instance.instanceId,
+            status: instance.status,
+            triggeredAt: new Date().toISOString(),
+          }, {
+            headers: { messageType: 'di.pipeline.executed' },
+          }).catch(() => {});
+
+          if (!output._bridgeOps) output._bridgeOps = [];
+          output._bridgeOps.push({
+            action: 'pipeline-and-notify',
+            pipelineId,
+            instanceId: instance.instanceId,
+            channel,
+            timestamp: new Date().toISOString(),
+          });
+        }).catch(() => {});
+      },
     },
 
     // ── Execution Hooks ─────────────────────────────────────
     hooks: {
       beforeExecute: [
         (context) => {
-          // Add integration metadata so rules know both modules
+          // Add integration metadata so rules know all modules
           // are available
           context.metadata.integration = {
             esb: {
@@ -178,6 +222,12 @@ export function createBridgePlugin(
               cmsName: cms.name,
               documentCount: cms.getMetrics().totalDocuments,
             },
+            di: di ? {
+              available: true,
+              diName: di.name,
+              totalPipelines: di.getMetrics().totalPipelines,
+              totalConnectors: di.getMetrics().totalConnectors,
+            } : { available: false },
             bridge: { version: '1.0.0' },
           };
           return context;
@@ -213,13 +263,13 @@ export function createBridgePlugin(
       },
 
       /**
-       * Get a combined status of both ESB and CMS.
+       * Get a combined status of ESB, CMS, and DI.
        * Usage in rules: bridge_getStatus()
        */
       bridge_getStatus: (): Record<string, any> => {
         const esbMetrics = bus.getMetrics();
         const cmsMetrics = cms.getMetrics();
-        return {
+        const result: Record<string, any> = {
           esb: {
             name: bus.name,
             channels: bus.channelNames.length,
@@ -232,6 +282,17 @@ export function createBridgePlugin(
             activeWorkflows: cmsMetrics.activeWorkflows,
           },
         };
+        if (di) {
+          const diMetrics = di.getMetrics();
+          result.di = {
+            name: di.name,
+            totalPipelines: diMetrics.totalPipelines,
+            activePipelines: diMetrics.activePipelines,
+            totalConnectors: diMetrics.totalConnectors,
+            totalCDCStreams: diMetrics.totalCDCStreams,
+          };
+        }
+        return result;
       },
 
       /**
@@ -307,14 +368,41 @@ export function createBridgePlugin(
 
         return true;
       },
+
+      /**
+       * Get DI metrics from a rule.
+       * Usage in rules: bridge_getDIMetrics()
+       */
+      bridge_getDIMetrics: (): any => {
+        if (!di) return null;
+        return di.getMetrics();
+      },
+
+      /**
+       * Notify ESB about a DI pipeline event.
+       * Usage in rules: bridge_notifyPipelineEvent(pipelineId, eventType)
+       */
+      bridge_notifyPipelineEvent: (
+        pipelineId: string,
+        eventType: string,
+      ): boolean => {
+        bus.send('di.pipelines', {
+          event: eventType,
+          pipelineId,
+          timestamp: new Date().toISOString(),
+        }, {
+          headers: { messageType: `di.${eventType}` },
+        }).catch(() => {});
+        return true;
+      },
     },
 
     onRegister: () => {
-      console.log('[bridge] ESB ⇄ CMS bridge plugin registered');
+      console.log('[bridge] ESB ⇄ CMS ⇄ DI bridge plugin registered');
     },
 
     onDestroy: () => {
-      console.log('[bridge] ESB ⇄ CMS bridge plugin destroyed');
+      console.log('[bridge] ESB ⇄ CMS ⇄ DI bridge plugin destroyed');
     },
   };
 }
@@ -322,17 +410,23 @@ export function createBridgePlugin(
 // ── Event Bridge ────────────────────────────────────────────
 
 /**
- * Set up bidirectional event forwarding between ESB and CMS.
+ * Set up tri-directional event forwarding between ESB, CMS, and DI.
  *
  * CMS → ESB: Document and workflow events are published to
  *            ESB pub/sub channels for downstream consumers.
  *
  * ESB → CMS: Message events are recorded in CMS audit for
  *            compliance and traceability.
+ *
+ * DI → ESB:  Pipeline, CDC, and replication events are published
+ *            to ESB channels for downstream processing.
+ *
+ * DI → CMS:  DI audit events are recorded in CMS audit.
  */
 export function setupEventBridge(
   bus: ServiceBus,
   cms: ContentManagementSystem,
+  di?: DataIntegrator,
 ): void {
   // ── CMS → ESB: Forward document lifecycle events ──────
 
@@ -401,5 +495,62 @@ export function setupEventBridge(
         success: eventType !== 'message:failed' && eventType !== 'saga:failed',
       });
     });
+  }
+
+  // ── DI → ESB: Forward DI pipeline and lifecycle events ─
+
+  if (di) {
+    const diPipelineEvents = [
+      'pipeline:completed',
+      'pipeline:failed',
+    ] as const;
+
+    for (const eventType of diPipelineEvents) {
+      di.on(eventType, (event) => {
+        bus.send('di.pipelines', {
+          ...event,
+          bridgedFrom: 'di',
+        }, {
+          headers: { messageType: eventType },
+        }).catch(() => {});
+      });
+    }
+
+    const diLifecycleEvents = [
+      'di:started',
+      'di:stopped',
+      'schedule:completed',
+      'schedule:failed',
+      'alert:fired',
+      'alert:resolved',
+    ] as const;
+
+    for (const eventType of diLifecycleEvents) {
+      di.on(eventType, (event) => {
+        bus.send('di.events', {
+          ...event,
+          bridgedFrom: 'di',
+        }, {
+          headers: { messageType: eventType },
+        }).catch(() => {});
+      });
+    }
+
+    // ── DI → CMS: Record DI events in CMS audit ──────
+
+    for (const eventType of [...diPipelineEvents, ...diLifecycleEvents]) {
+      di.on(eventType, (event) => {
+        cms.security.recordAudit({
+          action: `di.${eventType}`,
+          actor: 'di-bridge',
+          details: {
+            ...event.data,
+            pipelineId: event.pipelineId,
+            bridgedFrom: 'di',
+          },
+          success: !eventType.includes('failed'),
+        });
+      });
+    }
   }
 }

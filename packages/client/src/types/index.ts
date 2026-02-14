@@ -471,6 +471,50 @@ export interface CMSSearchResult {
   results: Pick<CMSDocument, 'id' | 'name' | 'description' | 'category' | 'status' | 'mimeType' | 'sizeBytes' | 'securityLevel' | 'tags' | 'createdBy' | 'updatedAt'>[];
 }
 
+// ============================================================
+// V12: Data Integration (DI)
+// ============================================================
+
+export interface DIMetricsSummary {
+  totalConnectors: number;
+  activeConnectors: number;
+  totalPipelines: number;
+  activePipelines: number;
+  totalCDCStreams: number;
+  activeCDCStreams: number;
+  totalReplicationStreams: number;
+  activeReplicationStreams: number;
+  totalSchedules: number;
+  activeAlerts: number;
+  catalogEntries: number;
+  lineageNodes: number;
+  qualityScore: number;
+  uptimeMs: number;
+}
+
+export interface DIConnectorSummary {
+  id: string;
+  name: string;
+  type: string;
+  status: string;
+  isConnected: boolean;
+}
+
+export interface DIPipelineSummary {
+  id: string;
+  name: string;
+  enabled: boolean;
+  stageCount: number;
+}
+
+export interface DIDashboardData {
+  summary: DIMetricsSummary;
+  connectors: DIConnectorSummary[];
+  pipelines: DIPipelineSummary[];
+  cdcStreams: any[];
+  replicationStreams: any[];
+}
+
 export const OPERATOR_LABELS: Record<ComparisonOperator, string> = {
   equals: 'equals',
   notEquals: 'not equals',
