@@ -56,6 +56,8 @@ import esbRoutes from './routes/esb';
 import cmsRoutes from './routes/cms';
 // V11: Integration status route
 import integrationRoutes from './routes/integration';
+// V12: DI routes
+import diRoutes from './routes/di';
 import { prisma } from './prisma';
 import { openApiSpec } from './openapi';
 
@@ -193,8 +195,11 @@ export async function createApp() {
   // V10: CMS routes
   app.use('/api/v1/cms', cmsRoutes);
 
-  // V11: Integration status (Engine ⇄ ESB ⇄ CMS)
+  // V11: Integration status (Engine ⇄ ESB ⇄ CMS ⇄ DI)
   app.use('/api/v1/integration', integrationRoutes);
+
+  // V12: DI routes
+  app.use('/api/v1/di', diRoutes);
 
   // GraphQL
   const apollo = new ApolloServer({ typeDefs, resolvers });

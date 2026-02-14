@@ -3,6 +3,7 @@ import {
   isIntegrationReady,
   getBus,
   getCMS,
+  getDI,
   getEngine,
 } from '../services/integration';
 
@@ -16,17 +17,19 @@ router.get('/status', (_req, res) => {
   if (!isIntegrationReady()) {
     return res.status(503).json({
       status: 'not_ready',
-      modules: { engine: false, esb: false, cms: false, bridge: false },
+      modules: { engine: false, esb: false, cms: false, di: false, bridge: false },
       timestamp: new Date().toISOString(),
     });
   }
 
   const bus = getBus();
   const cms = getCMS();
+  const di = getDI();
   const engine = getEngine();
 
   const esbMetrics = bus.getMetrics();
   const cmsMetrics = cms.getMetrics();
+  const diMetrics = di.getMetrics();
 
   res.json({
     status: 'ready',
@@ -52,10 +55,22 @@ router.get('/status', (_req, res) => {
         activeWorkflows: cmsMetrics.activeWorkflows,
         documentsUnderHold: cmsMetrics.documentsUnderHold,
       },
+      di: {
+        available: true,
+        name: di.name,
+        totalConnectors: diMetrics.totalConnectors,
+        activeConnectors: diMetrics.activeConnectors,
+        totalPipelines: diMetrics.totalPipelines,
+        activePipelines: diMetrics.activePipelines,
+        totalCDCStreams: diMetrics.totalCDCStreams,
+        totalReplicationStreams: diMetrics.totalReplicationStreams,
+        catalogEntries: diMetrics.catalogEntries,
+        qualityScore: diMetrics.qualityScore,
+      },
       bridge: {
         available: true,
         version: '1.0.0',
-        eventChannels: ['cms.events', 'cms.documents', 'cms.workflows', 'esb.events'],
+        eventChannels: ['cms.events', 'cms.documents', 'cms.workflows', 'esb.events', 'di.events', 'di.pipelines', 'di.cdc'],
       },
     },
     timestamp: new Date().toISOString(),
