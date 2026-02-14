@@ -43,6 +43,7 @@ import {
   Tags,
   Archive,
   Image,
+  Inbox,
 } from 'lucide-react';
 import { useStore } from '../../store';
 
@@ -113,6 +114,20 @@ const navSections = [
       { to: '/di/lineage', icon: Workflow, label: 'Lineage' },
       { to: '/di/catalog', icon: Search, label: 'Catalog' },
       { to: '/di/monitoring', icon: Activity, label: 'DI Monitor' },
+    ],
+  },
+  {
+    label: 'Data Quality',
+    items: [
+      { to: '/dqm', icon: ShieldCheck, label: 'DQM Dashboard' },
+      { to: '/dqm/topics', icon: MessageSquare, label: 'Topics' },
+      { to: '/dqm/queues', icon: Inbox, label: 'Queues' },
+      { to: '/dqm/quality-rules', icon: Shield, label: 'Quality Rules' },
+      { to: '/dqm/profiling', icon: Search, label: 'Profiling' },
+      { to: '/dqm/cleansing', icon: Sparkles, label: 'Cleansing' },
+      { to: '/dqm/matching', icon: GitBranch, label: 'Matching' },
+      { to: '/dqm/scoring', icon: BarChart3, label: 'Scoring' },
+      { to: '/dqm/monitoring', icon: Activity, label: 'DQM Monitor' },
     ],
   },
   {

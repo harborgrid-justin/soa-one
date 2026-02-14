@@ -518,6 +518,61 @@ export const getDIMaskingRules = () => api.get('/di/security/masking-rules').the
 // DI Metrics (Dashboard)
 export const getDIMetrics = () => api.get('/di/metrics').then((r) => r.data);
 
+// ============================================================
+// V13: Data Quality & Messaging (DQM)
+// ============================================================
+
+// DQM Topics
+export const getDQMTopics = () => api.get('/dqm/topics').then((r) => r.data);
+export const createDQMTopic = (data: any) => api.post('/dqm/topics', data).then((r) => r.data);
+export const deleteDQMTopic = (name: string) => api.delete(`/dqm/topics/${name}`).then((r) => r.data);
+
+// DQM Queues
+export const getDQMQueues = () => api.get('/dqm/queues').then((r) => r.data);
+export const createDQMQueue = (data: any) => api.post('/dqm/queues', data).then((r) => r.data);
+export const deleteDQMQueue = (name: string) => api.delete(`/dqm/queues/${name}`).then((r) => r.data);
+
+// DQM Quality Rules
+export const getDQMQualityRules = () => api.get('/dqm/quality/rules').then((r) => r.data);
+export const getDQMQualityRule = (id: string) => api.get(`/dqm/quality/rules/${id}`).then((r) => r.data);
+export const createDQMQualityRule = (data: any) => api.post('/dqm/quality/rules', data).then((r) => r.data);
+export const deleteDQMQualityRule = (id: string) => api.delete(`/dqm/quality/rules/${id}`).then((r) => r.data);
+
+// DQM Scoring
+export const getDQMCurrentScore = () => api.get('/dqm/scoring/current').then((r) => r.data);
+export const getDQMScoreHistory = () => api.get('/dqm/scoring/history').then((r) => r.data);
+export const getDQMScoreTrend = () => api.get('/dqm/scoring/trend').then((r) => r.data);
+export const getDQMScoreWeights = () => api.get('/dqm/scoring/weights').then((r) => r.data);
+
+// DQM Cleansing
+export const getDQMCleansingRules = () => api.get('/dqm/cleansing/rules').then((r) => r.data);
+export const getDQMCleansingRule = (id: string) => api.get(`/dqm/cleansing/rules/${id}`).then((r) => r.data);
+export const createDQMCleansingRule = (data: any) => api.post('/dqm/cleansing/rules', data).then((r) => r.data);
+export const deleteDQMCleansingRule = (id: string) => api.delete(`/dqm/cleansing/rules/${id}`).then((r) => r.data);
+
+// DQM Matching
+export const getDQMMatchingRules = () => api.get('/dqm/matching/rules').then((r) => r.data);
+export const getDQMMatchingRule = (id: string) => api.get(`/dqm/matching/rules/${id}`).then((r) => r.data);
+export const createDQMMatchingRule = (data: any) => api.post('/dqm/matching/rules', data).then((r) => r.data);
+export const deleteDQMMatchingRule = (id: string) => api.delete(`/dqm/matching/rules/${id}`).then((r) => r.data);
+
+// DQM Profiling
+export const profileDQMDataset = (data: any) => api.post('/dqm/profiling/dataset', data).then((r) => r.data);
+export const profileDQMColumn = (data: any) => api.post('/dqm/profiling/column', data).then((r) => r.data);
+
+// DQM Monitoring
+export const getDQMAlerts = () => api.get('/dqm/monitoring/alerts').then((r) => r.data);
+export const acknowledgeDQMAlert = (id: string) => api.post(`/dqm/monitoring/alerts/${id}/acknowledge`).then((r) => r.data);
+export const resolveDQMAlert = (id: string) => api.post(`/dqm/monitoring/alerts/${id}/resolve`).then((r) => r.data);
+
+// DQM Security
+export const getDQMAudit = (params?: any) => api.get('/dqm/security/audit', { params }).then((r) => r.data);
+export const getDQMAccessPolicies = () => api.get('/dqm/security/policies').then((r) => r.data);
+export const getDQMMaskingRules = () => api.get('/dqm/security/masking-rules').then((r) => r.data);
+
+// DQM Metrics (Dashboard)
+export const getDQMMetrics = () => api.get('/dqm/metrics').then((r) => r.data);
+
 // Aliases for frontend pages
 export const getExecutionReplays = (params?: any) => api.get('/replay/executions', { params }).then((r) => r.data);
 export const getImpactHistory = (params?: any) => api.get('/impact-analysis/history', { params }).then((r) => r.data);
