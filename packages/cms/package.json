@@ -1,0 +1,112 @@
+{
+  "name": "@soa-one/cms",
+  "version": "1.0.0",
+  "description": "Zero-dependency Content Management module for SOA One. Document lifecycle, versioned repositories, workflow engine, imaging & OCR, full-text search, taxonomy, retention, collaboration, security, rendition, metadata extraction, and full @soa-one/engine integration. Surpasses Oracle WebCenter and Oracle Imaging & Process Management.",
+  "keywords": [
+    "cms",
+    "content-management",
+    "document-management",
+    "imaging",
+    "ocr",
+    "workflow",
+    "taxonomy",
+    "retention",
+    "collaboration",
+    "rendition",
+    "soa",
+    "zero-dependency"
+  ],
+  "license": "MIT",
+  "author": "SOA One",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/soa-one/soa-one.git",
+    "directory": "packages/cms"
+  },
+  "main": "dist/index.js",
+  "module": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.js",
+      "default": "./dist/index.js"
+    },
+    "./document": {
+      "types": "./dist/document.d.ts",
+      "import": "./dist/document.js",
+      "require": "./dist/document.js"
+    },
+    "./repository": {
+      "types": "./dist/repository.d.ts",
+      "import": "./dist/repository.js",
+      "require": "./dist/repository.js"
+    },
+    "./workflow": {
+      "types": "./dist/workflow.d.ts",
+      "import": "./dist/workflow.js",
+      "require": "./dist/workflow.js"
+    },
+    "./imaging": {
+      "types": "./dist/imaging.d.ts",
+      "import": "./dist/imaging.js",
+      "require": "./dist/imaging.js"
+    },
+    "./search": {
+      "types": "./dist/search.d.ts",
+      "import": "./dist/search.js",
+      "require": "./dist/search.js"
+    },
+    "./taxonomy": {
+      "types": "./dist/taxonomy.d.ts",
+      "import": "./dist/taxonomy.js",
+      "require": "./dist/taxonomy.js"
+    },
+    "./retention": {
+      "types": "./dist/retention.d.ts",
+      "import": "./dist/retention.js",
+      "require": "./dist/retention.js"
+    },
+    "./collaboration": {
+      "types": "./dist/collaboration.d.ts",
+      "import": "./dist/collaboration.js",
+      "require": "./dist/collaboration.js"
+    },
+    "./security": {
+      "types": "./dist/security.d.ts",
+      "import": "./dist/security.js",
+      "require": "./dist/security.js"
+    },
+    "./rendition": {
+      "types": "./dist/rendition.d.ts",
+      "import": "./dist/rendition.js",
+      "require": "./dist/rendition.js"
+    },
+    "./metadata": {
+      "types": "./dist/metadata.d.ts",
+      "import": "./dist/metadata.js",
+      "require": "./dist/metadata.js"
+    },
+    "./plugin": {
+      "types": "./dist/plugin.d.ts",
+      "import": "./dist/plugin.js",
+      "require": "./dist/plugin.js"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "sideEffects": false,
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "test": "tsc && node --test dist/**/*.test.js",
+    "prepublishOnly": "npm run build"
+  },
+  "devDependencies": {
+    "typescript": "^5.9.3"
+  }
+}
