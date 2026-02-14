@@ -71,6 +71,16 @@ import { DIQuality } from './pages/DIQuality';
 import { DILineage } from './pages/DILineage';
 import { DICatalog } from './pages/DICatalog';
 import { DIMonitoring } from './pages/DIMonitoring';
+// V13: DQM pages
+import { DQMDashboard } from './pages/DQMDashboard';
+import { DQMTopics } from './pages/DQMTopics';
+import { DQMQueues } from './pages/DQMQueues';
+import { DQMQualityRules } from './pages/DQMQualityRules';
+import { DQMProfiling } from './pages/DQMProfiling';
+import { DQMCleansing } from './pages/DQMCleansing';
+import { DQMMatching } from './pages/DQMMatching';
+import { DQMScoring } from './pages/DQMScoring';
+import { DQMMonitoring } from './pages/DQMMonitoring';
 import { NotFound } from './pages/NotFound';
 
 export default function App() {
@@ -150,6 +160,16 @@ export default function App() {
           <Route path="di/lineage" element={<DILineage />} />
           <Route path="di/catalog" element={<DICatalog />} />
           <Route path="di/monitoring" element={<DIMonitoring />} />
+          {/* V13: DQM routes */}
+          <Route path="dqm" element={<DQMDashboard />} />
+          <Route path="dqm/topics" element={<DQMTopics />} />
+          <Route path="dqm/queues" element={<DQMQueues />} />
+          <Route path="dqm/quality-rules" element={<DQMQualityRules />} />
+          <Route path="dqm/profiling" element={<DQMProfiling />} />
+          <Route path="dqm/cleansing" element={<DQMCleansing />} />
+          <Route path="dqm/matching" element={<DQMMatching />} />
+          <Route path="dqm/scoring" element={<DQMScoring />} />
+          <Route path="dqm/monitoring" element={<DQMMonitoring />} />
           {/* Catch-all 404 */}
           <Route path="*" element={<NotFound />} />
         </Route>

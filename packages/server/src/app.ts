@@ -58,6 +58,8 @@ import cmsRoutes from './routes/cms';
 import integrationRoutes from './routes/integration';
 // V12: DI routes
 import diRoutes from './routes/di';
+// V13: DQM routes
+import dqmRoutes from './routes/dqm';
 import { prisma } from './prisma';
 import { openApiSpec } from './openapi';
 
@@ -195,11 +197,14 @@ export async function createApp() {
   // V10: CMS routes
   app.use('/api/v1/cms', cmsRoutes);
 
-  // V11: Integration status (Engine ⇄ ESB ⇄ CMS ⇄ DI)
+  // V11: Integration status (Engine ⇄ ESB ⇄ CMS ⇄ DI ⇄ DQM)
   app.use('/api/v1/integration', integrationRoutes);
 
   // V12: DI routes
   app.use('/api/v1/di', diRoutes);
+
+  // V13: DQM routes
+  app.use('/api/v1/dqm', dqmRoutes);
 
   // GraphQL
   const apollo = new ApolloServer({ typeDefs, resolvers });

@@ -515,6 +515,58 @@ export interface DIDashboardData {
   replicationStreams: any[];
 }
 
+// ============================================================
+// V13: Data Quality & Messaging (DQM)
+// ============================================================
+
+export interface DQMMetricsSummary {
+  totalQualityRules: number;
+  activeQualityRules: number;
+  totalCleansingRules: number;
+  totalMatchRules: number;
+  totalTopics: number;
+  activeTopics: number;
+  totalQueues: number;
+  activeQueues: number;
+  totalSubscriptions: number;
+  messagesPublished: number;
+  messagesDelivered: number;
+  messagesDeadLettered: number;
+  profilesExecuted: number;
+  validationsExecuted: number;
+  cleansingOperationsExecuted: number;
+  matchOperationsExecuted: number;
+  currentQualityScore: number;
+  currentQualityGrade: string;
+  activeAlerts: number;
+  uptimeMs: number;
+}
+
+export interface DQMTopicSummary {
+  name: string;
+  type: string;
+  subscriptionCount: number;
+  messageBacklog: number;
+  published: number;
+  delivered: number;
+}
+
+export interface DQMQueueSummary {
+  name: string;
+  type: string;
+  depth: number;
+  deadLetterDepth: number;
+  enqueued: number;
+  dequeued: number;
+  acknowledged: number;
+}
+
+export interface DQMDashboardData {
+  summary: DQMMetricsSummary;
+  topics: any[];
+  queues: any[];
+}
+
 export const OPERATOR_LABELS: Record<ComparisonOperator, string> = {
   equals: 'equals',
   notEquals: 'not equals',
