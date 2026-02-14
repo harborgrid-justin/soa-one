@@ -1,0 +1,118 @@
+{
+  "name": "@soa-one/di",
+  "version": "1.0.0",
+  "description": "Zero-dependency Data Integration module for SOA One. ETL/ELT pipelines, Change Data Capture, real-time replication, data quality, lineage, scheduling, data catalog, monitoring, and full @soa-one/engine integration. Surpasses Oracle Data Integrator and Oracle GoldenGate.",
+  "keywords": [
+    "data-integration",
+    "etl",
+    "elt",
+    "cdc",
+    "change-data-capture",
+    "replication",
+    "data-quality",
+    "data-lineage",
+    "data-catalog",
+    "pipeline",
+    "golden-gate",
+    "soa",
+    "zero-dependency"
+  ],
+  "license": "MIT",
+  "author": "SOA One",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/soa-one/soa-one.git",
+    "directory": "packages/di"
+  },
+  "main": "dist/index.js",
+  "module": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.js",
+      "default": "./dist/index.js"
+    },
+    "./connector": {
+      "types": "./dist/connector.d.ts",
+      "import": "./dist/connector.js",
+      "require": "./dist/connector.js"
+    },
+    "./pipeline": {
+      "types": "./dist/pipeline.d.ts",
+      "import": "./dist/pipeline.js",
+      "require": "./dist/pipeline.js"
+    },
+    "./cdc": {
+      "types": "./dist/cdc.d.ts",
+      "import": "./dist/cdc.js",
+      "require": "./dist/cdc.js"
+    },
+    "./replication": {
+      "types": "./dist/replication.d.ts",
+      "import": "./dist/replication.js",
+      "require": "./dist/replication.js"
+    },
+    "./transform": {
+      "types": "./dist/transform.d.ts",
+      "import": "./dist/transform.js",
+      "require": "./dist/transform.js"
+    },
+    "./quality": {
+      "types": "./dist/quality.d.ts",
+      "import": "./dist/quality.js",
+      "require": "./dist/quality.js"
+    },
+    "./lineage": {
+      "types": "./dist/lineage.d.ts",
+      "import": "./dist/lineage.js",
+      "require": "./dist/lineage.js"
+    },
+    "./scheduler": {
+      "types": "./dist/scheduler.d.ts",
+      "import": "./dist/scheduler.js",
+      "require": "./dist/scheduler.js"
+    },
+    "./mapping": {
+      "types": "./dist/mapping.d.ts",
+      "import": "./dist/mapping.js",
+      "require": "./dist/mapping.js"
+    },
+    "./catalog": {
+      "types": "./dist/catalog.d.ts",
+      "import": "./dist/catalog.js",
+      "require": "./dist/catalog.js"
+    },
+    "./monitoring": {
+      "types": "./dist/monitoring.d.ts",
+      "import": "./dist/monitoring.js",
+      "require": "./dist/monitoring.js"
+    },
+    "./security": {
+      "types": "./dist/security.d.ts",
+      "import": "./dist/security.js",
+      "require": "./dist/security.js"
+    },
+    "./plugin": {
+      "types": "./dist/plugin.d.ts",
+      "import": "./dist/plugin.js",
+      "require": "./dist/plugin.js"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "sideEffects": false,
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "test": "tsc && node --test dist/**/*.test.js",
+    "prepublishOnly": "npm run build"
+  },
+  "devDependencies": {
+    "typescript": "^5.9.3"
+  }
+}
