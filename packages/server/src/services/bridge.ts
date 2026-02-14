@@ -1,9 +1,9 @@
 // ============================================================
-// SOA One — ESB ⇄ CMS ⇄ DI Bridge
+// SOA One — ESB ⇄ CMS ⇄ DI ⇄ DQM Bridge
 // ============================================================
 //
-// Provides tri-directional awareness between the ESB, CMS, and
-// DI modules without any module importing the others directly.
+// Provides quad-directional awareness between the ESB, CMS, DI,
+// and DQM modules without any module importing the others directly.
 //
 // 1. CMS → ESB: CMS document/workflow events are published
 //    to ESB channels so downstream consumers can react.
@@ -12,19 +12,26 @@
 //    trigger CMS operations (document creation, status
 //    changes, workflow starts).
 //
-// 3. DI → ESB: DI pipeline/CDC/replication events are published
+// 3. DI → ESB:  DI pipeline/CDC/replication events are published
 //    to ESB channels for downstream processing.
 //
-// 4. DI → CMS: DI lineage and catalog data can be stored
+// 4. DI → CMS:  DI lineage and catalog data can be stored
 //    as CMS documents for governance.
 //
-// 5. Bridge Plugin: An engine plugin that exposes cross-module
+// 5. DQM → ESB: DQM quality/messaging events are published
+//    to ESB channels for downstream processing.
+//
+// 6. DQM → CMS: DQM quality audit events are recorded in CMS
+//    audit for compliance and traceability.
+//
+// 7. Bridge Plugin: An engine plugin that exposes cross-module
 //    functions usable in rules.
 // ============================================================
 
 import type { ServiceBus } from '@soa-one/esb';
 import type { ContentManagementSystem } from '@soa-one/cms';
 import type { DataIntegrator } from '@soa-one/di';
+import type { DataQualityMessaging } from '@soa-one/dqm';
 
 // ── SDK-Compatible Types (same as ESB/CMS plugins) ──────────
 
@@ -66,13 +73,15 @@ interface EnginePlugin {
  * Create an engine plugin that provides cross-module operations.
  *
  * This plugin gives rules the ability to coordinate between ESB,
- * CMS, and DI — for example, a rule can execute a DI pipeline AND
- * publish an ESB notification in a single execution.
+ * CMS, DI, and DQM — for example, a rule can validate data quality,
+ * execute a DI pipeline, AND publish an ESB notification in a
+ * single execution.
  */
 export function createBridgePlugin(
   bus: ServiceBus,
   cms: ContentManagementSystem,
   di?: DataIntegrator,
+  dqm?: DataQualityMessaging,
 ): EnginePlugin {
   return {
     name: 'soa-one-bridge',
@@ -203,6 +212,88 @@ export function createBridgePlugin(
           });
         }).catch(() => {});
       },
+
+      /**
+       * Validate data quality and publish results via ESB.
+       * Usage: type="BRIDGE_VALIDATE_AND_NOTIFY", field="datasetName",
+       *        value={ data, ruleIds, channel }
+       */
+      BRIDGE_VALIDATE_AND_NOTIFY: (
+        output: Record<string, any>,
+        action: { type: string; field: string; value: any },
+        input: Record<string, any>,
+      ): void => {
+        if (!dqm) return;
+        const config = action.value;
+        const data = config?.data ?? (Array.isArray(input.data) ? input.data : [input]);
+
+        try {
+          const result = dqm.rules.evaluateAll(data, config?.ruleIds);
+
+          const channel = config?.channel ?? 'dqm.quality';
+          bus.send(channel, {
+            event: 'validation:completed',
+            datasetName: action.field,
+            passRate: result.overallPassRate,
+            totalViolations: result.totalViolations,
+            timestamp: result.timestamp,
+          }, {
+            headers: { messageType: 'dqm.validation.completed' },
+          }).catch(() => {});
+
+          if (!output._bridgeOps) output._bridgeOps = [];
+          output._bridgeOps.push({
+            action: 'validate-and-notify',
+            datasetName: action.field,
+            passRate: result.overallPassRate,
+            channel,
+            timestamp: new Date().toISOString(),
+          });
+        } catch {
+          // Swallow errors
+        }
+      },
+
+      /**
+       * Publish a DQM message and forward event to ESB.
+       * Usage: type="BRIDGE_DQM_PUBLISH_AND_FORWARD", field="topicName",
+       *        value={ body, esbChannel }
+       */
+      BRIDGE_DQM_PUBLISH_AND_FORWARD: (
+        output: Record<string, any>,
+        action: { type: string; field: string; value: any },
+        _input: Record<string, any>,
+      ): void => {
+        if (!dqm) return;
+        const config = action.value;
+
+        try {
+          const msg = dqm.messaging.publish(action.field, config.body ?? config, {
+            publishedBy: 'bridge',
+          });
+
+          const esbChannel = config?.esbChannel ?? 'dqm.messaging';
+          bus.send(esbChannel, {
+            event: 'dqm:message-published',
+            topic: action.field,
+            messageId: msg.id,
+            timestamp: msg.timestamp,
+          }, {
+            headers: { messageType: 'dqm.message.published' },
+          }).catch(() => {});
+
+          if (!output._bridgeOps) output._bridgeOps = [];
+          output._bridgeOps.push({
+            action: 'dqm-publish-and-forward',
+            topic: action.field,
+            messageId: msg.id,
+            esbChannel,
+            timestamp: new Date().toISOString(),
+          });
+        } catch {
+          // Swallow errors
+        }
+      },
     },
 
     // ── Execution Hooks ─────────────────────────────────────
@@ -227,6 +318,14 @@ export function createBridgePlugin(
               diName: di.name,
               totalPipelines: di.getMetrics().totalPipelines,
               totalConnectors: di.getMetrics().totalConnectors,
+            } : { available: false },
+            dqm: dqm ? {
+              available: true,
+              dqmName: dqm.name,
+              totalQualityRules: dqm.getMetrics().totalQualityRules,
+              totalTopics: dqm.getMetrics().totalTopics,
+              totalQueues: dqm.getMetrics().totalQueues,
+              currentQualityScore: dqm.getMetrics().currentQualityScore,
             } : { available: false },
             bridge: { version: '1.0.0' },
           };
@@ -263,7 +362,7 @@ export function createBridgePlugin(
       },
 
       /**
-       * Get a combined status of ESB, CMS, and DI.
+       * Get a combined status of ESB, CMS, DI, and DQM.
        * Usage in rules: bridge_getStatus()
        */
       bridge_getStatus: (): Record<string, any> => {
@@ -290,6 +389,19 @@ export function createBridgePlugin(
             activePipelines: diMetrics.activePipelines,
             totalConnectors: diMetrics.totalConnectors,
             totalCDCStreams: diMetrics.totalCDCStreams,
+          };
+        }
+        if (dqm) {
+          const dqmMetrics = dqm.getMetrics();
+          result.dqm = {
+            name: dqm.name,
+            totalQualityRules: dqmMetrics.totalQualityRules,
+            totalTopics: dqmMetrics.totalTopics,
+            totalQueues: dqmMetrics.totalQueues,
+            currentQualityScore: dqmMetrics.currentQualityScore,
+            currentQualityGrade: dqmMetrics.currentQualityGrade,
+            messagesPublished: dqmMetrics.messagesPublished,
+            activeAlerts: dqmMetrics.activeAlerts,
           };
         }
         return result;
@@ -395,14 +507,116 @@ export function createBridgePlugin(
         }).catch(() => {});
         return true;
       },
+
+      /**
+       * Get DQM metrics from a rule.
+       * Usage in rules: bridge_getDQMMetrics()
+       */
+      bridge_getDQMMetrics: (): any => {
+        if (!dqm) return null;
+        return dqm.getMetrics();
+      },
+
+      /**
+       * Publish a DQM quality event to the ESB.
+       * Usage in rules: bridge_notifyQualityEvent(eventType, data)
+       */
+      bridge_notifyQualityEvent: (
+        eventType: string,
+        data?: Record<string, any>,
+      ): boolean => {
+        bus.send('dqm.quality', {
+          event: eventType,
+          ...(data ?? {}),
+          timestamp: new Date().toISOString(),
+        }, {
+          headers: { messageType: `dqm.${eventType}` },
+        }).catch(() => {});
+        return true;
+      },
+
+      /**
+       * Forward a DQM message to an ESB channel.
+       * Usage in rules: bridge_forwardDQMToESB(topicName, channelName)
+       */
+      bridge_forwardDQMToESB: (
+        topicName: string,
+        channelName: string,
+      ): boolean => {
+        if (!dqm) return false;
+        const topic = dqm.messaging.getTopic(topicName);
+        if (!topic) return false;
+
+        bus.send(channelName, {
+          event: 'dqm:topic-forwarded',
+          topic: topicName,
+          timestamp: new Date().toISOString(),
+        }, {
+          headers: { messageType: 'dqm.topic.forwarded' },
+        }).catch(() => {});
+
+        return true;
+      },
+
+      /**
+       * Validate data quality and store results as CMS document.
+       * Usage in rules: bridge_validateAndStore(datasetName, data, ruleIds)
+       */
+      bridge_validateAndStore: (
+        datasetName: string,
+        data: Record<string, any>[],
+        ruleIds?: string[],
+      ): string | null => {
+        if (!dqm) return null;
+        try {
+          const result = dqm.rules.evaluateAll(data, ruleIds);
+
+          const doc = cms.repository.store({
+            name: `quality-report-${datasetName}-${Date.now()}`,
+            content: JSON.stringify(result, null, 2),
+            mimeType: 'application/json',
+            path: '/dqm-reports',
+            tags: ['dqm-quality-report', datasetName],
+            metadata: {
+              source: 'dqm-bridge',
+              datasetName,
+              passRate: result.overallPassRate,
+              totalViolations: result.totalViolations,
+            },
+            owner: 'bridge',
+          });
+
+          return doc.id;
+        } catch {
+          return null;
+        }
+      },
+
+      /**
+       * Get the current DQM quality score.
+       * Usage in rules: bridge_getQualityScore()
+       */
+      bridge_getQualityScore: (): number => {
+        if (!dqm) return 0;
+        return dqm.scoring.lastScore?.overall ?? 0;
+      },
+
+      /**
+       * Get the current DQM quality grade.
+       * Usage in rules: bridge_getQualityGrade()
+       */
+      bridge_getQualityGrade: (): string => {
+        if (!dqm) return 'N/A';
+        return dqm.scoring.lastScore?.grade ?? 'N/A';
+      },
     },
 
     onRegister: () => {
-      console.log('[bridge] ESB ⇄ CMS ⇄ DI bridge plugin registered');
+      console.log('[bridge] ESB ⇄ CMS ⇄ DI ⇄ DQM bridge plugin registered');
     },
 
     onDestroy: () => {
-      console.log('[bridge] ESB ⇄ CMS ⇄ DI bridge plugin destroyed');
+      console.log('[bridge] ESB ⇄ CMS ⇄ DI ⇄ DQM bridge plugin destroyed');
     },
   };
 }
@@ -410,7 +624,7 @@ export function createBridgePlugin(
 // ── Event Bridge ────────────────────────────────────────────
 
 /**
- * Set up tri-directional event forwarding between ESB, CMS, and DI.
+ * Set up quad-directional event forwarding between ESB, CMS, DI, and DQM.
  *
  * CMS → ESB: Document and workflow events are published to
  *            ESB pub/sub channels for downstream consumers.
@@ -422,11 +636,17 @@ export function createBridgePlugin(
  *            to ESB channels for downstream processing.
  *
  * DI → CMS:  DI audit events are recorded in CMS audit.
+ *
+ * DQM → ESB: Quality, messaging, and alert events are published
+ *            to ESB channels for downstream processing.
+ *
+ * DQM → CMS: DQM audit events are recorded in CMS audit.
  */
 export function setupEventBridge(
   bus: ServiceBus,
   cms: ContentManagementSystem,
   di?: DataIntegrator,
+  dqm?: DataQualityMessaging,
 ): void {
   // ── CMS → ESB: Forward document lifecycle events ──────
 
@@ -547,6 +767,90 @@ export function setupEventBridge(
             ...event.data,
             pipelineId: event.pipelineId,
             bridgedFrom: 'di',
+          },
+          success: !eventType.includes('failed'),
+        });
+      });
+    }
+  }
+
+  // ── DQM → ESB: Forward DQM quality and messaging events ─
+
+  if (dqm) {
+    const dqmQualityEvents = [
+      'profile:completed',
+      'profile:failed',
+      'validation:completed',
+      'validation:failed',
+      'cleansing:completed',
+      'cleansing:failed',
+      'matching:completed',
+      'matching:failed',
+      'score:calculated',
+      'score:degraded',
+    ] as const;
+
+    for (const eventType of dqmQualityEvents) {
+      dqm.on(eventType, (event) => {
+        bus.send('dqm.quality', {
+          ...event,
+          bridgedFrom: 'dqm',
+        }, {
+          headers: { messageType: eventType },
+        }).catch(() => {});
+      });
+    }
+
+    const dqmMessagingEvents = [
+      'message:published',
+      'message:delivered',
+      'message:dead-lettered',
+      'message:expired',
+      'topic:created',
+      'topic:deleted',
+      'queue:created',
+      'queue:deleted',
+    ] as const;
+
+    for (const eventType of dqmMessagingEvents) {
+      dqm.on(eventType, (event) => {
+        bus.send('dqm.messaging', {
+          ...event,
+          bridgedFrom: 'dqm',
+        }, {
+          headers: { messageType: eventType },
+        }).catch(() => {});
+      });
+    }
+
+    const dqmLifecycleEvents = [
+      'dqm:started',
+      'dqm:stopped',
+      'alert:fired',
+      'alert:resolved',
+    ] as const;
+
+    for (const eventType of dqmLifecycleEvents) {
+      dqm.on(eventType, (event) => {
+        bus.send('dqm.events', {
+          ...event,
+          bridgedFrom: 'dqm',
+        }, {
+          headers: { messageType: eventType },
+        }).catch(() => {});
+      });
+    }
+
+    // ── DQM → CMS: Record DQM events in CMS audit ──────
+
+    for (const eventType of [...dqmQualityEvents, ...dqmMessagingEvents, ...dqmLifecycleEvents]) {
+      dqm.on(eventType, (event) => {
+        cms.security.recordAudit({
+          action: `dqm.${eventType}`,
+          actor: 'dqm-bridge',
+          details: {
+            ...event.data,
+            bridgedFrom: 'dqm',
           },
           success: !eventType.includes('failed'),
         });

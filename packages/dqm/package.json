@@ -1,0 +1,99 @@
+{
+  "name": "@soa-one/dqm",
+  "version": "1.0.0",
+  "description": "Zero-dependency Data Quality & Messaging module for SOA One. Statistical profiling, 20+ quality rule types, probabilistic record matching, data cleansing, multi-dimensional scoring, enterprise messaging (pub/sub, topics, queues, DLQ), monitoring, security, and full @soa-one/engine integration. Surpasses Oracle Enterprise Data Quality and Oracle Enterprise Messaging Service.",
+  "keywords": [
+    "data-quality",
+    "messaging",
+    "profiling",
+    "cleansing",
+    "record-matching",
+    "deduplication",
+    "pub-sub",
+    "topics",
+    "dead-letter",
+    "quality-scoring",
+    "enterprise-messaging",
+    "soa",
+    "zero-dependency"
+  ],
+  "license": "MIT",
+  "author": "SOA One",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/soa-one/soa-one.git",
+    "directory": "packages/dqm"
+  },
+  "main": "dist/index.js",
+  "module": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.js",
+      "default": "./dist/index.js"
+    },
+    "./profiler": {
+      "types": "./dist/profiler.d.ts",
+      "import": "./dist/profiler.js",
+      "require": "./dist/profiler.js"
+    },
+    "./rules": {
+      "types": "./dist/rules.d.ts",
+      "import": "./dist/rules.js",
+      "require": "./dist/rules.js"
+    },
+    "./cleansing": {
+      "types": "./dist/cleansing.d.ts",
+      "import": "./dist/cleansing.js",
+      "require": "./dist/cleansing.js"
+    },
+    "./scoring": {
+      "types": "./dist/scoring.d.ts",
+      "import": "./dist/scoring.js",
+      "require": "./dist/scoring.js"
+    },
+    "./matching": {
+      "types": "./dist/matching.d.ts",
+      "import": "./dist/matching.js",
+      "require": "./dist/matching.js"
+    },
+    "./messaging": {
+      "types": "./dist/messaging.d.ts",
+      "import": "./dist/messaging.js",
+      "require": "./dist/messaging.js"
+    },
+    "./monitoring": {
+      "types": "./dist/monitoring.d.ts",
+      "import": "./dist/monitoring.js",
+      "require": "./dist/monitoring.js"
+    },
+    "./security": {
+      "types": "./dist/security.d.ts",
+      "import": "./dist/security.js",
+      "require": "./dist/security.js"
+    },
+    "./plugin": {
+      "types": "./dist/plugin.d.ts",
+      "import": "./dist/plugin.js",
+      "require": "./dist/plugin.js"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "sideEffects": false,
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "test": "tsc && node --test dist/**/*.test.js",
+    "prepublishOnly": "npm run build"
+  },
+  "devDependencies": {
+    "@types/node": "^25.2.3",
+    "typescript": "^5.9.3"
+  }
+}
