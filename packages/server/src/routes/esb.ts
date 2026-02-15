@@ -2,6 +2,19 @@ import { Router } from 'express';
 import { prisma } from '../prisma';
 import { type AuthRequest } from '../auth/middleware';
 import { createAuditLog } from './audit';
+import {
+  Splitter,
+  Aggregator,
+  ContentFilter,
+  ContentEnricher,
+  ScatterGather,
+  Resequencer,
+  ClaimCheck,
+  WireTap,
+  IdempotentConsumer,
+  Normalizer,
+  createMessage,
+} from '@soa-one/esb';
 
 const router = Router();
 
@@ -326,6 +339,42 @@ router.get('/sagas/:id/instances', async (req, res) => {
   res.json(instances.map((i) => ({ ...i, context: JSON.parse(i.context), logs: JSON.parse(i.logs) })));
 });
 
+router.get('/saga-instances/:id', async (req, res) => {
+  const instance = await prisma.eSBSagaInstance.findUnique({ where: { id: req.params.id } });
+  if (!instance) return res.status(404).json({ error: 'Saga instance not found' });
+  res.json({ ...instance, context: JSON.parse(instance.context), logs: JSON.parse(instance.logs) });
+});
+
+router.post('/sagas/:id/instances', async (req: AuthRequest, res) => {
+  const { context } = req.body;
+  const instance = await prisma.eSBSagaInstance.create({
+    data: {
+      definitionId: String(req.params.id),
+      status: 'running',
+      context: JSON.stringify(context || {}),
+      logs: JSON.stringify([]),
+    },
+  });
+  res.status(201).json({ ...instance, context: JSON.parse(instance.context), logs: JSON.parse(instance.logs) });
+});
+
+router.put('/saga-instances/:id', async (req, res) => {
+  const { status, currentStep, context, logs } = req.body;
+  const data: any = {};
+  if (status !== undefined) {
+    data.status = status;
+    if (status === 'completed' || status === 'failed' || status === 'compensated') {
+      data.completedAt = new Date();
+    }
+  }
+  if (currentStep !== undefined) data.currentStep = currentStep;
+  if (context !== undefined) data.context = JSON.stringify(context);
+  if (logs !== undefined) data.logs = JSON.stringify(logs);
+
+  const instance = await prisma.eSBSagaInstance.update({ where: { id: req.params.id }, data });
+  res.json({ ...instance, context: JSON.parse(instance.context), logs: JSON.parse(instance.logs) });
+});
+
 // ============================================================
 // ESB Messages (recent history / dead-letter)
 // ============================================================
@@ -360,6 +409,38 @@ router.post('/messages', async (req: AuthRequest, res) => {
   });
 
   res.status(201).json({ ...message, headers: JSON.parse(message.headers), body: JSON.parse(message.body) });
+});
+
+router.get('/messages/:id', async (req, res) => {
+  const message = await prisma.eSBMessage.findUnique({ where: { id: req.params.id } });
+  if (!message) return res.status(404).json({ error: 'Message not found' });
+  res.json({ ...message, headers: JSON.parse(message.headers), body: JSON.parse(message.body) });
+});
+
+router.put('/messages/:id/status', async (req, res) => {
+  const { status } = req.body;
+  if (!status) return res.status(400).json({ error: 'status is required' });
+  const message = await prisma.eSBMessage.update({
+    where: { id: req.params.id },
+    data: { status },
+  });
+  res.json({ ...message, headers: JSON.parse(message.headers), body: JSON.parse(message.body) });
+});
+
+router.post('/messages/:id/retry', async (req, res) => {
+  const original = await prisma.eSBMessage.findUnique({ where: { id: req.params.id } });
+  if (!original) return res.status(404).json({ error: 'Message not found' });
+  // Reset status to pending for retry
+  const updated = await prisma.eSBMessage.update({
+    where: { id: req.params.id },
+    data: { status: 'pending' },
+  });
+  res.json({ ...updated, headers: JSON.parse(updated.headers), body: JSON.parse(updated.body) });
+});
+
+router.delete('/messages/:id', async (req, res) => {
+  await prisma.eSBMessage.delete({ where: { id: req.params.id } });
+  res.json({ success: true });
 });
 
 // ============================================================
@@ -446,6 +527,154 @@ router.post('/metrics/snapshots', async (req, res) => {
   });
 
   res.status(201).json(record);
+});
+
+// ============================================================
+// ESB Patterns (EIP)
+// ============================================================
+
+/** Helper: wrap a plain body into an ESBMessage */
+function toESBMessage(body: any) {
+  return createMessage(body.body ?? body, {
+    correlationId: body.correlationId,
+    headers: body.headers,
+    metadata: body.metadata,
+    priority: body.priority,
+    contentType: body.contentType,
+  });
+}
+
+// Splitter — split a message by an array field
+router.post('/patterns/split', (req, res) => {
+  const { config, message } = req.body;
+  if (!config?.splitField || !message) return res.status(400).json({ error: 'config.splitField and message are required' });
+  const splitter = new Splitter(config);
+  const results = splitter.split(toESBMessage(message));
+  res.json(results);
+});
+
+// Aggregator — submit messages to an aggregation group
+const aggregators = new Map<string, Aggregator>();
+
+router.post('/patterns/aggregate', (req, res) => {
+  const { groupId, config, message } = req.body;
+  if (!groupId || !config || !message) return res.status(400).json({ error: 'groupId, config, and message are required' });
+  let agg = aggregators.get(groupId);
+  if (!agg) {
+    agg = new Aggregator(config);
+    aggregators.set(groupId, agg);
+  }
+  const result = agg.add(toESBMessage(message));
+  if (result) {
+    aggregators.delete(groupId);
+    return res.json({ completed: true, result });
+  }
+  res.json({ completed: false, message: 'Message added to aggregation group' });
+});
+
+// Content Filter — keep or remove fields
+router.post('/patterns/content-filter', (req, res) => {
+  const { mode, fields, message } = req.body;
+  if (!fields || !message) return res.status(400).json({ error: 'fields and message are required' });
+  const msg = toESBMessage(message);
+  const result = mode === 'blacklist'
+    ? ContentFilter.blacklist(msg, fields)
+    : ContentFilter.whitelist(msg, fields);
+  res.json(result);
+});
+
+// Content Enricher — enrich a message with provided data
+router.post('/patterns/enrich', (req, res) => {
+  const { targetField, enrichmentData, message } = req.body;
+  if (!targetField || enrichmentData === undefined || !message) {
+    return res.status(400).json({ error: 'targetField, enrichmentData, and message are required' });
+  }
+  const msg = toESBMessage(message);
+  const newBody = { ...msg.body, [targetField]: enrichmentData };
+  res.json(createMessage(newBody, {
+    ...msg,
+    headers: { ...msg.headers },
+    metadata: { ...msg.metadata, enriched: true },
+  }));
+});
+
+// Scatter-Gather — fan-out to multiple targets and aggregate responses
+router.post('/patterns/scatter-gather', async (req, res) => {
+  const { config, message } = req.body;
+  if (!config?.targets || !message) {
+    return res.status(400).json({ error: 'config.targets and message are required' });
+  }
+  const sg = new ScatterGather(config);
+  const msg = toESBMessage(message);
+  try {
+    // Default handler echoes the message body per target (real usage would call external services)
+    const result = await sg.execute(msg, async (target, m) => {
+      return createMessage({ target, ...m.body }, {
+        correlationId: m.correlationId,
+        headers: { ...m.headers, target },
+        metadata: { ...m.metadata },
+      });
+    });
+    res.json(result);
+  } catch (e: any) { res.status(422).json({ error: e.message }); }
+});
+
+// Wire Tap — tap a copy of a message
+const wireTapInstance = new WireTap({ tapChannel: '_tap', headersOnly: false });
+router.post('/patterns/wire-tap', (req, res) => {
+  const { headersOnly, message } = req.body;
+  if (!message) return res.status(400).json({ error: 'message is required' });
+  const tap = headersOnly
+    ? new WireTap({ tapChannel: '_tap', headersOnly: true })
+    : wireTapInstance;
+  tap.tap(toESBMessage(message));
+  res.json({ tapped: true, messages: tap.tappedMessages });
+});
+
+router.get('/patterns/wire-tap/logs', (_req, res) => {
+  res.json(wireTapInstance.tappedMessages);
+});
+
+// Idempotent Consumer — deduplicate messages
+const idempotentConsumers = new Map<string, IdempotentConsumer>();
+
+router.post('/patterns/idempotent', (req, res) => {
+  const { consumerId, keyField, keySource, windowMs, message } = req.body;
+  if (!consumerId || !message) return res.status(400).json({ error: 'consumerId and message are required' });
+  let consumer = idempotentConsumers.get(consumerId);
+  if (!consumer) {
+    consumer = new IdempotentConsumer(keyField ?? 'id', keySource ?? 'id', windowMs);
+    idempotentConsumers.set(consumerId, consumer);
+  }
+  const msg = toESBMessage(message);
+  const isNew = consumer.tryProcess(msg);
+  res.json({ duplicate: !isNew, message: isNew ? msg : null });
+});
+
+// Normalizer — normalize messages to canonical format
+// Normalizer requires runtime function registration, so this endpoint
+// applies a passthrough (returns the message as-is) to demonstrate the API.
+router.post('/patterns/normalize', (req, res) => {
+  const { message } = req.body;
+  if (!message) return res.status(400).json({ error: 'message is required' });
+  const normalizer = new Normalizer();
+  const result = normalizer.normalize(toESBMessage(message));
+  res.json(result);
+});
+
+// Saga compensate endpoint
+router.post('/saga-instances/:id/compensate', async (req, res) => {
+  const instance = await prisma.eSBSagaInstance.findUnique({ where: { id: req.params.id } });
+  if (!instance) return res.status(404).json({ error: 'Saga instance not found' });
+
+  const logs = JSON.parse(instance.logs);
+  logs.push({ event: 'compensate_requested', timestamp: new Date().toISOString() });
+
+  const updated = await prisma.eSBSagaInstance.update({
+    where: { id: req.params.id },
+    data: { status: 'compensating', logs: JSON.stringify(logs) },
+  });
+  res.json({ ...updated, context: JSON.parse(updated.context), logs: JSON.parse(updated.logs) });
 });
 
 export default router;

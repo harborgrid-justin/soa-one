@@ -1,0 +1,45 @@
+{
+  "name": "@soa-one/bpm",
+  "version": "1.0.0",
+  "description": "Zero-dependency BPMN 2.0 Process Management for SOA One. Process modeling, execution, gateways, swimlanes, forms, process analytics, and deployment lifecycle. Equivalent to Oracle BPM Suite.",
+  "keywords": [
+    "bpmn",
+    "bpm",
+    "process-management",
+    "workflow",
+    "gateways",
+    "swimlanes",
+    "soa",
+    "zero-dependency"
+  ],
+  "license": "MIT",
+  "author": "SOA One",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/soa-one/soa-one.git",
+    "directory": "packages/bpm"
+  },
+  "main": "dist/index.js",
+  "module": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.js",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": ["dist", "README.md", "LICENSE"],
+  "sideEffects": false,
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "test": "tsc && node --test dist/**/*.test.js",
+    "prepublishOnly": "npm run build"
+  },
+  "devDependencies": {
+    "@types/node": "^25.2.3",
+    "typescript": "^5.9.3"
+  }
+}

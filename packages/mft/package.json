@@ -1,0 +1,50 @@
+{
+  "name": "@soa-one/mft",
+  "version": "1.0.0",
+  "description": "Zero-dependency Managed File Transfer module for SOA One. File-based integration with scheduling, protocol support (SFTP, FTP, HTTP, S3), encryption, compression, content-based routing, checksum validation, and monitoring. Equivalent to Oracle MFT.",
+  "keywords": [
+    "managed-file-transfer",
+    "mft",
+    "sftp",
+    "ftp",
+    "file-integration",
+    "scheduling",
+    "encryption",
+    "soa",
+    "zero-dependency"
+  ],
+  "license": "MIT",
+  "author": "SOA One",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/soa-one/soa-one.git",
+    "directory": "packages/mft"
+  },
+  "main": "dist/index.js",
+  "module": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.js",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "sideEffects": false,
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "test": "tsc && node --test dist/**/*.test.js",
+    "prepublishOnly": "npm run build"
+  },
+  "devDependencies": {
+    "@types/node": "^25.2.3",
+    "typescript": "^5.9.3"
+  }
+}

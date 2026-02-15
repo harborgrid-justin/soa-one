@@ -450,6 +450,104 @@ router.put('/legal-holds/:id', async (req, res) => {
   res.json({ ...hold, documentIds: JSON.parse(hold.documentIds) });
 });
 
+router.delete('/legal-holds/:id', async (req, res) => {
+  await prisma.cMSLegalHold.delete({ where: { id: req.params.id } });
+  res.json({ success: true });
+});
+
+// ============================================================
+// CMS Document Lock / Checkout
+// ============================================================
+
+router.post('/documents/:id/lock', async (req: AuthRequest, res) => {
+  const doc = await prisma.cMSDocument.findUnique({ where: { id: String(req.params.id) } });
+  if (!doc) return res.status(404).json({ error: 'Document not found' });
+  if (doc.lockedBy) return res.status(409).json({ error: 'Document is already locked', lockedBy: doc.lockedBy });
+  const updated = await prisma.cMSDocument.update({
+    where: { id: String(req.params.id) },
+    data: { lockedBy: req.user?.id || 'system', lockedAt: new Date() },
+  });
+  res.json({ success: true, lockedBy: updated.lockedBy, lockedAt: updated.lockedAt });
+});
+
+router.post('/documents/:id/unlock', async (req: AuthRequest, res) => {
+  const doc = await prisma.cMSDocument.findUnique({ where: { id: String(req.params.id) } });
+  if (!doc) return res.status(404).json({ error: 'Document not found' });
+  if (!doc.lockedBy) return res.status(409).json({ error: 'Document is not locked' });
+  await prisma.cMSDocument.update({
+    where: { id: String(req.params.id) },
+    data: { lockedBy: null, lockedAt: null },
+  });
+  res.json({ success: true });
+});
+
+router.post('/documents/:id/checkout', async (req: AuthRequest, res) => {
+  const doc = await prisma.cMSDocument.findUnique({ where: { id: String(req.params.id) } });
+  if (!doc) return res.status(404).json({ error: 'Document not found' });
+  if (doc.checkedOutBy) return res.status(409).json({ error: 'Document is already checked out', checkedOutBy: doc.checkedOutBy });
+  const updated = await prisma.cMSDocument.update({
+    where: { id: String(req.params.id) },
+    data: {
+      checkedOutBy: req.user?.id || 'system',
+      checkedOutAt: new Date(),
+      lockedBy: req.user?.id || 'system',
+      lockedAt: new Date(),
+    },
+  });
+  res.json({ success: true, checkedOutBy: updated.checkedOutBy, checkedOutAt: updated.checkedOutAt });
+});
+
+router.post('/documents/:id/checkin', async (req: AuthRequest, res) => {
+  const doc = await prisma.cMSDocument.findUnique({ where: { id: String(req.params.id) } });
+  if (!doc) return res.status(404).json({ error: 'Document not found' });
+  if (!doc.checkedOutBy) return res.status(409).json({ error: 'Document is not checked out' });
+  const { content, changelog } = req.body;
+
+  // Create a new version
+  const version = await prisma.cMSDocumentVersion.create({
+    data: {
+      documentId: doc.id,
+      version: doc.version + 1,
+      content: content || doc.content,
+      contentHash: content ? simpleHash(content) : doc.contentHash,
+      sizeBytes: content ? new TextEncoder().encode(content).length : doc.sizeBytes,
+      changelog: changelog || 'Checked in',
+      createdBy: req.user?.id || 'system',
+    },
+  });
+
+  // Update the document
+  const data: any = {
+    checkedOutBy: null,
+    checkedOutAt: null,
+    lockedBy: null,
+    lockedAt: null,
+    version: doc.version + 1,
+    updatedBy: req.user?.id || 'system',
+  };
+  if (content) {
+    data.content = content;
+    data.contentHash = simpleHash(content);
+    data.sizeBytes = new TextEncoder().encode(content).length;
+  }
+  await prisma.cMSDocument.update({ where: { id: doc.id }, data });
+
+  res.json({ success: true, version: version.version });
+});
+
+// Change document status (e.g. draft → published)
+router.put('/documents/:id/status', async (req: AuthRequest, res) => {
+  const { status } = req.body;
+  if (!status) return res.status(400).json({ error: 'status is required' });
+  const doc = await prisma.cMSDocument.findUnique({ where: { id: String(req.params.id) } });
+  if (!doc) return res.status(404).json({ error: 'Document not found' });
+  const updated = await prisma.cMSDocument.update({
+    where: { id: doc.id },
+    data: { status, updatedBy: req.user?.id || 'system' },
+  });
+  res.json(updated);
+});
+
 // ============================================================
 // CMS Comments
 // ============================================================
@@ -564,6 +662,11 @@ router.post('/documents/:id/renditions', async (req, res) => {
   });
 
   res.status(201).json({ ...rendition, metadata: JSON.parse(rendition.metadata) });
+});
+
+router.delete('/renditions/:id', async (req, res) => {
+  await prisma.cMSRendition.delete({ where: { id: req.params.id } });
+  res.json({ success: true });
 });
 
 // ============================================================

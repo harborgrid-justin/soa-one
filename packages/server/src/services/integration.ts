@@ -26,9 +26,15 @@ import { ServiceBus, createESBPlugin } from '@soa-one/esb';
 import { ContentManagementSystem, createCMSPlugin } from '@soa-one/cms';
 import { DataIntegrator, createDIPlugin } from '@soa-one/di';
 import { DataQualityMessaging, createDQMPlugin } from '@soa-one/dqm';
-import { SOASuite, createSOAPlugin } from '@soa-one/soa';
+import { SOASuite, createSOAPlugin, NotificationService, GovernanceManager, DeploymentManager } from '@soa-one/soa';
 import { IdentityAccessManager, createIAMPlugin } from '@soa-one/iam';
 import { createBridgePlugin, setupEventBridge } from './bridge';
+
+// New Tier 2 imports
+import { EventDeliveryNetwork, CrossReferenceManager, DomainValueMapManager, AdapterFramework, ReliableMessagingManager } from '@soa-one/esb';
+import { ManagedFileTransfer } from '@soa-one/mft';
+import { BusinessRulesEngine } from '@soa-one/rules';
+import { BPMEngine } from '@soa-one/bpm';
 
 // ── Singleton Instances ─────────────────────────────────────
 
@@ -40,6 +46,19 @@ let _soa: SOASuite | null = null;
 let _iam: IdentityAccessManager | null = null;
 let _engine: RuleEngine | null = null;
 let _initialized = false;
+
+// Tier 2 singletons
+let _notification: NotificationService | null = null;
+let _governance: GovernanceManager | null = null;
+let _deployment: DeploymentManager | null = null;
+let _edn: EventDeliveryNetwork | null = null;
+let _xref: CrossReferenceManager | null = null;
+let _dvm: DomainValueMapManager | null = null;
+let _adapterFramework: AdapterFramework | null = null;
+let _reliableMessaging: ReliableMessagingManager | null = null;
+let _mft: ManagedFileTransfer | null = null;
+let _businessRules: BusinessRulesEngine | null = null;
+let _bpm: BPMEngine | null = null;
 
 // ── Public Accessors ────────────────────────────────────────
 
@@ -88,6 +107,63 @@ export function getEngine(): RuleEngine {
 /** Check if the integration layer is initialized. */
 export function isIntegrationReady(): boolean {
   return _initialized;
+}
+
+// ── Tier 2 Accessors ────────────────────────────────────────
+
+export function getNotificationService(): NotificationService {
+  if (!_notification) { _notification = new NotificationService(); }
+  return _notification;
+}
+
+export function getGovernanceManager(): GovernanceManager {
+  if (!_governance) { _governance = new GovernanceManager(); }
+  return _governance;
+}
+
+export function getDeploymentManager(): DeploymentManager {
+  if (!_deployment) { _deployment = new DeploymentManager(); }
+  return _deployment;
+}
+
+export function getEDN(): EventDeliveryNetwork {
+  if (!_edn) { _edn = new EventDeliveryNetwork(); }
+  return _edn;
+}
+
+export function getXRef(): CrossReferenceManager {
+  if (!_xref) { _xref = new CrossReferenceManager(); }
+  return _xref;
+}
+
+export function getDVM(): DomainValueMapManager {
+  if (!_dvm) { _dvm = new DomainValueMapManager(); }
+  return _dvm;
+}
+
+export function getAdapterFramework(): AdapterFramework {
+  if (!_adapterFramework) { _adapterFramework = new AdapterFramework(); }
+  return _adapterFramework;
+}
+
+export function getReliableMessaging(): ReliableMessagingManager {
+  if (!_reliableMessaging) { _reliableMessaging = new ReliableMessagingManager(); }
+  return _reliableMessaging;
+}
+
+export function getMFT(): ManagedFileTransfer {
+  if (!_mft) { _mft = new ManagedFileTransfer(); }
+  return _mft;
+}
+
+export function getBusinessRules(): BusinessRulesEngine {
+  if (!_businessRules) { _businessRules = new BusinessRulesEngine(); }
+  return _businessRules;
+}
+
+export function getBPM(): BPMEngine {
+  if (!_bpm) { _bpm = new BPMEngine(); }
+  return _bpm;
 }
 
 // ── Lifecycle ───────────────────────────────────────────────

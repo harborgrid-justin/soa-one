@@ -160,6 +160,19 @@ export class SOAAccessControl {
     return Array.from(this._policies.values());
   }
 
+  /** Get a specific policy by ID. */
+  getPolicy(policyId: string): SOAAccessPolicy | undefined {
+    return this._policies.get(policyId);
+  }
+
+  /** Update an existing access policy. */
+  updatePolicy(policyId: string, updates: Partial<SOAAccessPolicy>): SOAAccessPolicy {
+    const p = this._policies.get(policyId);
+    if (!p) throw new Error(`Policy not found: ${policyId}`);
+    Object.assign(p, updates, { id: p.id });
+    return p;
+  }
+
   /** The total number of registered policies. */
   get policyCount(): number {
     return this._policies.size;
@@ -235,6 +248,19 @@ export class SOADataMasker {
    */
   removeRule(ruleId: string): boolean {
     return this._rules.delete(ruleId);
+  }
+
+  /** Get a specific masking rule by ID. */
+  getRule(ruleId: string): SOAMaskingRule | undefined {
+    return this._rules.get(ruleId);
+  }
+
+  /** Update an existing masking rule. */
+  updateRule(ruleId: string, updates: Partial<SOAMaskingRule>): SOAMaskingRule {
+    const r = this._rules.get(ruleId);
+    if (!r) throw new Error(`Masking rule not found: ${ruleId}`);
+    Object.assign(r, updates, { id: r.id });
+    return r;
   }
 
   /**

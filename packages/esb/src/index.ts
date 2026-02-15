@@ -256,6 +256,67 @@ export {
   type CronSchedule,
 } from './scheduler';
 
+// ── Event Delivery Network ───────────────────────────────────
+
+export {
+  EventDeliveryNetwork,
+  type EventPriority,
+  type SubscriptionMode,
+  type DeliveryGuarantee,
+  type BusinessEvent,
+  type EventTopic,
+  type EventSubscription,
+  type DeadLetterEntry,
+} from './edn';
+
+// ── Cross-Reference Tables ───────────────────────────────────
+
+export {
+  CrossReferenceManager,
+  type XRefTable,
+  type XRefColumn,
+  type XRefRow,
+} from './xref';
+
+// ── Domain Value Maps ────────────────────────────────────────
+
+export {
+  DomainValueMapManager,
+  type DomainValueMap,
+  type DVMDomain,
+  type DVMEntry,
+} from './dvm';
+
+// ── Adapter Framework ────────────────────────────────────────
+
+export {
+  AdapterFramework,
+  type AdapterType,
+  type AdapterDirection,
+  type AdapterState,
+  type AdapterDefinition,
+  type ConnectionPoolConfig,
+  type AdapterRetryConfig,
+  type AdapterErrorHandler,
+  type AdapterOperation,
+  type AdapterEndpoint,
+  type AdapterMetrics,
+} from './adapter';
+
+// ── WS-ReliableMessaging ─────────────────────────────────────
+
+export {
+  ReliableMessagingManager,
+  type SequenceState,
+  type AckPolicy,
+  type DeliveryAssurance,
+  type ReliableSequence,
+  type ReliableMessage,
+  type SequenceAcknowledgment,
+  type AckRange,
+  type RMPolicy,
+} from './reliable-messaging';
+
 // ── Engine Plugin ────────────────────────────────────────────
 
 export {

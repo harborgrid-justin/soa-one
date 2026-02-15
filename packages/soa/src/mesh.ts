@@ -247,6 +247,16 @@ export class ServiceMesh {
   }
 
   /**
+   * Update a proxy's configuration.
+   */
+  updateProxy(proxyId: string, updates: Partial<SidecarConfig>): MeshProxy {
+    const proxy = this._proxies.get(proxyId);
+    if (!proxy) throw new Error(`Proxy not found: ${proxyId}`);
+    Object.assign(proxy.config, updates, { serviceId: proxy.config.serviceId });
+    return proxy;
+  }
+
+  /**
    * Find the proxy associated with a given service ID.
    *
    * If multiple proxies exist for the same service, the first

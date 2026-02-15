@@ -105,6 +105,20 @@ export class CompensationManager {
     this._handlers.set(name, handler);
   }
 
+  /**
+   * List all registered handler names.
+   */
+  get handlerNames(): string[] {
+    return Array.from(this._handlers.keys());
+  }
+
+  /**
+   * Get all compensation transactions.
+   */
+  get allTransactions(): CompensationTransaction[] {
+    return Array.from(this._transactions.values());
+  }
+
   // ── Transaction Lifecycle ─────────────────────────────────
 
   /**

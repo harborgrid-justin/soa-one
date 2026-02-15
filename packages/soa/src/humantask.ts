@@ -97,6 +97,24 @@ export class HumanTaskManager {
     return def ? { ...def } : undefined;
   }
 
+  /**
+   * Update an existing task definition.
+   */
+  updateDefinition(definitionId: string, updates: Partial<HumanTaskDefinition>): HumanTaskDefinition {
+    const def = this._definitions.get(definitionId);
+    if (!def) throw new Error(`Task definition not found: ${definitionId}`);
+    const updated = { ...def, ...updates, id: def.id };
+    this._definitions.set(definitionId, updated);
+    return { ...updated };
+  }
+
+  /**
+   * Remove a task definition.
+   */
+  removeDefinition(definitionId: string): boolean {
+    return this._definitions.delete(definitionId);
+  }
+
   // ── Task Creation ─────────────────────────────────────────
 
   /**
@@ -585,6 +603,43 @@ export class HumanTaskManager {
     }
 
     return results;
+  }
+
+  /**
+   * Get all comments for a task instance.
+   */
+  getComments(instanceId: string): TaskComment[] {
+    const task = this._instances.get(instanceId);
+    if (!task) return [];
+    return [...task.comments];
+  }
+
+  /**
+   * Get all attachments for a task instance.
+   */
+  getAttachments(instanceId: string): TaskAttachment[] {
+    const task = this._instances.get(instanceId);
+    if (!task) return [];
+    return [...task.attachments];
+  }
+
+  /**
+   * Update an existing task instance metadata.
+   */
+  updateTask(instanceId: string, updates: { priority?: TaskPriority; dueDate?: string; actualOwner?: string }): HumanTaskInstance {
+    const task = this._instances.get(instanceId);
+    if (!task) throw new Error(`Task not found: ${instanceId}`);
+    if (updates.priority !== undefined) task.priority = updates.priority;
+    if (updates.dueDate !== undefined) task.dueDate = updates.dueDate;
+    if (updates.actualOwner !== undefined) task.actualOwner = updates.actualOwner;
+    return { ...task };
+  }
+
+  /**
+   * Remove a task instance.
+   */
+  removeTask(instanceId: string): boolean {
+    return this._instances.delete(instanceId);
   }
 
   // ── Event Callbacks ───────────────────────────────────────

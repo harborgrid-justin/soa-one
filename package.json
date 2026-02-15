@@ -11,6 +11,9 @@
     "packages/dqm",
     "packages/soa",
     "packages/iam",
+    "packages/mft",
+    "packages/rules",
+    "packages/bpm",
     "packages/server",
     "packages/client"
   ],

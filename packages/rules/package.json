@@ -1,0 +1,43 @@
+{
+  "name": "@soa-one/rules",
+  "version": "1.0.0",
+  "description": "Zero-dependency Business Rules Engine for SOA One. Decision tables, rule sets, expression evaluation, versioning, testing, and deployment. Equivalent to Oracle Business Rules / SOA Decision Components.",
+  "keywords": [
+    "business-rules",
+    "decision-tables",
+    "rule-engine",
+    "inference",
+    "soa",
+    "zero-dependency"
+  ],
+  "license": "MIT",
+  "author": "SOA One",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/soa-one/soa-one.git",
+    "directory": "packages/rules"
+  },
+  "main": "dist/index.js",
+  "module": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.js",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": ["dist", "README.md", "LICENSE"],
+  "sideEffects": false,
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "test": "tsc && node --test dist/**/*.test.js",
+    "prepublishOnly": "npm run build"
+  },
+  "devDependencies": {
+    "@types/node": "^25.2.3",
+    "typescript": "^5.9.3"
+  }
+}

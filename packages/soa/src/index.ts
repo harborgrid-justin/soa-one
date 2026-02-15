@@ -233,6 +233,56 @@ export {
   SOAAuditLogger,
 } from './security';
 
+// ── Notification Service ─────────────────────────────────────
+
+export {
+  NotificationService,
+  type NotificationChannel,
+  type NotificationTemplate,
+  type NotificationPreference,
+  type DeliveryPolicy,
+  type WebhookConfig,
+  type NotificationMessage,
+} from './notification';
+
+// ── Governance Manager ───────────────────────────────────────
+
+export {
+  GovernanceManager,
+  type ServiceLifecycleState,
+  type ServiceVersion,
+  type LifecycleTransition,
+  type ApprovalStatus,
+  type ApprovalRequest,
+  type ApprovalDecision,
+  type CompliancePolicy,
+  type ComplianceRule,
+  type ComplianceStatus,
+  type ComplianceAssessment,
+  type ImpactAnalysis,
+  type ServiceOwnership,
+} from './governance';
+
+// ── Deployment Manager ───────────────────────────────────────
+
+export {
+  DeploymentManager,
+  type CompositeState,
+  type EnvironmentType,
+  type ComponentType,
+  type CompositeDefinition,
+  type CompositeComponent,
+  type CompositeService,
+  type CompositeReference,
+  type CompositeWire,
+  type DeploymentPlan,
+  type ResourceMapping,
+  type DeployAction,
+  type DeploymentRecord,
+  type DeploymentLog,
+  type EnvironmentConfig,
+} from './deployment';
+
 // ── Engine Plugin ────────────────────────────────────────────
 
 export {

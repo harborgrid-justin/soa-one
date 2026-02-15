@@ -25,6 +25,21 @@ router.get('/topics', (_req, res) => {
   res.json(topics);
 });
 
+router.get('/topics/:name', (req, res) => {
+  const dqm = getDQM();
+  const topic = dqm.messaging.getTopic(String(req.params.name));
+  if (!topic) return res.status(404).json({ error: 'Topic not found' });
+  const stats = topic.getStats();
+  res.json({
+    name: topic.name,
+    type: topic.type,
+    config: topic.config,
+    subscriptionCount: topic.subscriptionCount,
+    messageBacklog: topic.messageBacklog,
+    stats,
+  });
+});
+
 router.post('/topics', (req, res) => {
   const dqm = getDQM();
   const config = req.body;
@@ -36,8 +51,64 @@ router.post('/topics', (req, res) => {
 
 router.delete('/topics/:name', (req, res) => {
   const dqm = getDQM();
-  dqm.messaging.deleteTopic(req.params.name);
+  dqm.messaging.deleteTopic(String(req.params.name));
   res.json({ success: true });
+});
+
+// Update topic config via delete + recreate
+router.put('/topics/:name', (req, res) => {
+  const dqm = getDQM();
+  const name = String(req.params.name);
+  const existing = dqm.messaging.getTopic(name);
+  if (!existing) return res.status(404).json({ error: 'Topic not found' });
+  dqm.messaging.deleteTopic(name);
+  const config = { ...req.body, name };
+  if (!config.type) config.type = 'standard';
+  const topic = dqm.messaging.createTopic(config);
+  res.json({ name: topic.name, type: topic.type });
+});
+
+router.post('/topics/:name/publish', (req, res) => {
+  const dqm = getDQM();
+  const { body: msgBody, options } = req.body;
+  const message = dqm.messaging.publish(String(req.params.name), msgBody, options);
+  res.status(201).json(message);
+});
+
+router.post('/topics/:name/purge', (req, res) => {
+  const dqm = getDQM();
+  const topic = dqm.messaging.getTopic(String(req.params.name));
+  if (!topic) return res.status(404).json({ error: 'Topic not found' });
+  topic.purge();
+  res.json({ success: true });
+});
+
+router.post('/topics/:name/subscribe', (req, res) => {
+  const dqm = getDQM();
+  const topic = dqm.messaging.getTopic(String(req.params.name));
+  if (!topic) return res.status(404).json({ error: 'Topic not found' });
+  const config = req.body;
+  if (!config.id || !config.name) return res.status(400).json({ error: 'id and name are required' });
+  // Register a no-op handler for API-driven subscriptions
+  const subscription = topic.subscribe(config, (_msg: any) => {});
+  res.status(201).json({ id: subscription.id, name: subscription.name });
+});
+
+router.delete('/topics/:name/subscriptions/:subId', (req, res) => {
+  const dqm = getDQM();
+  const topic = dqm.messaging.getTopic(String(req.params.name));
+  if (!topic) return res.status(404).json({ error: 'Topic not found' });
+  topic.unsubscribe(String(req.params.subId));
+  res.json({ success: true });
+});
+
+router.get('/topics/:name/subscriptions/:subId', (req, res) => {
+  const dqm = getDQM();
+  const topic = dqm.messaging.getTopic(String(req.params.name));
+  if (!topic) return res.status(404).json({ error: 'Topic not found' });
+  const sub = topic.getSubscription(String(req.params.subId));
+  if (!sub) return res.status(404).json({ error: 'Subscription not found' });
+  res.json({ id: sub.id, name: sub.name, backlog: sub.backlog, stats: sub.stats });
 });
 
 // ============================================================
@@ -55,12 +126,25 @@ router.get('/queues', (_req, res) => {
       type: q.type,
       depth: q.depth,
       deadLetterDepth: q.deadLetterDepth,
-      enqueued: stats.enqueued,
-      dequeued: stats.dequeued,
-      acknowledged: stats.acknowledged,
+      enqueued: stats.totalEnqueued,
+      dequeued: stats.totalDequeued,
     };
   });
   res.json(queues);
+});
+
+router.get('/queues/:name', (req, res) => {
+  const dqm = getDQM();
+  const queue = dqm.messaging.getQueue(String(req.params.name));
+  if (!queue) return res.status(404).json({ error: 'Queue not found' });
+  const stats = queue.getStats();
+  res.json({
+    name: queue.name,
+    type: queue.type,
+    depth: queue.depth,
+    deadLetterDepth: queue.deadLetterDepth,
+    stats,
+  });
 });
 
 router.post('/queues', (req, res) => {
@@ -74,8 +158,109 @@ router.post('/queues', (req, res) => {
 
 router.delete('/queues/:name', (req, res) => {
   const dqm = getDQM();
-  dqm.messaging.deleteQueue(req.params.name);
+  dqm.messaging.deleteQueue(String(req.params.name));
   res.json({ success: true });
+});
+
+// Update queue config via delete + recreate
+router.put('/queues/:name', (req, res) => {
+  const dqm = getDQM();
+  const name = String(req.params.name);
+  const existing = dqm.messaging.getQueue(name);
+  if (!existing) return res.status(404).json({ error: 'Queue not found' });
+  dqm.messaging.deleteQueue(name);
+  const config = { ...req.body, name };
+  if (!config.type) config.type = 'standard';
+  const queue = dqm.messaging.createQueue(config);
+  res.json({ name: queue.name, type: queue.type });
+});
+
+router.post('/queues/:name/enqueue', (req, res) => {
+  const dqm = getDQM();
+  const { body: msgBody, options } = req.body;
+  const message = dqm.messaging.enqueue(String(req.params.name), msgBody, options);
+  res.status(201).json(message);
+});
+
+router.post('/queues/:name/dequeue', (req, res) => {
+  const dqm = getDQM();
+  const queue = dqm.messaging.getQueue(String(req.params.name));
+  if (!queue) return res.status(404).json({ error: 'Queue not found' });
+  const message = queue.dequeue();
+  if (!message) return res.status(204).json(null);
+  res.json(message);
+});
+
+router.get('/queues/:name/peek', (req, res) => {
+  const dqm = getDQM();
+  const queue = dqm.messaging.getQueue(String(req.params.name));
+  if (!queue) return res.status(404).json({ error: 'Queue not found' });
+  const message = queue.peek();
+  if (!message) return res.status(204).json(null);
+  res.json(message);
+});
+
+router.post('/queues/:name/purge', (req, res) => {
+  const dqm = getDQM();
+  const queue = dqm.messaging.getQueue(String(req.params.name));
+  if (!queue) return res.status(404).json({ error: 'Queue not found' });
+  queue.purge();
+  res.json({ success: true });
+});
+
+router.post('/queues/:name/messages/:messageId/acknowledge', (req, res) => {
+  const dqm = getDQM();
+  const queue = dqm.messaging.getQueue(String(req.params.name));
+  if (!queue) return res.status(404).json({ error: 'Queue not found' });
+  queue.acknowledge(String(req.params.messageId));
+  res.json({ success: true });
+});
+
+router.post('/queues/:name/messages/:messageId/reject', (req, res) => {
+  const dqm = getDQM();
+  const queue = dqm.messaging.getQueue(String(req.params.name));
+  if (!queue) return res.status(404).json({ error: 'Queue not found' });
+  queue.reject(String(req.params.messageId));
+  res.json({ success: true });
+});
+
+router.post('/queues/:name/consumers', (req, res) => {
+  const dqm = getDQM();
+  const queue = dqm.messaging.getQueue(String(req.params.name));
+  if (!queue) return res.status(404).json({ error: 'Queue not found' });
+  const { id } = req.body;
+  if (!id) return res.status(400).json({ error: 'id is required' });
+  // Register a no-op handler for API-driven consumers
+  queue.registerConsumer(id, (_msg: any) => {});
+  res.status(201).json({ success: true, consumerId: id });
+});
+
+router.delete('/queues/:name/consumers/:consumerId', (req, res) => {
+  const dqm = getDQM();
+  const queue = dqm.messaging.getQueue(String(req.params.name));
+  if (!queue) return res.status(404).json({ error: 'Queue not found' });
+  queue.unregisterConsumer(String(req.params.consumerId));
+  res.json({ success: true });
+});
+
+// ============================================================
+// DQM Messaging Stats
+// ============================================================
+
+router.get('/messaging/stats', (_req, res) => {
+  const dqm = getDQM();
+  res.json(dqm.messaging.getStats());
+});
+
+router.get('/messaging/counters', (_req, res) => {
+  const dqm = getDQM();
+  res.json({
+    topicCount: dqm.messaging.topicCount,
+    queueCount: dqm.messaging.queueCount,
+    totalMessagesPublished: dqm.messaging.totalMessagesPublished,
+    totalMessagesDelivered: dqm.messaging.totalMessagesDelivered,
+    totalMessagesDeadLettered: dqm.messaging.totalMessagesDeadLettered,
+  });
 });
 
 // ============================================================

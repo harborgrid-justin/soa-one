@@ -64,6 +64,12 @@ import dqmRoutes from './routes/dqm';
 import soaRoutes from './routes/soa';
 // V15: IAM routes
 import iamRoutes from './routes/iam';
+// V16: Tier 2 routes — MFT, Business Rules, BPM, SOA-ext, ESB-ext
+import mftRoutes from './routes/mft';
+import businessRulesRoutes from './routes/business-rules';
+import bpmRoutes from './routes/bpm';
+import soaTier2Routes from './routes/soa-tier2';
+import esbTier2Routes from './routes/esb-tier2';
 import { prisma } from './prisma';
 import { openApiSpec } from './openapi';
 
@@ -216,6 +222,13 @@ export async function createApp() {
   // V15: IAM routes
   app.use('/api/v1/iam', iamRoutes);
 
+  // V16: Tier 2 — MFT, Business Rules, BPM, SOA extensions, ESB extensions
+  app.use('/api/v1/mft', mftRoutes);
+  app.use('/api/v1/business-rules', businessRulesRoutes);
+  app.use('/api/v1/bpm', bpmRoutes);
+  app.use('/api/v1/soa-ext', soaTier2Routes);
+  app.use('/api/v1/esb-ext', esbTier2Routes);
+
   // GraphQL
   const apollo = new ApolloServer({ typeDefs, resolvers });
   await apollo.start();
@@ -224,7 +237,7 @@ export async function createApp() {
     expressMiddleware(apollo, {
       context: async ({ req }) => ({
         prisma,
-        user: req.user,
+        user: (req as AuthRequest).user,
       }),
     }),
   );

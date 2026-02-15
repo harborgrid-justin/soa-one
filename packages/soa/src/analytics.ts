@@ -402,6 +402,30 @@ export class BAMEngine {
     this._onKPIUpdated.push(cb);
   }
 
+  /**
+   * Update an existing dashboard.
+   */
+  updateDashboard(dashboardId: string, updates: { name?: string; kpiIds?: string[]; shared?: boolean }): BAMDashboard {
+    const d = this._dashboards.get(dashboardId);
+    if (!d) throw new Error(`Dashboard not found: ${dashboardId}`);
+    if (updates.name !== undefined) d.name = updates.name;
+    if (updates.kpiIds !== undefined) d.kpiIds = [...updates.kpiIds];
+    if (updates.shared !== undefined) d.shared = updates.shared;
+    return d;
+  }
+
+  /**
+   * Remove a dashboard.
+   */
+  removeDashboard(dashboardId: string): boolean {
+    return this._dashboards.delete(dashboardId);
+  }
+
+  /** All registered alert rules. */
+  get allAlertRules(): BAMAlertRule[] {
+    return Array.from(this._alertRules.values());
+  }
+
   // ── Aggregate Accessors ──────────────────────────────────
 
   /** All registered KPI definitions. */

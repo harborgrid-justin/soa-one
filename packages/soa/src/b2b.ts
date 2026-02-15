@@ -142,6 +142,23 @@ export class B2BGateway {
   }
 
   /**
+   * Update a trading partner.
+   */
+  updatePartner(partnerId: string, updates: Partial<TradingPartner>): TradingPartner {
+    const partner = this._partners.get(partnerId);
+    if (!partner) throw new Error(`Partner not found: ${partnerId}`);
+    Object.assign(partner, updates, { id: partner.id });
+    return partner;
+  }
+
+  /**
+   * Remove a trading partner.
+   */
+  removePartner(partnerId: string): boolean {
+    return this._partners.delete(partnerId);
+  }
+
+  /**
    * Get all trading partners whose status is `'active'`.
    *
    * @returns An array of active trading partners.
@@ -211,6 +228,23 @@ export class B2BGateway {
       result.push(agreement);
     }
     return result;
+  }
+
+  /**
+   * Update a trading partner agreement.
+   */
+  updateAgreement(agreementId: string, updates: Partial<TradingPartnerAgreement>): TradingPartnerAgreement {
+    const agreement = this._agreements.get(agreementId);
+    if (!agreement) throw new Error(`Agreement not found: ${agreementId}`);
+    Object.assign(agreement, updates, { id: agreement.id });
+    return agreement;
+  }
+
+  /**
+   * Remove a trading partner agreement.
+   */
+  removeAgreement(agreementId: string): boolean {
+    return this._agreements.delete(agreementId);
   }
 
   // ── Document Exchange ───────────────────────────────────
