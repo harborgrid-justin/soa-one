@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Activity, AlertTriangle, CheckCircle, Clock } from 'lucide-react';
+import { Activity, AlertTriangle, CheckCircle } from 'lucide-react';
 import { getDIAlerts, getDIPipelineHealth, getDIMetrics } from '../api/client';
 import type { DIDashboardData } from '../types';
 

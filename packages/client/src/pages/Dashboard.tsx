@@ -67,10 +67,10 @@ export function Dashboard() {
     { label: 'Avg Response', value: `${stats?.avgExecutionTimeMs ?? 0}ms`, icon: <Clock className="w-5 h-5" />, iconColor: 'text-amber-600 bg-amber-50' },
   ];
 
-  const pendingApprovals = (stats as any)?.pendingApprovals ?? 0;
-  const unreadNotifications = (stats as any)?.unreadNotifications ?? 0;
-  const simulations = (stats as any)?.simulations ?? 0;
-  const templates = (stats as any)?.templates ?? 0;
+  const pendingApprovals = stats?.pendingApprovals ?? 0;
+  const unreadNotifications = stats?.unreadNotifications ?? 0;
+  const simulations = stats?.simulations ?? 0;
+  const templates = stats?.templates ?? 0;
 
   return (
     <div className="space-y-6">

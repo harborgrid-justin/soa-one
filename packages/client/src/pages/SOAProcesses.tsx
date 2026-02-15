@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Workflow, CheckCircle, Play } from 'lucide-react';
+import { Workflow, CheckCircle } from 'lucide-react';
 import { getSOAProcesses } from '../api/client';
 
 export function SOAProcesses() {

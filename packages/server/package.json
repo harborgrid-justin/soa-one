@@ -13,6 +13,7 @@
   },
   "dependencies": {
     "@apollo/server": "^5.4.0",
+    "@as-integrations/express5": "^1.1.2",
     "@prisma/client": "^7.4.0",
     "@soa-one/cms": "*",
     "@soa-one/di": "*",

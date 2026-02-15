@@ -39,7 +39,7 @@ projectRoutes.post('/', validateBody(createProjectSchema), async (req, res) => {
 projectRoutes.put('/:id', validateBody(updateProjectSchema), async (req, res) => {
   const { name, description } = req.body;
   const project = await prisma.project.update({
-    where: { id: req.params.id },
+    where: { id: String(req.params.id) },
     data: { name, description },
   });
   res.json(project);

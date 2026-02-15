@@ -93,8 +93,8 @@ auditRoutes.get('/', requireAuth, async (req: AuthRequest, res) => {
 auditRoutes.get('/entity/:entity/:entityId', requireAuth, async (req: AuthRequest, res) => {
   const logs = await prisma.auditLog.findMany({
     where: {
-      entity: req.params.entity,
-      entityId: req.params.entityId,
+      entity: String(req.params.entity),
+      entityId: String(req.params.entityId),
     },
     orderBy: { createdAt: 'desc' },
     take: 100,

@@ -18,8 +18,8 @@ router.get('/topics', (_req, res) => {
       type: t.type,
       subscriptionCount: t.subscriptionCount,
       messageBacklog: t.messageBacklog,
-      published: stats.published,
-      delivered: stats.delivered,
+      published: stats.totalPublished,
+      delivered: stats.totalDelivered,
     };
   });
   res.json(topics);
@@ -55,9 +55,9 @@ router.get('/queues', (_req, res) => {
       type: q.type,
       depth: q.depth,
       deadLetterDepth: q.deadLetterDepth,
-      enqueued: stats.enqueued,
-      dequeued: stats.dequeued,
-      acknowledged: stats.acknowledged,
+      enqueued: stats.totalEnqueued,
+      dequeued: stats.totalDequeued,
+      acknowledged: stats.totalDequeued - stats.totalDeadLettered,
     };
   });
   res.json(queues);
