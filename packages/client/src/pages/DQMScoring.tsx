@@ -1,106 +1,75 @@
 import { useEffect, useState } from 'react';
-import { BarChart3, TrendingUp, TrendingDown, Minus } from 'lucide-react';
+import { BarChart3 } from 'lucide-react';
 import { getDQMCurrentScore, getDQMScoreHistory, getDQMScoreTrend, getDQMScoreWeights } from '../api/client';
 
 export function DQMScoring() {
   const [score, setScore] = useState<any>(null);
   const [history, setHistory] = useState<any[]>([]);
-  const [trend, setTrend] = useState<string>('stable');
-  const [weights, setWeights] = useState<any[]>([]);
+  const [trend, setTrend] = useState<any>(null);
+  const [weights, setWeights] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    Promise.all([getDQMCurrentScore(), getDQMScoreHistory(), getDQMScoreTrend(), getDQMScoreWeights()])
-      .then(([s, h, t, w]) => { setScore(s); setHistory(h); setTrend(t.trend); setWeights(w); })
-      .catch(() => {})
+    Promise.all([getDQMCurrentScore().catch(() => null), getDQMScoreHistory().catch(() => []), getDQMScoreTrend().catch(() => null), getDQMScoreWeights().catch(() => null)])
+      .then(([s, h, t, w]) => { setScore(s); setHistory(Array.isArray(h) ? h : []); setTrend(t); setWeights(w); })
       .finally(() => setLoading(false));
   }, []);
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <div className="w-8 h-8 border-2 border-brand-600 border-t-transparent rounded-full animate-spin" />
-      </div>
-    );
-  }
-
-  const overall = score?.overall ?? 0;
-  const scoreColor = overall >= 0.9 ? 'text-green-600' : overall >= 0.7 ? 'text-amber-600' : 'text-red-600';
-  const TrendIcon = trend === 'improving' ? TrendingUp : trend === 'degrading' ? TrendingDown : Minus;
-  const trendColor = trend === 'improving' ? 'text-green-600' : trend === 'degrading' ? 'text-red-600' : 'text-slate-500';
+  if (loading) return <div className="flex items-center justify-center h-64"><div className="w-8 h-8 border-2 border-brand-600 border-t-transparent rounded-full animate-spin" /></div>;
 
   return (
     <div className="space-y-6">
-      <div>
-        <p className="text-sm text-slate-500">Quality scoring across 8 dimensions — completeness, accuracy, consistency, timeliness, uniqueness, validity, integrity, conformity.</p>
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="card p-6 text-center">
-          <div className="text-xs text-slate-500 mb-2">Overall Quality Score</div>
-          <div className={`text-4xl font-bold ${scoreColor}`}>{(overall * 100).toFixed(1)}%</div>
-          <div className="text-sm text-slate-500 mt-1">Grade: {score?.grade ?? 'N/A'}</div>
-        </div>
-        <div className="card p-6 text-center">
-          <div className="text-xs text-slate-500 mb-2">Trend</div>
-          <div className="flex items-center justify-center gap-2">
-            <TrendIcon className={`w-8 h-8 ${trendColor}`} />
-            <div className={`text-2xl font-bold capitalize ${trendColor}`}>{trend}</div>
+      {score && (
+        <div className="card p-6">
+          <div className="flex items-center gap-4 mb-4">
+            <div className={`w-20 h-20 rounded-full flex items-center justify-center text-3xl font-bold ${(score.overall ?? 0) >= 80 ? 'bg-emerald-50 text-emerald-700' : (score.overall ?? 0) >= 60 ? 'bg-amber-50 text-amber-700' : 'bg-red-50 text-red-700'}`}>{score.overall ?? 0}%</div>
+            <div><div className="text-lg font-semibold text-slate-900">Overall Quality Score</div><div className="text-sm text-slate-500">Grade: {score.grade || 'N/A'} · {score.ruleCount ?? 0} rules evaluated</div></div>
           </div>
-        </div>
-        <div className="card p-6 text-center">
-          <div className="text-xs text-slate-500 mb-2">Score History</div>
-          <div className="text-4xl font-bold text-slate-900">{history.length}</div>
-          <div className="text-xs text-slate-400 mt-1">data points</div>
-        </div>
-      </div>
-
-      {/* Dimension Weights */}
-      {weights.length > 0 && (
-        <div className="card">
-          <div className="px-6 py-4 border-b border-slate-100">
-            <h2 className="font-semibold text-slate-900">Dimension Weights</h2>
-          </div>
-          <div className="divide-y divide-slate-100">
-            {weights.map((w: any) => (
-              <div key={w.dimension} className="px-6 py-3 flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <BarChart3 className="w-4 h-4 text-blue-500" />
-                  <div className="text-sm font-medium text-slate-900 capitalize">{w.dimension}</div>
-                </div>
-                <div className="flex items-center gap-3">
-                  <div className="w-32 h-2 bg-slate-100 rounded-full overflow-hidden">
-                    <div
-                      className="h-full bg-brand-600 rounded-full"
-                      style={{ width: `${(w.weight / Math.max(...weights.map((x: any) => x.weight))) * 100}%` }}
-                    />
-                  </div>
-                  <span className="text-sm text-slate-600 w-10 text-right">{w.weight}</span>
-                </div>
+          {score.dimensions && (
+            <div className="grid grid-cols-4 gap-3">{Object.entries(score.dimensions).map(([k, v]: any) => (
+              <div key={k} className="text-center p-3 bg-slate-50 rounded-lg">
+                <div className="text-xl font-bold">{v ?? 0}%</div>
+                <div className="text-xs text-slate-500 capitalize">{k}</div>
+                <div className="mt-1 h-1.5 bg-slate-200 rounded-full overflow-hidden"><div className={`h-full rounded-full ${v >= 80 ? 'bg-emerald-500' : v >= 60 ? 'bg-amber-500' : 'bg-red-500'}`} style={{ width: `${v ?? 0}%` }} /></div>
               </div>
-            ))}
-          </div>
+            ))}</div>
+          )}
         </div>
       )}
 
-      {/* Score History */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {trend && (
+          <div className="card p-6">
+            <h3 className="font-semibold text-slate-900 mb-4 flex items-center gap-2"><BarChart3 className="w-4 h-4" /> Score Trend</h3>
+            <div className="space-y-2 text-sm text-slate-600">
+              <div>Direction: <span className={`font-medium ${trend.direction === 'improving' ? 'text-emerald-600' : trend.direction === 'declining' ? 'text-red-600' : 'text-slate-600'}`}>{trend.direction || 'stable'}</span></div>
+              {trend.change != null && <div>Change: {trend.change > 0 ? '+' : ''}{trend.change}%</div>}
+            </div>
+          </div>
+        )}
+
+        {weights && (
+          <div className="card p-6">
+            <h3 className="font-semibold text-slate-900 mb-4">Dimension Weights</h3>
+            <div className="space-y-2">{Object.entries(weights).map(([k, v]: any) => (
+              <div key={k} className="flex items-center justify-between text-sm">
+                <span className="capitalize text-slate-600">{k}</span>
+                <span className="font-medium text-slate-900">{v}%</span>
+              </div>
+            ))}</div>
+          </div>
+        )}
+      </div>
+
       {history.length > 0 && (
-        <div className="card">
-          <div className="px-6 py-4 border-b border-slate-100">
-            <h2 className="font-semibold text-slate-900">Score History (Last {Math.min(history.length, 10)})</h2>
-          </div>
-          <div className="divide-y divide-slate-100">
-            {history.slice(-10).reverse().map((entry: any, i: number) => {
-              const s = entry.score?.overall ?? entry.overall ?? 0;
-              const c = s >= 0.9 ? 'text-green-600' : s >= 0.7 ? 'text-amber-600' : 'text-red-600';
-              return (
-                <div key={i} className="px-6 py-3 flex items-center justify-between">
-                  <div className="text-sm text-slate-600">{entry.timestamp ? new Date(entry.timestamp).toLocaleString() : `Entry ${history.length - i}`}</div>
-                  <div className={`text-sm font-bold ${c}`}>{(s * 100).toFixed(1)}%</div>
-                </div>
-              );
-            })}
-          </div>
+        <div className="card p-6">
+          <h3 className="font-semibold text-slate-900 mb-4">Score History</h3>
+          <div className="space-y-2 max-h-60 overflow-y-auto">{history.map((h, i) => (
+            <div key={i} className="flex items-center justify-between text-sm py-1 border-b border-slate-50">
+              <span className="text-slate-500">{h.date || h.timestamp ? new Date(h.date || h.timestamp).toLocaleDateString() : `Entry ${i + 1}`}</span>
+              <span className={`font-semibold ${(h.score ?? h.overall ?? 0) >= 80 ? 'text-emerald-600' : (h.score ?? h.overall ?? 0) >= 60 ? 'text-amber-600' : 'text-red-600'}`}>{h.score ?? h.overall ?? 0}%</span>
+            </div>
+          ))}</div>
         </div>
       )}
     </div>

@@ -1,7 +1,7 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, DragEvent } from 'react';
 import {
   FileText, Plus, Trash2, FolderOpen, Eye, Lock,
-  CheckCircle, Clock, Search, Filter,
+  CheckCircle, Clock, Filter, Pencil, Save, Upload, X,
 } from 'lucide-react';
 import { getCMSDocuments, createCMSDocument, updateCMSDocument, deleteCMSDocument, getCMSFolders, createCMSFolder } from '../api/client';
 import { Modal } from '../components/common/Modal';
@@ -34,6 +34,8 @@ const STATUS_LABELS: Record<string, { label: string; color: string }> = {
   suspended: { label: 'Suspended', color: 'badge-red' },
 };
 
+const SECURITY_LEVELS = ['public', 'internal', 'confidential', 'restricted', 'top-secret'];
+
 export function CMSDocuments() {
   const [documents, setDocuments] = useState<CMSDocument[]>([]);
   const [folders, setFolders] = useState<CMSFolder[]>([]);
@@ -45,8 +47,16 @@ export function CMSDocuments() {
   const [newName, setNewName] = useState('');
   const [newDescription, setNewDescription] = useState('');
   const [newCategory, setNewCategory] = useState<CMSDocumentCategory>('document');
+  const [newFolderId, setNewFolderId] = useState('');
   const [newFolderName, setNewFolderName] = useState('');
   const [detailDoc, setDetailDoc] = useState<CMSDocument | null>(null);
+  const [editingDoc, setEditingDoc] = useState<CMSDocument | null>(null);
+  const [editName, setEditName] = useState('');
+  const [editDescription, setEditDescription] = useState('');
+  const [editCategory, setEditCategory] = useState<CMSDocumentCategory>('document');
+  const [editTags, setEditTags] = useState('');
+  const [editSecurity, setEditSecurity] = useState('internal');
+  const [dragOverFolder, setDragOverFolder] = useState<string | null>(null);
   const { addNotification } = useStore();
 
   const load = () => {
@@ -65,12 +75,12 @@ export function CMSDocuments() {
   const handleCreate = async () => {
     if (!newName.trim()) return;
     try {
-      await createCMSDocument({ name: newName.trim(), description: newDescription, category: newCategory });
+      const data: any = { name: newName.trim(), description: newDescription, category: newCategory };
+      if (newFolderId) data.folderId = newFolderId;
+      await createCMSDocument(data);
       addNotification({ type: 'success', message: 'Document created' });
       setShowCreate(false);
-      setNewName('');
-      setNewDescription('');
-      setNewCategory('document');
+      setNewName(''); setNewDescription(''); setNewCategory('document'); setNewFolderId('');
       load();
     } catch {
       addNotification({ type: 'error', message: 'Failed to create document' });
@@ -95,6 +105,7 @@ export function CMSDocuments() {
     try {
       await deleteCMSDocument(id);
       addNotification({ type: 'success', message: 'Document deleted' });
+      if (detailDoc?.id === id) setDetailDoc(null);
       load();
     } catch {
       addNotification({ type: 'error', message: 'Failed to delete document' });
@@ -111,6 +122,63 @@ export function CMSDocuments() {
     }
   };
 
+  const openEdit = (doc: CMSDocument) => {
+    setEditingDoc(doc);
+    setEditName(doc.name);
+    setEditDescription(doc.description || '');
+    setEditCategory(doc.category);
+    setEditTags((doc.tags || []).join(', '));
+    setEditSecurity(doc.securityLevel || 'internal');
+  };
+
+  const handleSaveEdit = async () => {
+    if (!editingDoc || !editName.trim()) return;
+    try {
+      await updateCMSDocument(editingDoc.id, {
+        name: editName.trim(),
+        description: editDescription,
+        category: editCategory,
+        tags: editTags.split(',').map(t => t.trim()).filter(Boolean),
+        securityLevel: editSecurity,
+      });
+      addNotification({ type: 'success', message: 'Document updated' });
+      setEditingDoc(null);
+      load();
+    } catch {
+      addNotification({ type: 'error', message: 'Failed to update document' });
+    }
+  };
+
+  // Drag and drop handlers
+  const handleDragStart = (e: DragEvent<HTMLDivElement>, docId: string) => {
+    e.dataTransfer.setData('text/plain', docId);
+    e.dataTransfer.effectAllowed = 'move';
+  };
+
+  const handleDragOver = (e: DragEvent<HTMLDivElement>, folderId: string) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    setDragOverFolder(folderId);
+  };
+
+  const handleDragLeave = () => {
+    setDragOverFolder(null);
+  };
+
+  const handleDrop = async (e: DragEvent<HTMLDivElement>, folderId: string) => {
+    e.preventDefault();
+    setDragOverFolder(null);
+    const docId = e.dataTransfer.getData('text/plain');
+    if (!docId) return;
+    try {
+      await updateCMSDocument(docId, { folderId });
+      addNotification({ type: 'success', message: 'Document moved to folder' });
+      load();
+    } catch {
+      addNotification({ type: 'error', message: 'Failed to move document' });
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -122,7 +190,7 @@ export function CMSDocuments() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <p className="text-sm text-slate-500">Manage documents, folders, and content across your organization.</p>
+        <p className="text-sm text-slate-500">Manage documents, folders, and content. Drag documents onto folders to organize.</p>
         <div className="flex items-center gap-2">
           <button onClick={() => setShowCreateFolder(true)} className="btn-secondary btn-sm">
             <FolderOpen className="w-3.5 h-3.5" /> New Folder
@@ -146,12 +214,18 @@ export function CMSDocuments() {
         </select>
       </div>
 
-      {/* Folders */}
+      {/* Folders — drop targets */}
       {folders.length > 0 && (
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
           {folders.map((folder) => (
-            <div key={folder.id} className="card p-4 hover:shadow-md transition-shadow cursor-pointer">
-              <FolderOpen className="w-8 h-8 text-amber-500 mb-2" />
+            <div
+              key={folder.id}
+              className={`card p-4 hover:shadow-md transition-all cursor-pointer ${dragOverFolder === folder.id ? 'ring-2 ring-brand-500 bg-brand-50 scale-105' : ''}`}
+              onDragOver={(e) => handleDragOver(e, folder.id)}
+              onDragLeave={handleDragLeave}
+              onDrop={(e) => handleDrop(e, folder.id)}
+            >
+              <FolderOpen className={`w-8 h-8 mb-2 ${dragOverFolder === folder.id ? 'text-brand-500' : 'text-amber-500'}`} />
               <div className="text-sm font-medium text-slate-900 truncate">{folder.name}</div>
               <div className="text-xs text-slate-400">{folder._count?.documents ?? 0} docs</div>
             </div>
@@ -159,14 +233,19 @@ export function CMSDocuments() {
         </div>
       )}
 
-      {/* Documents List */}
+      {/* Documents List — draggable */}
       {documents.length > 0 ? (
         <div className="card divide-y divide-slate-100">
           {documents.map((doc) => {
             const catMeta = CATEGORY_LABELS[doc.category] || CATEGORY_LABELS.document;
             const statusMeta = STATUS_LABELS[doc.status] || STATUS_LABELS.draft;
             return (
-              <div key={doc.id} className="px-6 py-4 flex items-center justify-between group">
+              <div
+                key={doc.id}
+                className="px-6 py-4 flex items-center justify-between group cursor-grab active:cursor-grabbing"
+                draggable
+                onDragStart={(e) => handleDragStart(e, doc.id)}
+              >
                 <div className="flex items-center gap-4">
                   <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${catMeta.color}`}>
                     <FileText className="w-5 h-5" />
@@ -195,15 +274,16 @@ export function CMSDocuments() {
                     {new Date(doc.updatedAt).toLocaleDateString()}
                   </span>
                   {doc.status === 'draft' && (
-                    <button onClick={() => handleStatusChange(doc, 'pending-review')} className="btn-secondary btn-sm">
-                      Submit Review
-                    </button>
+                    <button onClick={() => handleStatusChange(doc, 'pending-review')} className="btn-secondary btn-sm">Submit Review</button>
                   )}
                   {doc.status === 'in-review' && (
                     <button onClick={() => handleStatusChange(doc, 'approved')} className="btn-secondary btn-sm">
                       <CheckCircle className="w-3.5 h-3.5" /> Approve
                     </button>
                   )}
+                  <button onClick={() => openEdit(doc)} className="p-1.5 rounded hover:bg-slate-100 text-slate-400 hover:text-slate-700">
+                    <Pencil className="w-4 h-4" />
+                  </button>
                   <button onClick={() => setDetailDoc(doc)} className="p-1.5 rounded hover:bg-slate-100 text-slate-400 hover:text-slate-700">
                     <Eye className="w-4 h-4" />
                   </button>
@@ -220,9 +300,7 @@ export function CMSDocuments() {
           <FileText className="w-10 h-10 text-slate-300 mx-auto mb-3" />
           <h3 className="font-semibold text-slate-900 mb-1">No documents yet</h3>
           <p className="text-sm text-slate-500 mb-4">Upload or create a document to get started.</p>
-          <button onClick={() => setShowCreate(true)} className="btn-primary">
-            <Plus className="w-4 h-4" /> Create Document
-          </button>
+          <button onClick={() => setShowCreate(true)} className="btn-primary"><Plus className="w-4 h-4" /> Create Document</button>
         </div>
       )}
 
@@ -243,6 +321,15 @@ export function CMSDocuments() {
               {Object.entries(CATEGORY_LABELS).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
             </select>
           </div>
+          {folders.length > 0 && (
+            <div>
+              <label className="label">Folder (optional)</label>
+              <select className="input" value={newFolderId} onChange={(e) => setNewFolderId(e.target.value)}>
+                <option value="">No folder (root)</option>
+                {folders.map((f) => <option key={f.id} value={f.id}>{f.name}</option>)}
+              </select>
+            </div>
+          )}
           <div className="flex justify-end gap-3 pt-2">
             <button onClick={() => setShowCreate(false)} className="btn-secondary">Cancel</button>
             <button onClick={handleCreate} className="btn-primary" disabled={!newName.trim()}>Create</button>
@@ -264,10 +351,51 @@ export function CMSDocuments() {
         </div>
       </Modal>
 
+      {/* Edit Document Modal */}
+      <Modal open={!!editingDoc} onClose={() => setEditingDoc(null)} title="Edit Document">
+        <div className="space-y-4">
+          <div>
+            <label className="label">Name</label>
+            <input className="input" value={editName} onChange={(e) => setEditName(e.target.value)} />
+          </div>
+          <div>
+            <label className="label">Description</label>
+            <textarea className="input" rows={2} value={editDescription} onChange={(e) => setEditDescription(e.target.value)} />
+          </div>
+          <div>
+            <label className="label">Category</label>
+            <select className="input" value={editCategory} onChange={(e) => setEditCategory(e.target.value as CMSDocumentCategory)}>
+              {Object.entries(CATEGORY_LABELS).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
+            </select>
+          </div>
+          <div>
+            <label className="label">Tags (comma-separated)</label>
+            <input className="input" placeholder="e.g., legal, important, review" value={editTags} onChange={(e) => setEditTags(e.target.value)} />
+          </div>
+          <div>
+            <label className="label">Security Level</label>
+            <select className="input" value={editSecurity} onChange={(e) => setEditSecurity(e.target.value)}>
+              {SECURITY_LEVELS.map((lvl) => <option key={lvl} value={lvl}>{lvl.charAt(0).toUpperCase() + lvl.slice(1)}</option>)}
+            </select>
+          </div>
+          <div className="flex justify-end gap-3 pt-2">
+            <button onClick={() => setEditingDoc(null)} className="btn-secondary">Cancel</button>
+            <button onClick={handleSaveEdit} className="btn-primary" disabled={!editName.trim()}>
+              <Save className="w-3.5 h-3.5" /> Save Changes
+            </button>
+          </div>
+        </div>
+      </Modal>
+
       {/* Detail Modal */}
       <Modal open={!!detailDoc} onClose={() => setDetailDoc(null)} title={detailDoc?.name || ''}>
         {detailDoc && (
           <div className="space-y-4">
+            <div className="flex gap-2 mb-2">
+              <button onClick={() => { openEdit(detailDoc); setDetailDoc(null); }} className="btn-primary btn-sm">
+                <Pencil className="w-3.5 h-3.5" /> Edit
+              </button>
+            </div>
             <div className="grid grid-cols-2 gap-4 text-sm">
               <div><span className="text-slate-500">Category:</span> <span className="font-medium capitalize">{detailDoc.category}</span></div>
               <div><span className="text-slate-500">Status:</span> <span className="font-medium capitalize">{detailDoc.status}</span></div>
@@ -279,10 +407,7 @@ export function CMSDocuments() {
               <div><span className="text-slate-500">Legal Hold:</span> <span className="font-medium">{detailDoc.legalHold ? 'Yes' : 'No'}</span></div>
             </div>
             {detailDoc.description && (
-              <div>
-                <span className="text-sm text-slate-500">Description:</span>
-                <p className="text-sm mt-1">{detailDoc.description}</p>
-              </div>
+              <div><span className="text-sm text-slate-500">Description:</span><p className="text-sm mt-1">{detailDoc.description}</p></div>
             )}
             {detailDoc.tags && detailDoc.tags.length > 0 && (
               <div>

@@ -156,6 +156,13 @@ router.post('/:id/install', asyncHandler(async (req: any, res) => {
   const content = safeJsonParse(template.content, {});
   let created: any = null;
 
+  const supportedTypes = ['project', 'ruleSet', 'workflow'];
+  if (!supportedTypes.includes(template.type)) {
+    return res.status(400).json({ error: `Unsupported template type: ${template.type}. Supported types: ${supportedTypes.join(', ')}` });
+  }
+
+  try {
+
   if (template.type === 'project') {
     // Create a full project from template content
     const project = await prisma.project.create({
@@ -309,6 +316,13 @@ router.post('/:id/install', asyncHandler(async (req: any, res) => {
       edges: safeJsonParse(workflow.edges, []),
       variables: safeJsonParse(workflow.variables, {}),
     };
+  }
+
+  } catch (err: any) {
+    return res.status(422).json({
+      error: 'Failed to install template',
+      details: err?.message || 'Invalid template content or database constraint violation',
+    });
   }
 
   // Increment downloads count

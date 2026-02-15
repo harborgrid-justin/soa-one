@@ -130,7 +130,7 @@ export function TestSandbox() {
                       <CheckCircle className="w-4 h-4" />
                     </div>
                     <div className="text-lg font-bold text-slate-900">
-                      {Object.keys(result.output).length}
+                      {Object.keys(result.output ?? {}).length}
                     </div>
                     <div className="text-xs text-slate-500">Output Fields</div>
                   </div>

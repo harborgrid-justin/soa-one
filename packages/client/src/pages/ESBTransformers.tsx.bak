@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import {
   Repeat, Plus, Trash2, ToggleLeft, ToggleRight,
-  Layers, Pencil, ChevronUp, ChevronDown, Save,
+  Code2, ArrowRightLeft, Layers,
 } from 'lucide-react';
 import { getESBTransformers, createESBTransformer, updateESBTransformer, deleteESBTransformer } from '../api/client';
 import { Modal } from '../components/common/Modal';
@@ -27,10 +27,6 @@ export function ESBTransformers() {
   const [newName, setNewName] = useState('');
   const [newChannel, setNewChannel] = useState('');
   const [showDetail, setShowDetail] = useState<ESBTransformer | null>(null);
-  const [editingTransformer, setEditingTransformer] = useState<ESBTransformer | null>(null);
-  const [editName, setEditName] = useState('');
-  const [editChannel, setEditChannel] = useState('');
-  const [editPipeline, setEditPipeline] = useState<any[]>([]);
   const { addNotification } = useStore();
 
   const load = () => {
@@ -82,61 +78,6 @@ export function ESBTransformers() {
     }
   };
 
-  const openEdit = (transformer: ESBTransformer) => {
-    setEditingTransformer(transformer);
-    setEditName(transformer.name);
-    setEditChannel(transformer.channel || '');
-    setEditPipeline([...(transformer.pipeline || [])]);
-  };
-
-  const handleSaveEdit = async () => {
-    if (!editingTransformer || !editName.trim()) return;
-    try {
-      await updateESBTransformer(editingTransformer.id, {
-        name: editName.trim(),
-        channel: editChannel.trim() || null,
-        pipeline: editPipeline,
-      });
-      addNotification({ type: 'success', message: 'Transformer updated' });
-      setEditingTransformer(null);
-      load();
-    } catch {
-      addNotification({ type: 'error', message: 'Failed to update transformer' });
-    }
-  };
-
-  const addPipelineStep = () => {
-    setEditPipeline([...editPipeline, { type: 'map', config: {} }]);
-  };
-
-  const removePipelineStep = (index: number) => {
-    setEditPipeline(editPipeline.filter((_, i) => i !== index));
-  };
-
-  const movePipelineStep = (index: number, direction: 'up' | 'down') => {
-    const newPipeline = [...editPipeline];
-    const target = direction === 'up' ? index - 1 : index + 1;
-    if (target < 0 || target >= newPipeline.length) return;
-    [newPipeline[index], newPipeline[target]] = [newPipeline[target], newPipeline[index]];
-    setEditPipeline(newPipeline);
-  };
-
-  const updateStepType = (index: number, type: string) => {
-    const newPipeline = [...editPipeline];
-    newPipeline[index] = { ...newPipeline[index], type };
-    setEditPipeline(newPipeline);
-  };
-
-  const updateStepConfig = (index: number, configStr: string) => {
-    const newPipeline = [...editPipeline];
-    try {
-      newPipeline[index] = { ...newPipeline[index], config: JSON.parse(configStr) };
-    } catch {
-      newPipeline[index] = { ...newPipeline[index], _configStr: configStr };
-    }
-    setEditPipeline(newPipeline);
-  };
-
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -185,9 +126,6 @@ export function ESBTransformers() {
                 </div>
               </div>
               <div className="flex items-center gap-3">
-                <button onClick={() => openEdit(transformer)} className="btn-secondary btn-sm">
-                  <Pencil className="w-3.5 h-3.5" /> Edit
-                </button>
                 <button onClick={() => handleToggle(transformer)} className="btn-secondary btn-sm">
                   {transformer.enabled ? <ToggleRight className="w-4 h-4 text-green-500" /> : <ToggleLeft className="w-4 h-4 text-slate-400" />}
                   {transformer.enabled ? 'On' : 'Off'}
@@ -244,80 +182,9 @@ export function ESBTransformers() {
         </div>
       </Modal>
 
-      {/* Edit Modal */}
-      <Modal open={!!editingTransformer} onClose={() => setEditingTransformer(null)} title="Edit Transformer">
-        <div className="space-y-4">
-          <div>
-            <label className="label">Transformer Name</label>
-            <input className="input" value={editName} onChange={(e) => setEditName(e.target.value)} />
-          </div>
-          <div>
-            <label className="label">Bound Channel (optional)</label>
-            <input className="input" placeholder="Leave empty for reusable" value={editChannel} onChange={(e) => setEditChannel(e.target.value)} />
-          </div>
-          <div>
-            <div className="flex items-center justify-between mb-2">
-              <label className="label mb-0">Pipeline Steps ({editPipeline.length})</label>
-              <button onClick={addPipelineStep} className="btn-secondary btn-sm">
-                <Plus className="w-3 h-3" /> Add Step
-              </button>
-            </div>
-            {editPipeline.length === 0 && (
-              <p className="text-sm text-slate-400 text-center py-4">No pipeline steps. Click &quot;Add Step&quot; to start building.</p>
-            )}
-            <div className="space-y-3 max-h-80 overflow-y-auto">
-              {editPipeline.map((step, i) => (
-                <div key={i} className="p-3 rounded-lg border border-slate-200 bg-slate-50">
-                  <div className="flex items-center gap-2 mb-2">
-                    <span className="w-5 h-5 rounded-full bg-amber-100 text-amber-700 text-xs font-bold flex items-center justify-center">{i + 1}</span>
-                    <select
-                      className="input py-1 text-sm flex-1"
-                      value={step.type}
-                      onChange={(e) => updateStepType(i, e.target.value)}
-                    >
-                      {STEP_TYPES.map((t) => (
-                        <option key={t.value} value={t.value}>{t.label} — {t.desc}</option>
-                      ))}
-                    </select>
-                    <button onClick={() => movePipelineStep(i, 'up')} disabled={i === 0} className="p-1 hover:bg-slate-200 rounded disabled:opacity-30">
-                      <ChevronUp className="w-3.5 h-3.5" />
-                    </button>
-                    <button onClick={() => movePipelineStep(i, 'down')} disabled={i === editPipeline.length - 1} className="p-1 hover:bg-slate-200 rounded disabled:opacity-30">
-                      <ChevronDown className="w-3.5 h-3.5" />
-                    </button>
-                    <button onClick={() => removePipelineStep(i)} className="p-1 hover:bg-red-50 text-red-400 hover:text-red-600 rounded">
-                      <Trash2 className="w-3.5 h-3.5" />
-                    </button>
-                  </div>
-                  <textarea
-                    className="input text-xs font-mono h-16"
-                    placeholder='{"field": "value"}'
-                    defaultValue={JSON.stringify(step.config || {}, null, 2)}
-                    onChange={(e) => updateStepConfig(i, e.target.value)}
-                  />
-                </div>
-              ))}
-            </div>
-          </div>
-          <div className="flex justify-end gap-3 pt-2">
-            <button onClick={() => setEditingTransformer(null)} className="btn-secondary">Cancel</button>
-            <button onClick={handleSaveEdit} className="btn-primary" disabled={!editName.trim()}>
-              <Save className="w-3.5 h-3.5" /> Save Changes
-            </button>
-          </div>
-        </div>
-      </Modal>
-
       {/* Detail Modal */}
       <Modal open={!!showDetail} onClose={() => setShowDetail(null)} title={showDetail?.name || 'Transformer Details'}>
         <div className="space-y-3">
-          {showDetail && (
-            <div className="flex items-center gap-4 mb-2">
-              <button onClick={() => { openEdit(showDetail); setShowDetail(null); }} className="btn-primary btn-sm">
-                <Pencil className="w-3.5 h-3.5" /> Edit Transformer
-              </button>
-            </div>
-          )}
           {showDetail?.pipeline.length ? (
             showDetail.pipeline.map((step: any, i: number) => (
               <div key={i} className="p-3 rounded-lg border border-slate-200 bg-slate-50">

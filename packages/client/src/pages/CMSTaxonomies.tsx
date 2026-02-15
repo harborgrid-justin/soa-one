@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import {
   Tags, Plus, Trash2, ChevronDown, ChevronRight, Settings,
+  Pencil, Save, X,
 } from 'lucide-react';
 import { getCMSTaxonomies, createCMSTaxonomy, updateCMSTaxonomy, deleteCMSTaxonomy } from '../api/client';
 import { Modal } from '../components/common/Modal';
@@ -22,6 +23,16 @@ export function CMSTaxonomies() {
   const [newDescription, setNewDescription] = useState('');
   const [newType, setNewType] = useState('hierarchical');
   const [expanded, setExpanded] = useState<string | null>(null);
+  const [editingTaxonomy, setEditingTaxonomy] = useState<CMSTaxonomy | null>(null);
+  const [editName, setEditName] = useState('');
+  const [editDescription, setEditDescription] = useState('');
+  const [editType, setEditType] = useState('hierarchical');
+  const [editNodes, setEditNodes] = useState<any[]>([]);
+  const [editRules, setEditRules] = useState<any[]>([]);
+  const [newNodeName, setNewNodeName] = useState('');
+  const [newNodeParent, setNewNodeParent] = useState('');
+  const [newRuleName, setNewRuleName] = useState('');
+  const [newRuleCondition, setNewRuleCondition] = useState('');
   const { addNotification } = useStore();
 
   const load = () => {
@@ -40,9 +51,7 @@ export function CMSTaxonomies() {
       await createCMSTaxonomy({ name: newName.trim(), description: newDescription, type: newType });
       addNotification({ type: 'success', message: 'Taxonomy created' });
       setShowCreate(false);
-      setNewName('');
-      setNewDescription('');
-      setNewType('hierarchical');
+      setNewName(''); setNewDescription(''); setNewType('hierarchical');
       load();
     } catch {
       addNotification({ type: 'error', message: 'Failed to create taxonomy' });
@@ -58,6 +67,55 @@ export function CMSTaxonomies() {
     } catch {
       addNotification({ type: 'error', message: 'Failed to delete taxonomy' });
     }
+  };
+
+  const openEdit = (tax: CMSTaxonomy) => {
+    setEditingTaxonomy(tax);
+    setEditName(tax.name);
+    setEditDescription(tax.description || '');
+    setEditType(tax.type);
+    setEditNodes([...(tax.nodes || [])]);
+    setEditRules([...(tax.rules || [])]);
+    setNewNodeName(''); setNewNodeParent('');
+    setNewRuleName(''); setNewRuleCondition('');
+  };
+
+  const handleSaveEdit = async () => {
+    if (!editingTaxonomy || !editName.trim()) return;
+    try {
+      await updateCMSTaxonomy(editingTaxonomy.id, {
+        name: editName.trim(),
+        description: editDescription,
+        type: editType,
+        nodes: editNodes,
+        rules: editRules,
+      });
+      addNotification({ type: 'success', message: 'Taxonomy updated' });
+      setEditingTaxonomy(null);
+      load();
+    } catch {
+      addNotification({ type: 'error', message: 'Failed to update taxonomy' });
+    }
+  };
+
+  const addNode = () => {
+    if (!newNodeName.trim()) return;
+    setEditNodes([...editNodes, { name: newNodeName.trim(), parent: newNodeParent || null }]);
+    setNewNodeName(''); setNewNodeParent('');
+  };
+
+  const removeNode = (index: number) => {
+    setEditNodes(editNodes.filter((_, i) => i !== index));
+  };
+
+  const addRule = () => {
+    if (!newRuleName.trim()) return;
+    setEditRules([...editRules, { name: newRuleName.trim(), condition: newRuleCondition || '' }]);
+    setNewRuleName(''); setNewRuleCondition('');
+  };
+
+  const removeRule = (index: number) => {
+    setEditRules(editRules.filter((_, i) => i !== index));
   };
 
   if (loading) {
@@ -105,6 +163,9 @@ export function CMSTaxonomies() {
                   </div>
                   <div className="flex items-center gap-3">
                     <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${meta.color}`}>{meta.label}</span>
+                    <button onClick={() => openEdit(tax)} className="btn-secondary btn-sm">
+                      <Pencil className="w-3.5 h-3.5" /> Edit
+                    </button>
                     <button onClick={() => handleDelete(tax.id, tax.name)} className="p-1.5 rounded opacity-0 group-hover:opacity-100 hover:bg-red-50 text-slate-400 hover:text-red-600">
                       <Trash2 className="w-4 h-4" />
                     </button>
@@ -123,12 +184,13 @@ export function CMSTaxonomies() {
                               <div key={idx} className="text-sm text-slate-600 flex items-center gap-2">
                                 <Tags className="w-3 h-3 text-slate-400" />
                                 {node.name || node.label || `Node ${idx + 1}`}
+                                {node.parent && <span className="text-xs text-slate-400">({node.parent})</span>}
                               </div>
                             ))}
                             {tax.nodes.length > 10 && <div className="text-xs text-slate-400">+{tax.nodes.length - 10} more</div>}
                           </div>
                         ) : (
-                          <p className="text-sm text-slate-400">No nodes defined</p>
+                          <p className="text-sm text-slate-400">No nodes defined — click Edit to add</p>
                         )}
                       </div>
                       <div>
@@ -143,7 +205,7 @@ export function CMSTaxonomies() {
                             ))}
                           </div>
                         ) : (
-                          <p className="text-sm text-slate-400">No classification rules</p>
+                          <p className="text-sm text-slate-400">No classification rules — click Edit to add</p>
                         )}
                       </div>
                     </div>
@@ -158,9 +220,7 @@ export function CMSTaxonomies() {
           <Tags className="w-10 h-10 text-slate-300 mx-auto mb-3" />
           <h3 className="font-semibold text-slate-900 mb-1">No taxonomies yet</h3>
           <p className="text-sm text-slate-500 mb-4">Create a taxonomy to classify and organize your documents.</p>
-          <button onClick={() => setShowCreate(true)} className="btn-primary">
-            <Plus className="w-4 h-4" /> Create Taxonomy
-          </button>
+          <button onClick={() => setShowCreate(true)} className="btn-primary"><Plus className="w-4 h-4" /> Create Taxonomy</button>
         </div>
       )}
 
@@ -179,13 +239,7 @@ export function CMSTaxonomies() {
             <label className="label">Type</label>
             <div className="space-y-2">
               {Object.entries(TYPE_LABELS).map(([type, meta]) => (
-                <button
-                  key={type}
-                  onClick={() => setNewType(type)}
-                  className={`w-full p-3 rounded-lg border text-left transition-colors ${
-                    newType === type ? 'border-brand-500 bg-brand-50' : 'border-slate-200 hover:border-slate-300'
-                  }`}
-                >
+                <button key={type} onClick={() => setNewType(type)} className={`w-full p-3 rounded-lg border text-left transition-colors ${newType === type ? 'border-brand-500 bg-brand-50' : 'border-slate-200 hover:border-slate-300'}`}>
                   <div className="text-sm font-medium text-slate-900">{meta.label}</div>
                   <div className="text-xs text-slate-500">{meta.desc}</div>
                 </button>
@@ -195,6 +249,83 @@ export function CMSTaxonomies() {
           <div className="flex justify-end gap-3 pt-2">
             <button onClick={() => setShowCreate(false)} className="btn-secondary">Cancel</button>
             <button onClick={handleCreate} className="btn-primary" disabled={!newName.trim()}>Create</button>
+          </div>
+        </div>
+      </Modal>
+
+      {/* Edit Taxonomy Modal */}
+      <Modal open={!!editingTaxonomy} onClose={() => setEditingTaxonomy(null)} title="Edit Taxonomy" size="lg">
+        <div className="space-y-4">
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="label">Name</label>
+              <input className="input" value={editName} onChange={(e) => setEditName(e.target.value)} />
+            </div>
+            <div>
+              <label className="label">Type</label>
+              <select className="input" value={editType} onChange={(e) => setEditType(e.target.value)}>
+                {Object.entries(TYPE_LABELS).map(([t, m]) => <option key={t} value={t}>{m.label}</option>)}
+              </select>
+            </div>
+          </div>
+          <div>
+            <label className="label">Description</label>
+            <textarea className="input" rows={2} value={editDescription} onChange={(e) => setEditDescription(e.target.value)} />
+          </div>
+
+          {/* Nodes editor */}
+          <div>
+            <label className="label">Nodes ({editNodes.length})</label>
+            <div className="space-y-1 max-h-40 overflow-y-auto mb-2">
+              {editNodes.map((node, i) => (
+                <div key={i} className="flex items-center gap-2 text-sm p-2 rounded bg-slate-50 border border-slate-200">
+                  <Tags className="w-3 h-3 text-slate-400" />
+                  <span className="flex-1">{node.name || node.label}</span>
+                  {node.parent && <span className="text-xs text-slate-400">parent: {node.parent}</span>}
+                  <button onClick={() => removeNode(i)} className="p-0.5 hover:bg-red-50 text-red-400 hover:text-red-600 rounded">
+                    <X className="w-3 h-3" />
+                  </button>
+                </div>
+              ))}
+            </div>
+            <div className="flex items-center gap-2">
+              <input className="input py-1 text-sm flex-1" placeholder="Node name" value={newNodeName} onChange={(e) => setNewNodeName(e.target.value)} />
+              <input className="input py-1 text-sm w-32" placeholder="Parent (opt)" value={newNodeParent} onChange={(e) => setNewNodeParent(e.target.value)} />
+              <button onClick={addNode} className="btn-secondary btn-sm" disabled={!newNodeName.trim()}>
+                <Plus className="w-3 h-3" /> Add
+              </button>
+            </div>
+          </div>
+
+          {/* Rules editor */}
+          <div>
+            <label className="label">Classification Rules ({editRules.length})</label>
+            <div className="space-y-1 max-h-32 overflow-y-auto mb-2">
+              {editRules.map((rule, i) => (
+                <div key={i} className="flex items-center gap-2 text-sm p-2 rounded bg-slate-50 border border-slate-200">
+                  <Settings className="w-3 h-3 text-slate-400" />
+                  <span className="flex-1">{rule.name}</span>
+                  {rule.condition && <span className="text-xs text-slate-400 truncate max-w-[120px]">{rule.condition}</span>}
+                  <button onClick={() => removeRule(i)} className="p-0.5 hover:bg-red-50 text-red-400 hover:text-red-600 rounded">
+                    <X className="w-3 h-3" />
+                  </button>
+                </div>
+              ))}
+            </div>
+            <div className="flex items-center gap-2">
+              <input className="input py-1 text-sm flex-1" placeholder="Rule name" value={newRuleName} onChange={(e) => setNewRuleName(e.target.value)} />
+              <input className="input py-1 text-sm w-40" placeholder="Condition" value={newRuleCondition} onChange={(e) => setNewRuleCondition(e.target.value)} />
+              <button onClick={addRule} className="btn-secondary btn-sm" disabled={!newRuleName.trim()}>
+                <Plus className="w-3 h-3" /> Add
+              </button>
+            </div>
+          </div>
+
+          <div className="flex justify-end gap-3 pt-2">
+            <button onClick={() => setEditingTaxonomy(null)} className="btn-secondary">Cancel</button>
+            <button onClick={handleSaveEdit} className="btn-primary" disabled={!editName.trim()}>
+              <Save className="w-3.5 h-3.5" /> Save Changes
+            </button>
           </div>
         </div>
       </Modal>

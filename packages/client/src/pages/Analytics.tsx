@@ -24,7 +24,7 @@ import {
   ResponsiveContainer,
   CartesianGrid,
 } from 'recharts';
-import api from '../api/client';
+import { getAnalytics } from '../api/client';
 import { useStore } from '../store';
 
 type DateRange = '7d' | '30d' | '90d';
@@ -51,10 +51,10 @@ export function Analytics() {
 
   const fetchAnalytics = () => {
     setLoading(true);
-    api
-      .get('/analytics/dashboard', { params: { range: dateRange } })
-      .then((r) => {
-        setData(r.data);
+    const days = dateRange === '7d' ? 7 : dateRange === '30d' ? 30 : 90;
+    getAnalytics({ days })
+      .then((result) => {
+        setData(result);
         setUsingSampleData(false);
       })
       .catch(() => {
@@ -205,7 +205,7 @@ export function Analytics() {
         <div className="card p-6">
           <h3 className="font-semibold text-slate-900 mb-4">Execution Trend</h3>
           <div className="h-64">
-            <ResponsiveContainer width="100%" height="100%">
+            <ResponsiveContainer width="100%" height="100%" minWidth={0}>
               <AreaChart data={data?.executionTrend || []}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
                 <XAxis
@@ -253,7 +253,7 @@ export function Analytics() {
         <div className="card p-6">
           <h3 className="font-semibold text-slate-900 mb-4">Success / Error Breakdown</h3>
           <div className="h-64 flex items-center justify-center">
-            <ResponsiveContainer width="100%" height="100%">
+            <ResponsiveContainer width="100%" height="100%" minWidth={0}>
               <PieChart>
                 <Pie
                   data={data?.successBreakdown || []}
@@ -296,7 +296,7 @@ export function Analytics() {
         <div className="card p-6">
           <h3 className="font-semibold text-slate-900 mb-4">Average Execution Time</h3>
           <div className="h-64">
-            <ResponsiveContainer width="100%" height="100%">
+            <ResponsiveContainer width="100%" height="100%" minWidth={0}>
               <LineChart data={data?.avgTimeTrend || []}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
                 <XAxis
@@ -337,7 +337,7 @@ export function Analytics() {
         <div className="card p-6">
           <h3 className="font-semibold text-slate-900 mb-4">Top Rule Sets by Executions</h3>
           <div className="h-64">
-            <ResponsiveContainer width="100%" height="100%">
+            <ResponsiveContainer width="100%" height="100%" minWidth={0}>
               <BarChart data={data?.topRuleSets || []} layout="vertical">
                 <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" horizontal={false} />
                 <XAxis

@@ -466,45 +466,56 @@ export const getCMSMetrics = () => api.get('/cms/metrics').then((r) => r.data);
 // DI Connectors
 export const getDIConnectors = () => api.get('/di/connectors').then((r) => r.data);
 export const createDIConnector = (data: any) => api.post('/di/connectors', data).then((r) => r.data);
+export const updateDIConnector = (id: string, data: any) => api.put(`/di/connectors/${id}`, data).then((r) => r.data);
 export const deleteDIConnector = (id: string) => api.delete(`/di/connectors/${id}`).then((r) => r.data);
 
 // DI Pipelines
 export const getDIPipelines = () => api.get('/di/pipelines').then((r) => r.data);
 export const getDIPipeline = (id: string) => api.get(`/di/pipelines/${id}`).then((r) => r.data);
 export const createDIPipeline = (data: any) => api.post('/di/pipelines', data).then((r) => r.data);
+export const updateDIPipeline = (id: string, data: any) => api.put(`/di/pipelines/${id}`, data).then((r) => r.data);
 export const deleteDIPipeline = (id: string) => api.delete(`/di/pipelines/${id}`).then((r) => r.data);
 export const getDIPipelineInstances = (id: string) => api.get(`/di/pipelines/${id}/instances`).then((r) => r.data);
 
 // DI CDC
 export const getDICDCStreams = () => api.get('/di/cdc').then((r) => r.data);
 export const createDICDCStream = (data: any) => api.post('/di/cdc', data).then((r) => r.data);
+export const updateDICDCStream = (id: string, data: any) => api.put(`/di/cdc/${id}`, data).then((r) => r.data);
 export const deleteDICDCStream = (id: string) => api.delete(`/di/cdc/${id}`).then((r) => r.data);
 
 // DI Replication
 export const getDIReplicationStreams = () => api.get('/di/replication').then((r) => r.data);
 export const createDIReplicationStream = (data: any) => api.post('/di/replication', data).then((r) => r.data);
+export const updateDIReplicationStream = (id: string, data: any) => api.put(`/di/replication/${id}`, data).then((r) => r.data);
 export const deleteDIReplicationStream = (id: string) => api.delete(`/di/replication/${id}`).then((r) => r.data);
 
 // DI Quality
 export const getDIQualityRules = () => api.get('/di/quality/rules').then((r) => r.data);
 export const getDIQualityScore = () => api.get('/di/quality/score').then((r) => r.data);
 export const createDIQualityRule = (data: any) => api.post('/di/quality/rules', data).then((r) => r.data);
+export const updateDIQualityRule = (id: string, data: any) => api.put(`/di/quality/rules/${id}`, data).then((r) => r.data);
+export const deleteDIQualityRule = (id: string) => api.delete(`/di/quality/rules/${id}`).then((r) => r.data);
 
 // DI Lineage
 export const getDILineage = () => api.get('/di/lineage/nodes').then((r) => r.data);
 export const createDILineageNode = (data: any) => api.post('/di/lineage/nodes', data).then((r) => r.data);
+export const updateDILineageNode = (id: string, data: any) => api.put(`/di/lineage/nodes/${id}`, data).then((r) => r.data);
+export const deleteDILineageNode = (id: string) => api.delete(`/di/lineage/nodes/${id}`).then((r) => r.data);
 export const getDILineageImpact = (nodeId: string, direction?: string) => api.get(`/di/lineage/impact/${nodeId}`, { params: { direction } }).then((r) => r.data);
 
 // DI Catalog
 export const getDICatalog = (params?: any) => api.get('/di/catalog', { params }).then((r) => r.data);
 export const getDICatalogEntry = (id: string) => api.get(`/di/catalog/${id}`).then((r) => r.data);
 export const createDICatalogEntry = (data: any) => api.post('/di/catalog', data).then((r) => r.data);
+export const updateDICatalogEntry = (id: string, data: any) => api.put(`/di/catalog/${id}`, data).then((r) => r.data);
 export const deleteDICatalogEntry = (id: string) => api.delete(`/di/catalog/${id}`).then((r) => r.data);
 export const getDIGlossaryTerms = () => api.get('/di/catalog/glossary/terms').then((r) => r.data);
 
 // DI Scheduling
 export const getDISchedules = () => api.get('/di/schedules').then((r) => r.data);
 export const createDISchedule = (data: any) => api.post('/di/schedules', data).then((r) => r.data);
+export const updateDISchedule = (id: string, data: any) => api.put(`/di/schedules/${id}`, data).then((r) => r.data);
+export const deleteDISchedule = (id: string) => api.delete(`/di/schedules/${id}`).then((r) => r.data);
 export const getDIScheduleJobs = (id: string) => api.get(`/di/schedules/${id}/jobs`).then((r) => r.data);
 
 // DI Monitoring
@@ -526,17 +537,20 @@ export const getDIMetrics = () => api.get('/di/metrics').then((r) => r.data);
 // DQM Topics
 export const getDQMTopics = () => api.get('/dqm/topics').then((r) => r.data);
 export const createDQMTopic = (data: any) => api.post('/dqm/topics', data).then((r) => r.data);
+export const updateDQMTopic = (name: string, data: any) => api.put(`/dqm/topics/${name}`, data).then((r) => r.data);
 export const deleteDQMTopic = (name: string) => api.delete(`/dqm/topics/${name}`).then((r) => r.data);
 
 // DQM Queues
 export const getDQMQueues = () => api.get('/dqm/queues').then((r) => r.data);
 export const createDQMQueue = (data: any) => api.post('/dqm/queues', data).then((r) => r.data);
+export const updateDQMQueue = (name: string, data: any) => api.put(`/dqm/queues/${name}`, data).then((r) => r.data);
 export const deleteDQMQueue = (name: string) => api.delete(`/dqm/queues/${name}`).then((r) => r.data);
 
 // DQM Quality Rules
 export const getDQMQualityRules = () => api.get('/dqm/quality/rules').then((r) => r.data);
 export const getDQMQualityRule = (id: string) => api.get(`/dqm/quality/rules/${id}`).then((r) => r.data);
 export const createDQMQualityRule = (data: any) => api.post('/dqm/quality/rules', data).then((r) => r.data);
+export const updateDQMQualityRule = (id: string, data: any) => api.put(`/dqm/quality/rules/${id}`, data).then((r) => r.data);
 export const deleteDQMQualityRule = (id: string) => api.delete(`/dqm/quality/rules/${id}`).then((r) => r.data);
 
 // DQM Scoring
@@ -549,12 +563,14 @@ export const getDQMScoreWeights = () => api.get('/dqm/scoring/weights').then((r)
 export const getDQMCleansingRules = () => api.get('/dqm/cleansing/rules').then((r) => r.data);
 export const getDQMCleansingRule = (id: string) => api.get(`/dqm/cleansing/rules/${id}`).then((r) => r.data);
 export const createDQMCleansingRule = (data: any) => api.post('/dqm/cleansing/rules', data).then((r) => r.data);
+export const updateDQMCleansingRule = (id: string, data: any) => api.put(`/dqm/cleansing/rules/${id}`, data).then((r) => r.data);
 export const deleteDQMCleansingRule = (id: string) => api.delete(`/dqm/cleansing/rules/${id}`).then((r) => r.data);
 
 // DQM Matching
 export const getDQMMatchingRules = () => api.get('/dqm/matching/rules').then((r) => r.data);
 export const getDQMMatchingRule = (id: string) => api.get(`/dqm/matching/rules/${id}`).then((r) => r.data);
 export const createDQMMatchingRule = (data: any) => api.post('/dqm/matching/rules', data).then((r) => r.data);
+export const updateDQMMatchingRule = (id: string, data: any) => api.put(`/dqm/matching/rules/${id}`, data).then((r) => r.data);
 export const deleteDQMMatchingRule = (id: string) => api.delete(`/dqm/matching/rules/${id}`).then((r) => r.data);
 
 // DQM Profiling
@@ -584,12 +600,15 @@ export const getDQMMetrics = () => api.get('/dqm/metrics').then((r) => r.data);
 export const getSOAServices = () => api.get('/soa/services').then((r) => r.data);
 export const getSOAService = (id: string) => api.get(`/soa/services/${id}`).then((r) => r.data);
 export const createSOAService = (data: any) => api.post('/soa/services', data).then((r) => r.data);
+export const updateSOAService = (id: string, data: any) => api.put(`/soa/services/${id}`, data).then((r) => r.data);
 export const deleteSOAService = (id: string) => api.delete(`/soa/services/${id}`).then((r) => r.data);
 
 // SOA BPEL Processes
 export const getSOAProcesses = () => api.get('/soa/processes').then((r) => r.data);
 export const getSOAProcess = (id: string) => api.get(`/soa/processes/${id}`).then((r) => r.data);
 export const createSOAProcess = (data: any) => api.post('/soa/processes', data).then((r) => r.data);
+export const updateSOAProcess = (id: string, data: any) => api.put(`/soa/processes/${id}`, data).then((r) => r.data);
+export const deleteSOAProcess = (id: string) => api.delete(`/soa/processes/${id}`).then((r) => r.data);
 export const getSOAProcessInstances = (id: string) => api.get(`/soa/processes/${id}/instances`).then((r) => r.data);
 export const startSOAProcess = (id: string, data?: any) => api.post(`/soa/processes/${id}/start`, data || {}).then((r) => r.data);
 
@@ -597,6 +616,8 @@ export const startSOAProcess = (id: string, data?: any) => api.post(`/soa/proces
 export const getSOATasks = () => api.get('/soa/tasks').then((r) => r.data);
 export const getSOATask = (id: string) => api.get(`/soa/tasks/${id}`).then((r) => r.data);
 export const createSOATask = (data: any) => api.post('/soa/tasks', data).then((r) => r.data);
+export const updateSOATask = (id: string, data: any) => api.put(`/soa/tasks/${id}`, data).then((r) => r.data);
+export const deleteSOATask = (id: string) => api.delete(`/soa/tasks/${id}`).then((r) => r.data);
 export const claimSOATask = (id: string, assignee: string) => api.post(`/soa/tasks/${id}/claim`, { assignee }).then((r) => r.data);
 export const completeSOATask = (id: string, output?: any) => api.post(`/soa/tasks/${id}/complete`, { output }).then((r) => r.data);
 export const getSOATaskDefinitions = () => api.get('/soa/task-definitions').then((r) => r.data);
@@ -605,20 +626,28 @@ export const getSOATaskDefinitions = () => api.get('/soa/task-definitions').then
 export const getSOACEPRules = () => api.get('/soa/cep/rules').then((r) => r.data);
 export const getSOACEPRule = (id: string) => api.get(`/soa/cep/rules/${id}`).then((r) => r.data);
 export const createSOACEPRule = (data: any) => api.post('/soa/cep/rules', data).then((r) => r.data);
+export const updateSOACEPRule = (id: string, data: any) => api.put(`/soa/cep/rules/${id}`, data).then((r) => r.data);
+export const deleteSOACEPRule = (id: string) => api.delete(`/soa/cep/rules/${id}`).then((r) => r.data);
 export const processSOACEPEvent = (event: any) => api.post('/soa/cep/events', event).then((r) => r.data);
 
 // SOA B2B Gateway
 export const getSOAPartners = () => api.get('/soa/b2b/partners').then((r) => r.data);
 export const getSOAPartner = (id: string) => api.get(`/soa/b2b/partners/${id}`).then((r) => r.data);
 export const createSOAPartner = (data: any) => api.post('/soa/b2b/partners', data).then((r) => r.data);
+export const updateSOAPartner = (id: string, data: any) => api.put(`/soa/b2b/partners/${id}`, data).then((r) => r.data);
+export const deleteSOAPartner = (id: string) => api.delete(`/soa/b2b/partners/${id}`).then((r) => r.data);
 export const getSOAAgreements = () => api.get('/soa/b2b/agreements').then((r) => r.data);
 export const createSOAAgreement = (data: any) => api.post('/soa/b2b/agreements', data).then((r) => r.data);
+export const updateSOAAgreement = (id: string, data: any) => api.put(`/soa/b2b/agreements/${id}`, data).then((r) => r.data);
+export const deleteSOAAgreement = (id: string) => api.delete(`/soa/b2b/agreements/${id}`).then((r) => r.data);
 export const getSOAExchanges = () => api.get('/soa/b2b/exchanges').then((r) => r.data);
 
 // SOA API Gateway
 export const getSOAAPIs = () => api.get('/soa/apis').then((r) => r.data);
 export const getSOAAPI = (id: string) => api.get(`/soa/apis/${id}`).then((r) => r.data);
 export const createSOAAPI = (data: any) => api.post('/soa/apis', data).then((r) => r.data);
+export const updateSOAAPI = (id: string, data: any) => api.put(`/soa/apis/${id}`, data).then((r) => r.data);
+export const deleteSOAAPI = (id: string) => api.delete(`/soa/apis/${id}`).then((r) => r.data);
 export const publishSOAAPI = (id: string) => api.post(`/soa/apis/${id}/publish`).then((r) => r.data);
 export const deprecateSOAAPI = (id: string) => api.post(`/soa/apis/${id}/deprecate`).then((r) => r.data);
 
@@ -626,17 +655,25 @@ export const deprecateSOAAPI = (id: string) => api.post(`/soa/apis/${id}/depreca
 export const getSOAPolicies = () => api.get('/soa/policies').then((r) => r.data);
 export const getSOAPolicy = (id: string) => api.get(`/soa/policies/${id}`).then((r) => r.data);
 export const createSOAPolicy = (data: any) => api.post('/soa/policies', data).then((r) => r.data);
+export const updateSOAPolicy = (id: string, data: any) => api.put(`/soa/policies/${id}`, data).then((r) => r.data);
+export const deleteSOAPolicy = (id: string) => api.delete(`/soa/policies/${id}`).then((r) => r.data);
 export const getSOASLAs = () => api.get('/soa/slas').then((r) => r.data);
 export const createSOASLA = (data: any) => api.post('/soa/slas', data).then((r) => r.data);
+export const updateSOASLA = (id: string, data: any) => api.put(`/soa/slas/${id}`, data).then((r) => r.data);
+export const deleteSOASLA = (id: string) => api.delete(`/soa/slas/${id}`).then((r) => r.data);
 
 // SOA Service Mesh
 export const getSOAProxies = () => api.get('/soa/mesh/proxies').then((r) => r.data);
 export const getSOAProxy = (id: string) => api.get(`/soa/mesh/proxies/${id}`).then((r) => r.data);
 export const createSOAProxy = (data: any) => api.post('/soa/mesh/proxies', data).then((r) => r.data);
+export const updateSOAProxy = (id: string, data: any) => api.put(`/soa/mesh/proxies/${id}`, data).then((r) => r.data);
+export const deleteSOAProxy = (id: string) => api.delete(`/soa/mesh/proxies/${id}`).then((r) => r.data);
 
 // SOA BAM
 export const getSOAKPIs = () => api.get('/soa/bam/kpis').then((r) => r.data);
 export const createSOAKPI = (data: any) => api.post('/soa/bam/kpis', data).then((r) => r.data);
+export const updateSOAKPI = (id: string, data: any) => api.put(`/soa/bam/kpis/${id}`, data).then((r) => r.data);
+export const deleteSOAKPI = (id: string) => api.delete(`/soa/bam/kpis/${id}`).then((r) => r.data);
 export const recordSOAKPI = (id: string, value: number) => api.post(`/soa/bam/kpis/${id}/record`, { value }).then((r) => r.data);
 export const getSOABAMAlerts = () => api.get('/soa/bam/alerts').then((r) => r.data);
 export const getSOABAMDashboards = () => api.get('/soa/bam/dashboards').then((r) => r.data);
@@ -674,6 +711,7 @@ export const unlockIAMIdentity = (id: string) => api.post(`/iam/identities/${id}
 export const getIAMRoles = () => api.get('/iam/roles').then((r) => r.data);
 export const getIAMRole = (id: string) => api.get(`/iam/roles/${id}`).then((r) => r.data);
 export const createIAMRole = (data: any) => api.post('/iam/roles', data).then((r) => r.data);
+export const updateIAMRole = (id: string, data: any) => api.put(`/iam/roles/${id}`, data).then((r) => r.data);
 export const deleteIAMRole = (id: string) => api.delete(`/iam/roles/${id}`).then((r) => r.data);
 
 // IAM Authorization
@@ -696,18 +734,28 @@ export const revokeIAMToken = (id: string) => api.post(`/iam/tokens/${id}/revoke
 export const getIAMProviders = () => api.get('/iam/federation/idps').then((r) => r.data);
 export const getIAMProvider = (id: string) => api.get(`/iam/federation/idps/${id}`).then((r) => r.data);
 export const createIAMProvider = (data: any) => api.post('/iam/federation/idps', data).then((r) => r.data);
+export const updateIAMProvider = (id: string, data: any) => api.put(`/iam/federation/idps/${id}`, data).then((r) => r.data);
+export const deleteIAMProvider = (id: string) => api.delete(`/iam/federation/idps/${id}`).then((r) => r.data);
 
 // IAM Governance
 export const getIAMCampaigns = () => api.get('/iam/governance/campaigns').then((r) => r.data);
 export const createIAMCampaign = (data: any) => api.post('/iam/governance/campaigns', data).then((r) => r.data);
+export const updateIAMCampaign = (id: string, data: any) => api.put(`/iam/governance/campaigns/${id}`, data).then((r) => r.data);
+export const deleteIAMCampaign = (id: string) => api.delete(`/iam/governance/campaigns/${id}`).then((r) => r.data);
 export const getIAMSoDPolicies = () => api.get('/iam/governance/sod-policies').then((r) => r.data);
 export const createIAMSoDPolicy = (data: any) => api.post('/iam/governance/sod-policies', data).then((r) => r.data);
+export const updateIAMSoDPolicy = (id: string, data: any) => api.put(`/iam/governance/sod-policies/${id}`, data).then((r) => r.data);
+export const deleteIAMSoDPolicy = (id: string) => api.delete(`/iam/governance/sod-policies/${id}`).then((r) => r.data);
 export const getIAMAccessRequests = () => api.get('/iam/governance/access-requests').then((r) => r.data);
 export const createIAMAccessRequest = (data: any) => api.post('/iam/governance/access-requests', data).then((r) => r.data);
+export const updateIAMAccessRequest = (id: string, data: any) => api.put(`/iam/governance/access-requests/${id}`, data).then((r) => r.data);
+export const deleteIAMAccessRequest = (id: string) => api.delete(`/iam/governance/access-requests/${id}`).then((r) => r.data);
 
 // IAM PAM (Privileged Access Management)
 export const getIAMPAMAccounts = () => api.get('/iam/pam/accounts').then((r) => r.data);
 export const createIAMPAMAccount = (data: any) => api.post('/iam/pam/accounts', data).then((r) => r.data);
+export const updateIAMPAMAccount = (id: string, data: any) => api.put(`/iam/pam/accounts/${id}`, data).then((r) => r.data);
+export const deleteIAMPAMAccount = (id: string) => api.delete(`/iam/pam/accounts/${id}`).then((r) => r.data);
 export const checkoutIAMPAMAccount = (id: string, data?: any) => api.post(`/iam/pam/accounts/${id}/checkout`, data || {}).then((r) => r.data);
 export const checkinIAMPAMCheckout = (id: string) => api.post(`/iam/pam/checkouts/${id}/checkin`).then((r) => r.data);
 
