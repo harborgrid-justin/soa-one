@@ -249,7 +249,7 @@ authRoutes.put('/users/:id/role', requireAuth, async (req: AuthRequest, res) => 
   }
 
   const user = await prisma.user.update({
-    where: { id: req.params.id },
+    where: { id: String(req.params.id) },
     data: { role },
     select: { id: true, email: true, name: true, role: true },
   });
@@ -273,12 +273,12 @@ authRoutes.put('/users/:id/deactivate', requireAuth, async (req: AuthRequest, re
   if (req.user!.role !== 'admin') {
     return res.status(403).json({ error: 'Admin access required' });
   }
-  if (req.params.id === req.user!.id) {
+  if (String(req.params.id) === req.user!.id) {
     return res.status(400).json({ error: 'Cannot deactivate yourself' });
   }
 
   await prisma.user.update({
-    where: { id: req.params.id },
+    where: { id: String(req.params.id) },
     data: { isActive: false },
   });
 

@@ -116,7 +116,7 @@ workflowRoutes.put('/:id', async (req: AuthRequest, res) => {
   if (status !== undefined) data.status = status;
 
   const workflow = await prisma.workflow.update({
-    where: { id: req.params.id },
+    where: { id: String(req.params.id) },
     data,
   });
 

@@ -163,6 +163,14 @@ export interface DashboardStats {
   successRate: number;
   errorCount: number;
   avgExecutionTimeMs: number;
+  workflows: number;
+  adapters: number;
+  templates: number;
+  pendingApprovals: number;
+  activeScheduledJobs: number;
+  simulations: number;
+  unreadNotifications: number;
+  topRuleSets: { name: string; count: number }[];
 }
 
 // ============================================================

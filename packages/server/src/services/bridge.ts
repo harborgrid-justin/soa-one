@@ -2285,14 +2285,14 @@ export function setupEventBridge(
   // IAM → SOA: High-risk anomaly triggers SOA escalation task
   if (iam && soa) {
     iam.on('risk:anomaly-detected', (event) => {
-      if (event.severity === 'critical' || event.severity === 'high') {
+      if (event.data?.severity === 'critical' || event.data?.severity === 'high') {
         try {
           soa.tasks.createTask('security-escalation', {
             identityId: event.identityId,
             anomalyType: event.type,
-            severity: event.severity,
-            description: event.description,
-            detectedAt: event.detectedAt ?? new Date().toISOString(),
+            severity: event.data?.severity,
+            description: event.data?.description,
+            detectedAt: event.data?.detectedAt ?? new Date().toISOString(),
             escalationReason: 'high-risk-anomaly-detected',
           });
 
@@ -2300,7 +2300,7 @@ export function setupEventBridge(
             event: 'task:security-escalation-created',
             identityId: event.identityId,
             anomalyType: event.type,
-            severity: event.severity,
+            severity: event.data?.severity,
             bridgedFrom: 'iam→soa',
             timestamp: new Date().toISOString(),
           }, {
@@ -2317,9 +2317,9 @@ export function setupEventBridge(
       try {
         soa.bpel.startProcess('identity-onboarding', {
           identityId: event.identityId,
-          username: event.username,
+          username: event.data?.username,
           type: event.type,
-          createdAt: event.createdAt ?? new Date().toISOString(),
+          createdAt: event.data?.createdAt ?? new Date().toISOString(),
         }, 'iam-bridge').catch(() => {});
 
         bus.send('soa.processes', {
@@ -2368,9 +2368,9 @@ export function setupEventBridge(
     dqm.on('score:degraded', (event) => {
       bus.send('di.events', {
         event: 'quality:score-degraded-pipeline-alert',
-        previousScore: event.previousScore,
-        currentScore: event.currentScore,
-        grade: event.grade,
+        previousScore: event.data?.previousScore,
+        currentScore: event.data?.currentScore,
+        grade: event.data?.grade,
         bridgedFrom: 'dqm→di',
         timestamp: new Date().toISOString(),
       }, {
@@ -2381,8 +2381,8 @@ export function setupEventBridge(
         action: 'bridge.quality-degradation-alert',
         actor: 'dqm-bridge',
         details: {
-          previousScore: event.previousScore,
-          currentScore: event.currentScore,
+          previousScore: event.data?.previousScore,
+          currentScore: event.data?.currentScore,
           bridgedFrom: 'dqm→di',
         },
         success: false,
@@ -2396,7 +2396,7 @@ export function setupEventBridge(
       bus.send('dqm.quality', {
         event: 'pipeline:completed-validation-pending',
         pipelineId: event.pipelineId,
-        instanceId: event.instanceId,
+        instanceId: event.data?.instanceId,
         bridgedFrom: 'di→dqm',
         timestamp: new Date().toISOString(),
       }, {
@@ -2411,7 +2411,7 @@ export function setupEventBridge(
       bus.send('di.events', {
         event: 'process:completed-pipeline-ready',
         processInstanceId: event.processInstanceId,
-        processId: event.processId,
+        processId: event.data?.processId,
         bridgedFrom: 'soa→di',
         timestamp: new Date().toISOString(),
       }, {
@@ -2426,8 +2426,8 @@ export function setupEventBridge(
       bus.send('iam.risk', {
         event: 'sla:breached-risk-signal',
         serviceId: event.serviceId,
-        slaId: event.slaId,
-        severity: event.severity,
+        slaId: event.data?.slaId,
+        severity: event.data?.severity,
         bridgedFrom: 'soa→iam',
         timestamp: new Date().toISOString(),
       }, {
@@ -2439,7 +2439,7 @@ export function setupEventBridge(
         actor: 'soa-bridge',
         details: {
           serviceId: event.serviceId,
-          slaId: event.slaId,
+          slaId: event.data?.slaId,
           bridgedFrom: 'soa→iam',
         },
         success: false,
@@ -2449,11 +2449,11 @@ export function setupEventBridge(
 
   // CMS → SOA: Document approved triggers process notification
   cms.on('document:status-changed', (event) => {
-    if (event.newStatus === 'approved' && soa) {
+    if (event.data?.newStatus === 'approved' && soa) {
       bus.send('soa.processes', {
         event: 'document:approved-process-ready',
         documentId: event.documentId,
-        documentName: event.name,
+        documentName: event.data?.name,
         bridgedFrom: 'cms→soa',
         timestamp: new Date().toISOString(),
       }, {
@@ -2461,11 +2461,11 @@ export function setupEventBridge(
       }).catch(() => {});
     }
 
-    if (event.newStatus === 'published' && soa) {
+    if (event.data?.newStatus === 'published' && soa) {
       bus.send('soa.b2b', {
         event: 'document:published-b2b-ready',
         documentId: event.documentId,
-        documentName: event.name,
+        documentName: event.data?.name,
         bridgedFrom: 'cms→soa',
         timestamp: new Date().toISOString(),
       }, {
@@ -2476,11 +2476,11 @@ export function setupEventBridge(
 
   // CMS → DI: Document created in /data-imports triggers pipeline notification
   cms.on('document:created', (event) => {
-    if (di && event.path?.startsWith('/data-imports')) {
+    if (di && event.data?.path?.startsWith('/data-imports')) {
       bus.send('di.pipelines', {
         event: 'document:import-ready',
         documentId: event.documentId,
-        documentName: event.name,
+        documentName: event.data?.name,
         bridgedFrom: 'cms→di',
         timestamp: new Date().toISOString(),
       }, {
@@ -2497,7 +2497,7 @@ export function setupEventBridge(
         actor: 'iam-bridge',
         details: {
           identityId: event.identityId,
-          resource: event.resource,
+          resource: event.data?.resource,
           revokedAt: new Date().toISOString(),
           bridgedFrom: 'iam→cms',
         },
@@ -2507,7 +2507,7 @@ export function setupEventBridge(
       bus.send('cms.events', {
         event: 'access:revoked-document-review-needed',
         identityId: event.identityId,
-        resource: event.resource,
+        resource: event.data?.resource,
         bridgedFrom: 'iam→cms',
         timestamp: new Date().toISOString(),
       }, {
@@ -2521,16 +2521,16 @@ export function setupEventBridge(
     iam.on('pam:checkout', (event) => {
       try {
         soa.tasks.createTask('pam-checkout-review', {
-          accountId: event.accountId,
+          accountId: event.data?.accountId,
           identityId: event.identityId,
-          checkoutId: event.checkoutId,
-          reason: event.reason,
+          checkoutId: event.data?.checkoutId,
+          reason: event.data?.reason,
           requestedAt: new Date().toISOString(),
         });
 
         bus.send('soa.tasks', {
           event: 'task:pam-checkout-review-created',
-          accountId: event.accountId,
+          accountId: event.data?.accountId,
           identityId: event.identityId,
           bridgedFrom: 'iam→soa',
           timestamp: new Date().toISOString(),

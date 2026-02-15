@@ -3,7 +3,7 @@ import cors from 'cors';
 import helmet from 'helmet';
 import morgan from 'morgan';
 import { ApolloServer } from '@apollo/server';
-import { expressMiddleware } from '@apollo/server/express4';
+import { expressMiddleware } from '@as-integrations/express5';
 import { typeDefs } from './graphql/typeDefs';
 import { resolvers } from './graphql/resolvers';
 import { authMiddleware, type AuthRequest } from './auth/middleware';
@@ -222,7 +222,7 @@ export async function createApp() {
   app.use(
     '/graphql',
     expressMiddleware(apollo, {
-      context: async ({ req }) => ({
+      context: async ({ req }: { req: any }) => ({
         prisma,
         user: (req as AuthRequest).user,
       }),
