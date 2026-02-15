@@ -10,7 +10,7 @@ const router = Router();
 router.get('/topics', (_req, res) => {
   const dqm = getDQM();
   const names = dqm.messaging.topicNames;
-  const topics = names.map((name) => {
+  const topics = names.map((name: string) => {
     const t = dqm.messaging.getTopic(name)!;
     const stats = t.getStats();
     return {
@@ -18,8 +18,8 @@ router.get('/topics', (_req, res) => {
       type: t.type,
       subscriptionCount: t.subscriptionCount,
       messageBacklog: t.messageBacklog,
-      published: stats.published,
-      delivered: stats.delivered,
+      published: stats.totalPublished,
+      delivered: stats.totalDelivered,
     };
   });
   res.json(topics);
@@ -47,7 +47,7 @@ router.delete('/topics/:name', (req, res) => {
 router.get('/queues', (_req, res) => {
   const dqm = getDQM();
   const names = dqm.messaging.queueNames;
-  const queues = names.map((name) => {
+  const queues = names.map((name: string) => {
     const q = dqm.messaging.getQueue(name)!;
     const stats = q.getStats();
     return {
@@ -55,9 +55,8 @@ router.get('/queues', (_req, res) => {
       type: q.type,
       depth: q.depth,
       deadLetterDepth: q.deadLetterDepth,
-      enqueued: stats.enqueued,
-      dequeued: stats.dequeued,
-      acknowledged: stats.acknowledged,
+      enqueued: stats.totalEnqueued,
+      dequeued: stats.totalDequeued,
     };
   });
   res.json(queues);

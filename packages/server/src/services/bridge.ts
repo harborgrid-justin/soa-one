@@ -198,7 +198,7 @@ export function createBridgePlugin(
         const pipelineId = action.field;
         const params = typeof config === 'object' ? (config.parameters ?? {}) : {};
 
-        di.pipelines.execute(pipelineId, params, 'bridge').then((instance) => {
+        di.pipelines.execute(pipelineId, params, 'bridge').then((instance: any) => {
           const channel = config?.channel ?? 'di.pipelines';
           bus.send(channel, {
             event: 'pipeline:executed',
@@ -484,7 +484,7 @@ export function createBridgePlugin(
         documentId: string,
       ): boolean => {
         cms.workflows.execute(workflowId, documentId, 'bridge')
-          .then((instance) => {
+          .then((instance: any) => {
             bus.send('cms.workflows', {
               event: 'workflow:started',
               workflowId,
@@ -702,7 +702,7 @@ export function createBridgePlugin(
       ): boolean => {
         if (!soa) return false;
         soa.bpel.startProcess(processId, input ?? {}, 'bridge')
-          .then((instance) => {
+          .then((instance: any) => {
             bus.send('soa.processes', {
               event: 'process:started',
               processId,
@@ -798,7 +798,7 @@ export function setupEventBridge(
   ] as const;
 
   for (const eventType of cmsDocumentEvents) {
-    cms.on(eventType, (event) => {
+    cms.on(eventType, (event: any) => {
       bus.send('cms.events', {
         ...event,
         bridgedFrom: 'cms',
@@ -818,7 +818,7 @@ export function setupEventBridge(
   ] as const;
 
   for (const eventType of cmsWorkflowEvents) {
-    cms.on(eventType, (event) => {
+    cms.on(eventType, (event: any) => {
       bus.send('cms.workflows', {
         ...event,
         bridgedFrom: 'cms',
@@ -840,7 +840,7 @@ export function setupEventBridge(
   ] as const;
 
   for (const eventType of esbAuditEvents) {
-    bus.on(eventType, (event) => {
+    bus.on(eventType, (event: any) => {
       cms.security.recordAudit({
         action: `esb.${eventType}`,
         actor: 'esb-bridge',
@@ -863,7 +863,7 @@ export function setupEventBridge(
     ] as const;
 
     for (const eventType of diPipelineEvents) {
-      di.on(eventType, (event) => {
+      di.on(eventType, (event: any) => {
         bus.send('di.pipelines', {
           ...event,
           bridgedFrom: 'di',
@@ -883,7 +883,7 @@ export function setupEventBridge(
     ] as const;
 
     for (const eventType of diLifecycleEvents) {
-      di.on(eventType, (event) => {
+      di.on(eventType, (event: any) => {
         bus.send('di.events', {
           ...event,
           bridgedFrom: 'di',
@@ -896,7 +896,7 @@ export function setupEventBridge(
     // ── DI → CMS: Record DI events in CMS audit ──────
 
     for (const eventType of [...diPipelineEvents, ...diLifecycleEvents]) {
-      di.on(eventType, (event) => {
+      di.on(eventType, (event: any) => {
         cms.security.recordAudit({
           action: `di.${eventType}`,
           actor: 'di-bridge',
@@ -928,7 +928,7 @@ export function setupEventBridge(
     ] as const;
 
     for (const eventType of dqmQualityEvents) {
-      dqm.on(eventType, (event) => {
+      dqm.on(eventType, (event: any) => {
         bus.send('dqm.quality', {
           ...event,
           bridgedFrom: 'dqm',
@@ -950,7 +950,7 @@ export function setupEventBridge(
     ] as const;
 
     for (const eventType of dqmMessagingEvents) {
-      dqm.on(eventType, (event) => {
+      dqm.on(eventType, (event: any) => {
         bus.send('dqm.messaging', {
           ...event,
           bridgedFrom: 'dqm',
@@ -968,7 +968,7 @@ export function setupEventBridge(
     ] as const;
 
     for (const eventType of dqmLifecycleEvents) {
-      dqm.on(eventType, (event) => {
+      dqm.on(eventType, (event: any) => {
         bus.send('dqm.events', {
           ...event,
           bridgedFrom: 'dqm',
@@ -981,7 +981,7 @@ export function setupEventBridge(
     // ── DQM → CMS: Record DQM events in CMS audit ──────
 
     for (const eventType of [...dqmQualityEvents, ...dqmMessagingEvents, ...dqmLifecycleEvents]) {
-      dqm.on(eventType, (event) => {
+      dqm.on(eventType, (event: any) => {
         cms.security.recordAudit({
           action: `dqm.${eventType}`,
           actor: 'dqm-bridge',
@@ -1008,7 +1008,7 @@ export function setupEventBridge(
     ] as const;
 
     for (const eventType of soaProcessEvents) {
-      soa.on(eventType, (event) => {
+      soa.on(eventType, (event: any) => {
         bus.send('soa.processes', {
           ...event,
           bridgedFrom: 'soa',
@@ -1028,7 +1028,7 @@ export function setupEventBridge(
     ] as const;
 
     for (const eventType of soaTaskEvents) {
-      soa.on(eventType, (event) => {
+      soa.on(eventType, (event: any) => {
         bus.send('soa.tasks', {
           ...event,
           bridgedFrom: 'soa',
@@ -1040,7 +1040,7 @@ export function setupEventBridge(
 
     // ── SOA → ESB: Forward CEP pattern events ─────────
 
-    soa.on('cep:pattern-matched', (event) => {
+    soa.on('cep:pattern-matched', (event: any) => {
       bus.send('soa.cep', {
         ...event,
         bridgedFrom: 'soa',
@@ -1058,7 +1058,7 @@ export function setupEventBridge(
     ] as const;
 
     for (const eventType of soaB2BEvents) {
-      soa.on(eventType, (event) => {
+      soa.on(eventType, (event: any) => {
         bus.send('soa.b2b', {
           ...event,
           bridgedFrom: 'soa',
@@ -1070,7 +1070,7 @@ export function setupEventBridge(
 
     // ── SOA → ESB: Forward API events ─────────────────
 
-    soa.on('api:published', (event) => {
+    soa.on('api:published', (event: any) => {
       bus.send('soa.api', {
         ...event,
         bridgedFrom: 'soa',
@@ -1091,7 +1091,7 @@ export function setupEventBridge(
     ] as const;
 
     for (const eventType of soaLifecycleEvents) {
-      soa.on(eventType, (event) => {
+      soa.on(eventType, (event: any) => {
         bus.send('soa.events', {
           ...event,
           bridgedFrom: 'soa',
@@ -1111,7 +1111,7 @@ export function setupEventBridge(
     ];
 
     for (const eventType of allSoaEvents) {
-      soa.on(eventType, (event) => {
+      soa.on(eventType, (event: any) => {
         cms.security.recordAudit({
           action: `soa.${eventType}`,
           actor: 'soa-bridge',

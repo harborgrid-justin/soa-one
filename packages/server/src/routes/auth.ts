@@ -249,7 +249,7 @@ authRoutes.put('/users/:id/role', requireAuth, async (req: AuthRequest, res) => 
   }
 
   const user = await prisma.user.update({
-    where: { id: req.params.id },
+    where: { id: String(req.params.id) },
     data: { role },
     select: { id: true, email: true, name: true, role: true },
   });
@@ -278,7 +278,7 @@ authRoutes.put('/users/:id/deactivate', requireAuth, async (req: AuthRequest, re
   }
 
   await prisma.user.update({
-    where: { id: req.params.id },
+    where: { id: String(req.params.id) },
     data: { isActive: false },
   });
 

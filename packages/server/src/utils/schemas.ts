@@ -13,7 +13,7 @@ export function validateBody<T extends z.ZodTypeAny>(schema: T) {
   return (req: Request, res: Response, next: NextFunction) => {
     const result = schema.safeParse(req.body);
     if (!result.success) {
-      const errors = result.error.issues.map((issue) => ({
+      const errors = result.error.issues.map((issue: any) => ({
         field: issue.path.join('.'),
         message: issue.message,
         code: issue.code,
@@ -35,7 +35,7 @@ export function validateQuery<T extends z.ZodTypeAny>(schema: T) {
   return (req: Request, res: Response, next: NextFunction) => {
     const result = schema.safeParse(req.query);
     if (!result.success) {
-      const errors = result.error.issues.map((issue) => ({
+      const errors = result.error.issues.map((issue: any) => ({
         field: issue.path.join('.'),
         message: issue.message,
         code: issue.code,
@@ -57,7 +57,7 @@ export function validateParams<T extends z.ZodTypeAny>(schema: T) {
   return (req: Request, res: Response, next: NextFunction) => {
     const result = schema.safeParse(req.params);
     if (!result.success) {
-      const errors = result.error.issues.map((issue) => ({
+      const errors = result.error.issues.map((issue: any) => ({
         field: issue.path.join('.'),
         message: issue.message,
         code: issue.code,

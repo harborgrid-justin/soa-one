@@ -1,5 +1,5 @@
 import rateLimit from 'express-rate-limit';
-import type { Request } from 'express';
+import type { Request, Response } from 'express';
 
 /**
  * Default API rate limiter — 100 requests per 15 minutes per IP.
@@ -16,14 +16,14 @@ export const apiRateLimiter = rateLimit({
       || req.socket.remoteAddress
       || 'unknown';
   },
-  handler: (_req, res) => {
+  handler: (_req: Request, res: Response) => {
     res.status(429).json({
       error: 'Too many requests',
       message: 'Rate limit exceeded. Please try again later.',
       retryAfter: Math.ceil(parseInt(process.env.RATE_LIMIT_WINDOW_MS || '900000', 10) / 1000),
     });
   },
-  skip: (req) => {
+  skip: (req: Request) => {
     // Skip rate limiting for health checks
     return req.path === '/api/v1/health';
   },
@@ -43,7 +43,7 @@ export const authRateLimiter = rateLimit({
       || req.socket.remoteAddress
       || 'unknown';
   },
-  handler: (_req, res) => {
+  handler: (_req: Request, res: Response) => {
     res.status(429).json({
       error: 'Too many authentication attempts',
       message: 'Please wait before trying again.',
@@ -66,7 +66,7 @@ export const executionRateLimiter = rateLimit({
       || req.socket.remoteAddress
       || 'unknown';
   },
-  handler: (_req, res) => {
+  handler: (_req: Request, res: Response) => {
     res.status(429).json({
       error: 'Execution rate limit exceeded',
       message: 'Too many execution requests. Please try again later.',

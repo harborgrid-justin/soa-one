@@ -160,10 +160,10 @@ export function createDIPlugin(di: DataIntegrator): EnginePlugin {
       },
 
       /**
-       * Check if the quality score exceeds a threshold.
-       * Usage: field="qualityScore", operator="qualityScoreExceeds", value=0.95
+       * Check if the DI quality score exceeds a threshold.
+       * Usage: field="qualityScore", operator="diQualityScoreExceeds", value=0.95
        */
-      qualityScoreExceeds: (fieldValue: any, compareValue: any): boolean => {
+      diQualityScoreExceeds: (fieldValue: any, compareValue: any): boolean => {
         const score = di.quality.lastScore;
         if (!score) return false;
         return score.overall > Number(compareValue);

@@ -10,7 +10,7 @@ const router = Router();
 router.get('/connectors', (_req, res) => {
   const di = getDI();
   const connectors = di.connectors.list();
-  res.json(connectors.map((c) => ({
+  res.json(connectors.map((c: any) => ({
     id: c.config.id,
     name: c.config.name,
     type: c.config.type,
@@ -49,7 +49,7 @@ router.delete('/connectors/:id', (req, res) => {
 router.get('/pipelines', (_req, res) => {
   const di = getDI();
   const pipelines = di.pipelines.listPipelines();
-  res.json(pipelines.map((p) => ({
+  res.json(pipelines.map((p: any) => ({
     id: p.id,
     name: p.name,
     description: p.description,
@@ -82,7 +82,7 @@ router.delete('/pipelines/:id', (req, res) => {
 router.get('/pipelines/:id/instances', (req, res) => {
   const di = getDI();
   const instances = di.pipelines.getInstancesByPipeline(req.params.id);
-  res.json(instances.map((i) => ({
+  res.json(instances.map((i: any) => ({
     instanceId: i.instanceId,
     pipelineId: i.pipelineId,
     status: i.status,
@@ -305,7 +305,7 @@ router.get('/metrics', (_req, res) => {
   const di = getDI();
   const metrics = di.getMetrics();
 
-  const connectors = di.connectors.list().map((c) => ({
+  const connectors = di.connectors.list().map((c: any) => ({
     id: c.config.id,
     name: c.config.name,
     type: c.config.type,
@@ -313,7 +313,7 @@ router.get('/metrics', (_req, res) => {
     isConnected: c.isConnected,
   }));
 
-  const pipelines = di.pipelines.listPipelines().map((p) => ({
+  const pipelines = di.pipelines.listPipelines().map((p: any) => ({
     id: p.id,
     name: p.name,
     enabled: p.enabled,
