@@ -46,6 +46,12 @@ import {
   Inbox,
   Building2,
   Network,
+  Fingerprint,
+  UserCheck,
+  KeyRound,
+  ShieldAlert,
+  Vault,
+  ScanEye,
 } from 'lucide-react';
 import { useStore } from '../../store';
 
@@ -146,6 +152,22 @@ const navSections = [
       { to: '/soa/mesh', icon: Network, label: 'Service Mesh' },
       { to: '/soa/bam', icon: BarChart3, label: 'BAM' },
       { to: '/soa/monitoring', icon: Activity, label: 'SOA Monitor' },
+    ],
+  },
+  {
+    label: 'Identity & Access',
+    items: [
+      { to: '/iam', icon: Fingerprint, label: 'IAM Dashboard' },
+      { to: '/iam/identities', icon: Users, label: 'Identities' },
+      { to: '/iam/roles', icon: UserCheck, label: 'Roles' },
+      { to: '/iam/authorization', icon: Shield, label: 'Authorization' },
+      { to: '/iam/sessions', icon: KeyRound, label: 'Sessions' },
+      { to: '/iam/tokens', icon: Key, label: 'Tokens' },
+      { to: '/iam/federation', icon: Globe, label: 'Federation' },
+      { to: '/iam/governance', icon: ShieldCheck, label: 'Governance' },
+      { to: '/iam/pam', icon: Vault, label: 'Privileged Access' },
+      { to: '/iam/risk', icon: ShieldAlert, label: 'Risk Engine' },
+      { to: '/iam/monitoring', icon: ScanEye, label: 'IAM Monitor' },
     ],
   },
   {
