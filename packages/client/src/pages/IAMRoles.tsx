@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { UserCheck, Shield } from 'lucide-react';
+import { UserCheck } from 'lucide-react';
 import { getIAMRoles } from '../api/client';
 
 export function IAMRoles() {
@@ -49,9 +49,9 @@ export function IAMRoles() {
                   <span className="text-xs text-slate-500">
                     {role.permissions?.length ?? 0} permissions
                   </span>
-                  {role.parentRoleId && (
+                  {role.inheritsFrom?.length > 0 && (
                     <span className="text-xs text-slate-400">
-                      inherits from {role.parentRoleId}
+                      inherits from {role.inheritsFrom.join(', ')}
                     </span>
                   )}
                 </div>

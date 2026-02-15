@@ -24,7 +24,7 @@ router.get('/identities', (_req, res) => {
 
 router.get('/identities/:id', (req, res) => {
   const iam = getIAM();
-  const identity = iam.identities.get(req.params.id);
+  const identity = iam.identities.getIdentity(req.params.id);
   if (!identity) return res.status(404).json({ error: 'Identity not found' });
   res.json(identity);
 });
@@ -33,20 +33,20 @@ router.post('/identities', (req, res) => {
   const iam = getIAM();
   const body = req.body;
   if (!body.username) return res.status(400).json({ error: 'username is required' });
-  const identity = iam.identities.create(body);
+  const identity = iam.identities.createIdentity(body);
   res.status(201).json(identity);
 });
 
 router.put('/identities/:id', (req, res) => {
   const iam = getIAM();
-  const updated = iam.identities.update(req.params.id, req.body);
+  const updated = iam.identities.updateIdentity(req.params.id, req.body);
   if (!updated) return res.status(404).json({ error: 'Identity not found' });
   res.json(updated);
 });
 
 router.delete('/identities/:id', (req, res) => {
   const iam = getIAM();
-  iam.identities.delete(req.params.id);
+  iam.identities.deleteIdentity(req.params.id);
   res.json({ success: true });
 });
 
@@ -80,12 +80,12 @@ router.post('/identities/:id/unlock', (req, res) => {
 
 router.get('/roles', (_req, res) => {
   const iam = getIAM();
-  res.json(iam.roles.allRoles);
+  res.json(iam.authorization.listRoles());
 });
 
 router.get('/roles/:id', (req, res) => {
   const iam = getIAM();
-  const role = iam.roles.get(req.params.id);
+  const role = iam.authorization.getRole(req.params.id);
   if (!role) return res.status(404).json({ error: 'Role not found' });
   res.json(role);
 });
@@ -94,13 +94,13 @@ router.post('/roles', (req, res) => {
   const iam = getIAM();
   const body = req.body;
   if (!body.name) return res.status(400).json({ error: 'name is required' });
-  const role = iam.roles.create(body);
+  const role = iam.authorization.createRole(body);
   res.status(201).json(role);
 });
 
 router.delete('/roles/:id', (req, res) => {
   const iam = getIAM();
-  iam.roles.delete(req.params.id);
+  iam.authorization.deleteRole(req.params.id);
   res.json({ success: true });
 });
 
@@ -124,25 +124,25 @@ router.post('/authorize', (req, res) => {
 
 router.get('/sessions', (_req, res) => {
   const iam = getIAM();
-  res.json(iam.sessions.activeSessions);
+  res.json(iam.sessions.getActiveSessions());
 });
 
 router.get('/sessions/:id', (req, res) => {
   const iam = getIAM();
-  const session = iam.sessions.get(req.params.id);
+  const session = iam.sessions.getSession(req.params.id);
   if (!session) return res.status(404).json({ error: 'Session not found' });
   res.json(session);
 });
 
 router.post('/sessions/:id/revoke', (req, res) => {
   const iam = getIAM();
-  iam.sessions.revoke(req.params.id);
+  iam.sessions.revokeSession(req.params.id);
   res.json({ success: true });
 });
 
 router.delete('/sessions/identity/:identityId', (req, res) => {
   const iam = getIAM();
-  iam.sessions.revokeAllForIdentity(req.params.identityId);
+  iam.sessions.revokeAllSessions(req.params.identityId);
   res.json({ success: true });
 });
 
@@ -152,19 +152,19 @@ router.delete('/sessions/identity/:identityId', (req, res) => {
 
 router.post('/tokens/issue', (req, res) => {
   const iam = getIAM();
-  const token = iam.tokens.issue(req.body);
+  const token = iam.tokens.issueToken(req.body);
   res.status(201).json(token);
 });
 
 router.get('/tokens/:id/validate', (req, res) => {
   const iam = getIAM();
-  const result = iam.tokens.validate(req.params.id);
+  const result = iam.tokens.validateToken(req.params.id);
   res.json(result);
 });
 
 router.post('/tokens/:id/revoke', (req, res) => {
   const iam = getIAM();
-  iam.tokens.revoke(req.params.id);
+  iam.tokens.revokeToken(req.params.id);
   res.json({ success: true });
 });
 
@@ -174,12 +174,12 @@ router.post('/tokens/:id/revoke', (req, res) => {
 
 router.get('/federation/idps', (_req, res) => {
   const iam = getIAM();
-  res.json(iam.federation.allProviders);
+  res.json(iam.federation.listIdentityProviders());
 });
 
 router.get('/federation/idps/:id', (req, res) => {
   const iam = getIAM();
-  const provider = iam.federation.getProvider(req.params.id);
+  const provider = iam.federation.getIdentityProvider(req.params.id);
   if (!provider) return res.status(404).json({ error: 'Identity provider not found' });
   res.json(provider);
 });
@@ -188,7 +188,7 @@ router.post('/federation/idps', (req, res) => {
   const iam = getIAM();
   const body = req.body;
   if (!body.name) return res.status(400).json({ error: 'name is required' });
-  const provider = iam.federation.registerProvider(body);
+  const provider = iam.federation.registerIdentityProvider(body);
   res.status(201).json(provider);
 });
 
@@ -198,7 +198,7 @@ router.post('/federation/idps', (req, res) => {
 
 router.get('/governance/campaigns', (_req, res) => {
   const iam = getIAM();
-  res.json(iam.governance.allCampaigns);
+  res.json(iam.governance.listCampaigns());
 });
 
 router.post('/governance/campaigns', (req, res) => {
@@ -211,20 +211,20 @@ router.post('/governance/campaigns', (req, res) => {
 
 router.get('/governance/sod-policies', (_req, res) => {
   const iam = getIAM();
-  res.json(iam.governance.allSodPolicies);
+  res.json(iam.governance.listSoDPolicies());
 });
 
 router.post('/governance/sod-policies', (req, res) => {
   const iam = getIAM();
   const body = req.body;
   if (!body.name) return res.status(400).json({ error: 'name is required' });
-  const policy = iam.governance.createSodPolicy(body);
+  const policy = iam.governance.createSoDPolicy(body);
   res.status(201).json(policy);
 });
 
 router.get('/governance/access-requests', (_req, res) => {
   const iam = getIAM();
-  res.json(iam.governance.pendingAccessRequests);
+  res.json(iam.governance.getPendingAccessRequests());
 });
 
 router.post('/governance/access-requests', (req, res) => {
@@ -243,7 +243,7 @@ router.post('/governance/access-requests', (req, res) => {
 
 router.get('/pam/accounts', (_req, res) => {
   const iam = getIAM();
-  res.json(iam.pam.allAccounts);
+  res.json(iam.pam.listAccounts());
 });
 
 router.post('/pam/accounts', (req, res) => {
@@ -256,7 +256,11 @@ router.post('/pam/accounts', (req, res) => {
 
 router.post('/pam/accounts/:id/checkout', (req, res) => {
   const iam = getIAM();
-  const checkout = iam.pam.checkout(req.params.id, req.body);
+  const { identityId, reason, approvedBy } = req.body;
+  if (!identityId || !reason) {
+    return res.status(400).json({ error: 'identityId and reason are required' });
+  }
+  const checkout = iam.pam.checkout(req.params.id, identityId, reason, approvedBy);
   res.status(201).json(checkout);
 });
 
@@ -274,7 +278,7 @@ router.post('/risk/assess', (req, res) => {
   const iam = getIAM();
   const { identityId, context } = req.body;
   if (!identityId) return res.status(400).json({ error: 'identityId is required' });
-  const assessment = iam.risk.assess(identityId, context ?? {});
+  const assessment = iam.risk.assessRisk(identityId, context ?? {});
   res.json(assessment);
 });
 
@@ -287,7 +291,7 @@ router.get('/risk/assessments/:identityId', (req, res) => {
 
 router.get('/risk/anomalies', (_req, res) => {
   const iam = getIAM();
-  res.json(iam.risk.recentAnomalies);
+  res.json(iam.risk.getRecentAnomalies());
 });
 
 // ============================================================

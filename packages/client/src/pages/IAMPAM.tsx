@@ -36,13 +36,13 @@ export function IAMPAM() {
                   <Vault className="w-4 h-4 text-teal-500" />
                   <div>
                     <div className="text-sm font-medium text-slate-900">{a.name}</div>
-                    <div className="text-xs text-slate-500">{a.platform}</div>
+                    <div className="text-xs text-slate-500">{a.targetSystem}</div>
                   </div>
                 </div>
                 <div className="flex items-center gap-3">
                   <span className="text-[10px] px-1.5 py-0.5 bg-slate-100 text-slate-500 rounded">{a.type}</span>
                   <div className="text-xs text-slate-400">
-                    rotated {new Date(a.lastRotated).toLocaleDateString()}
+                    rotated {new Date(a.lastRotatedAt).toLocaleDateString()}
                   </div>
                   <span className={a.status === 'active' ? 'badge-green' : 'text-xs text-slate-400'}>
                     {a.status === 'active' && <CheckCircle className="w-3 h-3 mr-1" />}

@@ -88,7 +88,7 @@ export function IAMRisk() {
                     'text-slate-500'
                   }`} />
                   <div>
-                    <div className="text-sm font-medium text-slate-900">{a.type}</div>
+                    <div className="text-sm font-medium text-slate-900">{a.anomalyType}</div>
                     <div className="text-xs text-slate-500">{a.identityId} — {a.description}</div>
                   </div>
                 </div>

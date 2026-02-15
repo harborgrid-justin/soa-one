@@ -635,8 +635,8 @@ export interface SOADashboardData {
 // V15: Identity & Access Management (IAM)
 // ============================================================
 
-export type IAMIdentityStatus = 'active' | 'inactive' | 'suspended' | 'locked' | 'pending' | 'deprovisioned' | 'archived';
-export type IAMIdentityType = 'user' | 'service' | 'application' | 'device' | 'external';
+export type IAMIdentityStatus = 'staged' | 'provisioned' | 'active' | 'suspended' | 'locked' | 'password-expired' | 'deprovisioned' | 'deleted';
+export type IAMIdentityType = 'user' | 'service-account' | 'machine' | 'external' | 'federated';
 
 export interface IAMIdentitySummary {
   id: string;
@@ -655,7 +655,7 @@ export interface IAMIdentity extends IAMIdentitySummary {
   organizationId?: string;
   attributes: Record<string, any>;
   mfaEnabled: boolean;
-  lastLogin?: string;
+  lastLoginAt?: string;
   updatedAt: string;
 }
 
@@ -664,7 +664,7 @@ export interface IAMRole {
   name: string;
   description?: string;
   permissions: any[];
-  parentRoleId?: string;
+  inheritsFrom: string[];
   constraints: any[];
   createdAt: string;
   updatedAt: string;
@@ -678,7 +678,7 @@ export interface IAMSession {
   userAgent?: string;
   createdAt: string;
   expiresAt: string;
-  lastAccessedAt: string;
+  lastActivityAt: string;
 }
 
 export interface IAMTokenRecord {
@@ -735,21 +735,23 @@ export interface IAMPAMAccount {
   name: string;
   type: string;
   status: string;
-  platform?: string;
-  lastRotated?: string;
+  targetSystem: string;
+  lastRotatedAt?: string;
 }
 
 export interface IAMRiskAssessment {
+  id: string;
   identityId: string;
   overallScore: number;
   riskLevel: string;
   factors: any[];
-  timestamp: string;
+  recommendation: string;
+  assessedAt: string;
 }
 
 export interface IAMAnomaly {
   id: string;
-  type: string;
+  anomalyType: string;
   identityId: string;
   severity: string;
   description: string;
@@ -795,10 +797,6 @@ export interface IAMMetricsSummary {
   activeAlerts: number;
   uptimeMs: number;
   timestamp: string;
-}
-
-export interface IAMDashboardData {
-  summary: IAMMetricsSummary;
 }
 
 export const OPERATOR_LABELS: Record<ComparisonOperator, string> = {

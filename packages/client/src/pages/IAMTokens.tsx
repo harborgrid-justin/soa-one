@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Key, Plus } from 'lucide-react';
-import { getIAMMetrics } from '../api/client';
+import { getIAMMetrics, issueIAMToken } from '../api/client';
 
 export function IAMTokens() {
   const [metrics, setMetrics] = useState<any>(null);
@@ -77,6 +77,11 @@ export function IAMTokens() {
           </div>
           <button
             disabled={!identityId}
+            onClick={() => {
+              issueIAMToken({ type: tokenType, identityId })
+                .then(() => getIAMMetrics().then(setMetrics))
+                .catch(() => {});
+            }}
             className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-brand-600 text-white rounded-md text-sm font-medium hover:bg-brand-700 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <Plus className="w-4 h-4" />

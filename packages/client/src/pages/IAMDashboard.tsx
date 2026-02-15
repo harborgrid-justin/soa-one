@@ -2,8 +2,7 @@ import { useEffect, useState } from 'react';
 import { NavLink } from 'react-router-dom';
 import {
   Users, UserCheck, KeyRound, Key, Globe, ShieldCheck, Shield,
-  Vault, ShieldAlert, AlertTriangle, Activity, Fingerprint, CheckCircle,
-  Lock, ScanEye,
+  Vault, ShieldAlert, AlertTriangle,
 } from 'lucide-react';
 import { getIAMMetrics } from '../api/client';
 import type { IAMMetricsSummary } from '../types';

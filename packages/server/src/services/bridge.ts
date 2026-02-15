@@ -425,7 +425,7 @@ export function createBridgePlugin(
         const config = action.value;
 
         try {
-          const assessment = iam.risk.assessRisk(action.field, config?.sessionId);
+          const assessment = iam.risk.assessRisk(action.field, { sessionId: config?.sessionId });
 
           const channel = config?.channel ?? 'iam.risk';
           bus.send(channel, {
@@ -592,7 +592,7 @@ export function createBridgePlugin(
 
         di.pipelines.execute(action.field, config?.parameters ?? {}, 'bridge')
           .then((instance) => {
-            const data = instance.output ? [instance.output] : [];
+            const data = instance.metrics ? [instance.metrics] : [];
             const result = dqm.rules.evaluateAll(data, config?.ruleIds);
 
             const channel = config?.channel ?? 'dqm.quality';
@@ -1271,7 +1271,7 @@ export function createBridgePlugin(
       ): string | null => {
         if (!iam) return null;
         try {
-          const assessment = iam.risk.assessRisk(identityId, sessionId);
+          const assessment = iam.risk.assessRisk(identityId, { sessionId });
 
           const doc = cms.repository.store({
             name: `risk-assessment-${identityId}-${Date.now()}`,
@@ -1460,7 +1460,7 @@ export function createBridgePlugin(
         if (!di || !dqm) return false;
         di.pipelines.execute(pipelineId, params ?? {}, 'bridge')
           .then((instance) => {
-            const data = instance.output ? [instance.output] : [];
+            const data = instance.metrics ? [instance.metrics] : [];
             const result = dqm.rules.evaluateAll(data, ruleIds);
 
             bus.send('dqm.quality', {
@@ -1692,7 +1692,7 @@ export function createBridgePlugin(
             const name = docName ?? `pipeline-output-${pipelineId}-${Date.now()}`;
             cms.repository.store({
               name,
-              content: JSON.stringify(instance.output ?? {}, null, 2),
+              content: JSON.stringify(instance.metrics ?? {}, null, 2),
               mimeType: 'application/json',
               path: '/di-pipeline-outputs',
               tags: ['di-pipeline-output', pipelineId],
