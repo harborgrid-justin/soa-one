@@ -163,6 +163,14 @@ export interface DashboardStats {
   successRate: number;
   errorCount: number;
   avgExecutionTimeMs: number;
+  workflows: number;
+  adapters: number;
+  templates: number;
+  pendingApprovals: number;
+  activeScheduledJobs: number;
+  simulations: number;
+  unreadNotifications: number;
+  topRuleSets: { name: string; count: number }[];
 }
 
 // ============================================================
@@ -629,6 +637,174 @@ export interface SOADashboardData {
   summary: SOAMetricsSummary;
   services: SOAServiceSummary[];
   processes: SOAProcessSummary[];
+}
+
+// ============================================================
+// V15: Identity & Access Management (IAM)
+// ============================================================
+
+export type IAMIdentityStatus = 'staged' | 'provisioned' | 'active' | 'suspended' | 'locked' | 'password-expired' | 'deprovisioned' | 'deleted';
+export type IAMIdentityType = 'user' | 'service-account' | 'machine' | 'external' | 'federated';
+
+export interface IAMIdentitySummary {
+  id: string;
+  username: string;
+  displayName: string;
+  email: string;
+  status: IAMIdentityStatus;
+  type: IAMIdentityType;
+  roleCount: number;
+  createdAt: string;
+}
+
+export interface IAMIdentity extends IAMIdentitySummary {
+  roles: string[];
+  groups: string[];
+  organizationId?: string;
+  attributes: Record<string, any>;
+  mfaEnabled: boolean;
+  lastLoginAt?: string;
+  updatedAt: string;
+}
+
+export interface IAMRole {
+  id: string;
+  name: string;
+  description?: string;
+  permissions: any[];
+  inheritsFrom: string[];
+  constraints: any[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface IAMSession {
+  id: string;
+  identityId: string;
+  status: string;
+  ipAddress?: string;
+  userAgent?: string;
+  createdAt: string;
+  expiresAt: string;
+  lastActivityAt: string;
+}
+
+export interface IAMTokenRecord {
+  id: string;
+  type: string;
+  identityId: string;
+  status: string;
+  issuedAt: string;
+  expiresAt: string;
+  scopes: string[];
+}
+
+export interface IAMIdProvider {
+  id: string;
+  name: string;
+  type: string;
+  protocol: string;
+  status: string;
+  entityId?: string;
+  createdAt: string;
+}
+
+export interface IAMCampaign {
+  id: string;
+  name: string;
+  status: string;
+  type: string;
+  startDate: string;
+  endDate: string;
+  completionPercentage: number;
+}
+
+export interface IAMSoDPolicy {
+  id: string;
+  name: string;
+  description?: string;
+  type: string;
+  severity: string;
+  enabled: boolean;
+}
+
+export interface IAMAccessRequest {
+  id: string;
+  identityId: string;
+  resource: string;
+  action?: string;
+  status: string;
+  justification?: string;
+  createdAt: string;
+}
+
+export interface IAMPAMAccount {
+  id: string;
+  name: string;
+  type: string;
+  status: string;
+  targetSystem: string;
+  lastRotatedAt?: string;
+}
+
+export interface IAMRiskAssessment {
+  id: string;
+  identityId: string;
+  overallScore: number;
+  riskLevel: string;
+  factors: any[];
+  recommendation: string;
+  assessedAt: string;
+}
+
+export interface IAMAnomaly {
+  id: string;
+  anomalyType: string;
+  identityId: string;
+  severity: string;
+  description: string;
+  detectedAt: string;
+}
+
+export interface IAMMetricsSummary {
+  totalIdentities: number;
+  activeIdentities: number;
+  suspendedIdentities: number;
+  lockedIdentities: number;
+  totalOrganizations: number;
+  totalGroups: number;
+  authenticationsTotal: number;
+  authenticationsSuccessful: number;
+  authenticationsFailed: number;
+  mfaChallengesIssued: number;
+  mfaChallengesCompleted: number;
+  activeSessions: number;
+  totalRoles: number;
+  totalPermissions: number;
+  totalPolicies: number;
+  authorizationDecisions: number;
+  authorizationDenials: number;
+  totalDirectoryEntries: number;
+  totalIdentityProviders: number;
+  totalServiceProviders: number;
+  federatedAuthenticationsTotal: number;
+  tokensIssued: number;
+  tokensRevoked: number;
+  activeTokens: number;
+  activeCertificationCampaigns: number;
+  totalSoDPolicies: number;
+  activeSoDViolations: number;
+  pendingAccessRequests: number;
+  totalPrivilegedAccounts: number;
+  activeCheckouts: number;
+  totalSessionRecordings: number;
+  averageRiskScore: number;
+  highRiskSessions: number;
+  anomaliesDetected: number;
+  activeThreatIndicators: number;
+  activeAlerts: number;
+  uptimeMs: number;
+  timestamp: string;
 }
 
 export const OPERATOR_LABELS: Record<ComparisonOperator, string> = {

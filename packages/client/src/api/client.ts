@@ -655,6 +655,70 @@ export const getSOAMaskingRules = () => api.get('/soa/security/masking-rules').t
 // SOA Metrics (Dashboard)
 export const getSOAMetrics = () => api.get('/soa/metrics').then((r) => r.data);
 
+// ============================================================
+// V15: Identity & Access Management (IAM)
+// ============================================================
+
+// IAM Identities
+export const getIAMIdentities = () => api.get('/iam/identities').then((r) => r.data);
+export const getIAMIdentity = (id: string) => api.get(`/iam/identities/${id}`).then((r) => r.data);
+export const createIAMIdentity = (data: any) => api.post('/iam/identities', data).then((r) => r.data);
+export const updateIAMIdentity = (id: string, data: any) => api.put(`/iam/identities/${id}`, data).then((r) => r.data);
+export const deleteIAMIdentity = (id: string) => api.delete(`/iam/identities/${id}`).then((r) => r.data);
+export const activateIAMIdentity = (id: string) => api.post(`/iam/identities/${id}/activate`).then((r) => r.data);
+export const suspendIAMIdentity = (id: string) => api.post(`/iam/identities/${id}/suspend`).then((r) => r.data);
+export const lockIAMIdentity = (id: string) => api.post(`/iam/identities/${id}/lock`).then((r) => r.data);
+export const unlockIAMIdentity = (id: string) => api.post(`/iam/identities/${id}/unlock`).then((r) => r.data);
+
+// IAM Roles
+export const getIAMRoles = () => api.get('/iam/roles').then((r) => r.data);
+export const getIAMRole = (id: string) => api.get(`/iam/roles/${id}`).then((r) => r.data);
+export const createIAMRole = (data: any) => api.post('/iam/roles', data).then((r) => r.data);
+export const deleteIAMRole = (id: string) => api.delete(`/iam/roles/${id}`).then((r) => r.data);
+
+// IAM Authorization
+export const checkIAMAuthorization = (data: { subjectId: string; resource: string; action: string }) =>
+  api.post('/iam/authorize', data).then((r) => r.data);
+
+// IAM Sessions
+export const getIAMSessions = () => api.get('/iam/sessions').then((r) => r.data);
+export const getIAMSession = (id: string) => api.get(`/iam/sessions/${id}`).then((r) => r.data);
+export const revokeIAMSession = (id: string) => api.post(`/iam/sessions/${id}/revoke`).then((r) => r.data);
+export const revokeIAMIdentitySessions = (identityId: string) =>
+  api.delete(`/iam/sessions/identity/${identityId}`).then((r) => r.data);
+
+// IAM Tokens
+export const issueIAMToken = (data: any) => api.post('/iam/tokens/issue', data).then((r) => r.data);
+export const validateIAMToken = (id: string) => api.get(`/iam/tokens/${id}/validate`).then((r) => r.data);
+export const revokeIAMToken = (id: string) => api.post(`/iam/tokens/${id}/revoke`).then((r) => r.data);
+
+// IAM Federation
+export const getIAMProviders = () => api.get('/iam/federation/idps').then((r) => r.data);
+export const getIAMProvider = (id: string) => api.get(`/iam/federation/idps/${id}`).then((r) => r.data);
+export const createIAMProvider = (data: any) => api.post('/iam/federation/idps', data).then((r) => r.data);
+
+// IAM Governance
+export const getIAMCampaigns = () => api.get('/iam/governance/campaigns').then((r) => r.data);
+export const createIAMCampaign = (data: any) => api.post('/iam/governance/campaigns', data).then((r) => r.data);
+export const getIAMSoDPolicies = () => api.get('/iam/governance/sod-policies').then((r) => r.data);
+export const createIAMSoDPolicy = (data: any) => api.post('/iam/governance/sod-policies', data).then((r) => r.data);
+export const getIAMAccessRequests = () => api.get('/iam/governance/access-requests').then((r) => r.data);
+export const createIAMAccessRequest = (data: any) => api.post('/iam/governance/access-requests', data).then((r) => r.data);
+
+// IAM PAM (Privileged Access Management)
+export const getIAMPAMAccounts = () => api.get('/iam/pam/accounts').then((r) => r.data);
+export const createIAMPAMAccount = (data: any) => api.post('/iam/pam/accounts', data).then((r) => r.data);
+export const checkoutIAMPAMAccount = (id: string, data?: any) => api.post(`/iam/pam/accounts/${id}/checkout`, data || {}).then((r) => r.data);
+export const checkinIAMPAMCheckout = (id: string) => api.post(`/iam/pam/checkouts/${id}/checkin`).then((r) => r.data);
+
+// IAM Risk
+export const assessIAMRisk = (data: { identityId: string; context?: any }) => api.post('/iam/risk/assess', data).then((r) => r.data);
+export const getIAMRiskAssessment = (identityId: string) => api.get(`/iam/risk/assessments/${identityId}`).then((r) => r.data);
+export const getIAMAnomalies = () => api.get('/iam/risk/anomalies').then((r) => r.data);
+
+// IAM Metrics (Dashboard)
+export const getIAMMetrics = () => api.get('/iam/metrics').then((r) => r.data);
+
 // Aliases for frontend pages
 export const getExecutionReplays = (params?: any) => api.get('/replay/executions', { params }).then((r) => r.data);
 export const getImpactHistory = (params?: any) => api.get('/impact-analysis/history', { params }).then((r) => r.data);

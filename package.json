@@ -10,18 +10,20 @@
     "packages/di",
     "packages/dqm",
     "packages/soa",
+    "packages/iam",
     "packages/server",
     "packages/client"
   ],
   "scripts": {
     "dev": "concurrently -n engine,server,client -c blue,green,magenta \"npm run dev -w @soa-one/engine\" \"npm run dev -w @soa-one/server\" \"npm run dev -w @soa-one/client\"",
-    "build": "npm run build -w @soa-one/engine && npm run build -w @soa-one/esb && npm run build -w @soa-one/cms && npm run build -w @soa-one/di && npm run build -w @soa-one/dqm && npm run build -w @soa-one/soa && npm run build -w @soa-one/server && npm run build -w @soa-one/client",
+    "build": "npm run build -w @soa-one/engine && npm run build -w @soa-one/esb && npm run build -w @soa-one/cms && npm run build -w @soa-one/di && npm run build -w @soa-one/dqm && npm run build -w @soa-one/soa && npm run build -w @soa-one/iam && npm run build -w @soa-one/server && npm run build -w @soa-one/client",
     "build:engine": "npm run build -w @soa-one/engine",
     "build:esb": "npm run build -w @soa-one/esb",
     "build:cms": "npm run build -w @soa-one/cms",
     "build:di": "npm run build -w @soa-one/di",
     "build:dqm": "npm run build -w @soa-one/dqm",
     "build:soa": "npm run build -w @soa-one/soa",
+    "build:iam": "npm run build -w @soa-one/iam",
     "build:server": "npm run build -w @soa-one/server",
     "build:client": "npm run build -w @soa-one/client",
     "db:push": "npm run db:push -w @soa-one/server",
@@ -39,6 +41,7 @@
     "clean": "rm -rf packages/*/dist packages/*/node_modules node_modules"
   },
   "devDependencies": {
+    "@types/node": "^25.2.3",
     "@typescript-eslint/eslint-plugin": "^8.55.0",
     "@typescript-eslint/parser": "^8.55.0",
     "concurrently": "^9.2.1",

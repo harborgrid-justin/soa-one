@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { GitBranch, CheckCircle, Clock } from 'lucide-react';
+import { GitBranch } from 'lucide-react';
 import { getDIPipelines } from '../api/client';
 
 export function DIPipelines() {

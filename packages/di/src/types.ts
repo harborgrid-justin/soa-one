@@ -309,6 +309,8 @@ export interface PipelineDefinition {
   parallelism?: number;
   batchSize?: number;
   checkpointIntervalMs?: number;
+  /** Whether this pipeline is enabled for execution. */
+  enabled?: boolean;
   tags?: string[];
   metadata?: Record<string, any>;
   createdBy?: string;

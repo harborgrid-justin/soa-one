@@ -55,8 +55,9 @@ router.get('/queues', (_req, res) => {
       type: q.type,
       depth: q.depth,
       deadLetterDepth: q.deadLetterDepth,
-      enqueued: stats.totalEnqueued,
-      dequeued: stats.totalDequeued,
+      enqueued: stats.enqueued,
+      dequeued: stats.dequeued,
+      acknowledged: stats.acknowledged,
     };
   });
   res.json(queues);

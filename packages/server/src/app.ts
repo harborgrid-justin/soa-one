@@ -62,6 +62,8 @@ import diRoutes from './routes/di';
 import dqmRoutes from './routes/dqm';
 // V14: SOA routes
 import soaRoutes from './routes/soa';
+// V15: IAM routes
+import iamRoutes from './routes/iam';
 import { prisma } from './prisma';
 import { openApiSpec } from './openapi';
 
@@ -211,13 +213,16 @@ export async function createApp() {
   // V14: SOA routes
   app.use('/api/v1/soa', soaRoutes);
 
+  // V15: IAM routes
+  app.use('/api/v1/iam', iamRoutes);
+
   // GraphQL
   const apollo = new ApolloServer({ typeDefs, resolvers });
   await apollo.start();
   app.use(
     '/graphql',
     expressMiddleware(apollo, {
-      context: async ({ req }: { req: AuthRequest }) => ({
+      context: async ({ req }) => ({
         prisma,
         user: req.user,
       }),

@@ -273,7 +273,7 @@ authRoutes.put('/users/:id/deactivate', requireAuth, async (req: AuthRequest, re
   if (req.user!.role !== 'admin') {
     return res.status(403).json({ error: 'Admin access required' });
   }
-  if (req.params.id === req.user!.id) {
+  if (String(req.params.id) === req.user!.id) {
     return res.status(400).json({ error: 'Cannot deactivate yourself' });
   }
 

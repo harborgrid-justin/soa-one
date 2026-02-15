@@ -3,21 +3,21 @@
 // ============================================================
 //
 // Central wiring point that makes the Engine, ESB, CMS, DI,
-// DQM, and SOA modules aware of each other. Creates singleton
-// instances, registers cross-module plugins, and manages the
-// lifecycle.
+// DQM, SOA, and IAM modules aware of each other. Creates
+// singleton instances, registers cross-module plugins, and
+// manages the lifecycle.
 //
 // Architecture:
 //   ┌────────────┐
-//   │ RuleEngine │◄── ESB + CMS + DI + DQM + SOA + Bridge Plugins
+//   │ RuleEngine │◄── ESB + CMS + DI + DQM + SOA + IAM + Bridge Plugins
 //   └────┬───────┘
 //        │
-//   ┌────┴──────────────────────────────────────┐
-//   │            │              │          │     │
-//   ▼            ▼              ▼          ▼     ▼
-// ServiceBus   CMS     DataIntegrator   DQM   SOASuite
-//   │            │              │          │     │
-//   └──── Bridge (multi-directional) ───────────┘
+//   ┌────┴──────────────────────────────────────────────┐
+//   │            │              │          │     │       │
+//   ▼            ▼              ▼          ▼     ▼       ▼
+// ServiceBus   CMS     DataIntegrator   DQM   SOASuite  IAM
+//   │            │              │          │     │       │
+//   └──── Bridge (multi-directional) ──────────────────┘
 // ============================================================
 
 import { RuleEngine } from '@soa-one/engine';
@@ -27,6 +27,7 @@ import { ContentManagementSystem, createCMSPlugin } from '@soa-one/cms';
 import { DataIntegrator, createDIPlugin } from '@soa-one/di';
 import { DataQualityMessaging, createDQMPlugin } from '@soa-one/dqm';
 import { SOASuite, createSOAPlugin } from '@soa-one/soa';
+import { IdentityAccessManager, createIAMPlugin } from '@soa-one/iam';
 import { createBridgePlugin, setupEventBridge } from './bridge';
 
 // ── Singleton Instances ─────────────────────────────────────
@@ -36,6 +37,7 @@ let _cms: ContentManagementSystem | null = null;
 let _di: DataIntegrator | null = null;
 let _dqm: DataQualityMessaging | null = null;
 let _soa: SOASuite | null = null;
+let _iam: IdentityAccessManager | null = null;
 let _engine: RuleEngine | null = null;
 let _initialized = false;
 
@@ -71,7 +73,13 @@ export function getSOA(): SOASuite {
   return _soa;
 }
 
-/** Get the shared RuleEngine with ESB + CMS + DI + DQM + SOA plugins registered. */
+/** Get the shared IdentityAccessManager instance. */
+export function getIAM(): IdentityAccessManager {
+  if (!_iam) throw new Error('Integration not initialized. Call initIntegration() first.');
+  return _iam;
+}
+
+/** Get the shared RuleEngine with ESB + CMS + DI + DQM + SOA + IAM plugins registered. */
 export function getEngine(): RuleEngine {
   if (!_engine) throw new Error('Integration not initialized. Call initIntegration() first.');
   return _engine;
@@ -85,10 +93,10 @@ export function isIntegrationReady(): boolean {
 // ── Lifecycle ───────────────────────────────────────────────
 
 /**
- * Initialize all six modules and wire them together.
+ * Initialize all seven modules and wire them together.
  *
- * 1. Creates ServiceBus, CMS, DataIntegrator, DQM, SOASuite, RuleEngine
- * 2. Registers ESB, CMS, DI, DQM, and SOA plugins with the engine
+ * 1. Creates ServiceBus, CMS, DataIntegrator, DQM, SOASuite, IAM, RuleEngine
+ * 2. Registers ESB, CMS, DI, DQM, SOA, and IAM plugins with the engine
  * 3. Registers the bridge plugin for cross-module functions
  * 4. Sets up multi-directional event forwarding between all modules
  */
@@ -131,13 +139,19 @@ export async function initIntegration(): Promise<void> {
     auditEnabled: true,
   });
 
+  _iam = new IdentityAccessManager({
+    name: 'soa-one-iam',
+    auditEnabled: true,
+  });
+
   // 2. Initialize modules
   await _bus.init();
   await _cms.init();
   await _di.init();
   await _dqm.init();
   await _soa.init();
-  console.log('[integration] ESB, CMS, DI, DQM, and SOA initialized');
+  await _iam.init();
+  console.log('[integration] ESB, CMS, DI, DQM, SOA, and IAM initialized');
 
   // 3. Create the ESB integration channels
   _bus.createChannel({ name: 'cms.events', type: 'publish-subscribe' });
@@ -156,6 +170,12 @@ export async function initIntegration(): Promise<void> {
   _bus.createChannel({ name: 'soa.cep', type: 'publish-subscribe' });
   _bus.createChannel({ name: 'soa.b2b', type: 'publish-subscribe' });
   _bus.createChannel({ name: 'soa.api', type: 'publish-subscribe' });
+  _bus.createChannel({ name: 'iam.events', type: 'publish-subscribe' });
+  _bus.createChannel({ name: 'iam.auth', type: 'publish-subscribe' });
+  _bus.createChannel({ name: 'iam.identity', type: 'publish-subscribe' });
+  _bus.createChannel({ name: 'iam.governance', type: 'publish-subscribe' });
+  _bus.createChannel({ name: 'iam.risk', type: 'publish-subscribe' });
+  _bus.createChannel({ name: 'iam.pam', type: 'publish-subscribe' });
 
   // 4. Create engine with all plugins + bridge plugin
   const plugins: EnginePlugin[] = [
@@ -164,16 +184,17 @@ export async function initIntegration(): Promise<void> {
     createDIPlugin(_di),
     createDQMPlugin(_dqm),
     createSOAPlugin(_soa),
-    createBridgePlugin(_bus, _cms, _di, _dqm, _soa),
+    createIAMPlugin(_iam),
+    createBridgePlugin(_bus, _cms, _di, _dqm, _soa, _iam),
   ];
 
   _engine = new RuleEngine({ plugins });
   await _engine.init();
-  console.log('[integration] RuleEngine initialized with ESB, CMS, DI, DQM, SOA, and Bridge plugins');
+  console.log('[integration] RuleEngine initialized with ESB, CMS, DI, DQM, SOA, IAM, and Bridge plugins');
 
   // 5. Set up multi-directional event bridge
-  setupEventBridge(_bus, _cms, _di, _dqm, _soa);
-  console.log('[integration] ESB ⇄ CMS ⇄ DI ⇄ DQM ⇄ SOA event bridge active');
+  setupEventBridge(_bus, _cms, _di, _dqm, _soa, _iam);
+  console.log('[integration] ESB ⇄ CMS ⇄ DI ⇄ DQM ⇄ SOA ⇄ IAM event bridge active');
 
   _initialized = true;
   console.log('[integration] Cross-module integration ready');
@@ -190,6 +211,11 @@ export async function shutdownIntegration(): Promise<void> {
   if (_engine) {
     await _engine.shutdown();
     _engine = null;
+  }
+
+  if (_iam) {
+    await _iam.shutdown();
+    _iam = null;
   }
 
   if (_soa) {
